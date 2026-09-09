@@ -15,13 +15,17 @@ import {
   deleteLayout,
   deleteLines,
   layouts,
+  removeIcon,
   saveLayouts,
 } from "../../state/Layouts";
+import { info } from "@tauri-apps/plugin-log";
+import { create } from "@tauri-apps/plugin-fs";
 
 function LayoutWidget() {
   const [iconIndex, setIconIndex] = createSignal(0);
   const [layoutIndex, setLayoutIndex] = createSignal(0);
   const [selecting, setSelecting] = createSignal<boolean>(false);
+  const [deletingIcon, setDeletingIcon] = createSignal(false);
   const [startIcon, setStartIcon] = createSignal<number>();
   const [iconType, setIconType] = createSignal("");
   const [iconLabel, setIconLabel] = createSignal("");
@@ -78,6 +82,13 @@ function LayoutWidget() {
   const linker = (index: number) => {
     {
       if (selecting()) {
+        if (deletingIcon()) {
+          removeIcon(layoutIndex(), index);
+          setSelecting(false);
+          setDeletingIcon(false);
+          return;
+        }
+
         if (startIcon() === undefined) {
           setStartIcon(index);
           return;
@@ -196,13 +207,27 @@ function LayoutWidget() {
                     {(l, i) => (
                       <option
                         selected={i() == layoutIndex()}
-                        onClick={() => setLayoutIndex(i())}
+                        onClick={() => {
+                          info("changed" + i());
+                          setLayoutIndex(i());
+                        }}
                       >
                         {l?.name}
                       </option>
                     )}
                   </For>
                 </select>
+                <button
+                  class="btn"
+                  onClick={() =>
+                    setLayoutIndex(
+                      (layoutIndex() + 1) %
+                        (layouts?.[tracker.zone]?.length || 1),
+                    )
+                  }
+                >
+                  Next
+                </button>
                 <input
                   type="text"
                   placeholder="Icon Label..."
@@ -339,6 +364,30 @@ function LayoutWidget() {
                   value={iconLabel()}
                   onChange={(e) => setIconLabel(e.currentTarget.value)}
                 />
+
+                <button
+                  class="btn btn-sm flex-1 hover:text-error hover:bg-error/10"
+                  onClick={() => {
+                    setSelecting(true);
+                    setDeletingIcon(true);
+                  }}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    class=""
+                  >
+                    <path d="M18 6 6 18" />
+                    <path d="m6 6 12 12" />
+                  </svg>
+                </button>
               </div>
 
               <div class="flex gap-2">

@@ -482,6 +482,7 @@ export {
   showInventory,
   showLayout,
   autoUpdate,
+  textSlider,
   textSize,
   textSizeSmall,
 };

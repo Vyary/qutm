@@ -7,7 +7,7 @@ import { passthrough } from "../../state/Passthrough";
 import { content } from "../../state/Content";
 import { character } from "../../state/Character";
 import { BaseWidget } from "./BaseWidget";
-import { RTL, textSize, textSizeSmall } from "./SettingsWidget";
+import { RTL, textSize, textSizeSmall, textSlider } from "./SettingsWidget";
 
 function ZoneWidget() {
   const [openEditor, setOpenEditor] = createSignal(false);
@@ -104,7 +104,12 @@ function ZoneWidget() {
           </Show>
         </Show>
 
-        <div class="px-5 py-3 space-y-1">
+        <div
+          class="px-5 py-3"
+          classList={{
+            "space-y-1": textSlider() > 0,
+          }}
+        >
           <For each={[towns[tracker.zone]]}>
             {() => (
               <TransitionGroup name="slide-fade">
