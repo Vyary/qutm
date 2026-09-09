@@ -8,7 +8,7 @@
     "dev": "vite",
     "build": "vite build",
     "serve": "vite preview",
-    "tauri": "WEBKIT_DISABLE_DMABUF_RENDERER=1 tauri",
+    "tauri": "tauri",
     "update": "bun update --latest && cd src-tauri && cargo update"
   },
   "license": "Apache License 2.0",

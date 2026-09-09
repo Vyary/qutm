@@ -103,6 +103,12 @@ const addIcon = (layoutIndex: number, iconType: string, iconLabel: string) => {
   );
 };
 
+const removeIcon = (layoutIndex: number, iconIndex: number) => {
+  setLayouts(
+    produce((s) => s[tracker.zone][layoutIndex]["icons"].splice(iconIndex, 1)),
+  );
+};
+
 const changeIconLocation = (
   layoutIndex: number,
   iconIndex: number,
@@ -245,6 +251,7 @@ export {
   changeLayoutName,
   changeDefaultLayout,
   addIcon,
+  removeIcon,
   changeIconLocation,
   addLine,
   deleteLines,

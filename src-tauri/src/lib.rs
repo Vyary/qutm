@@ -45,6 +45,9 @@ fn os_copy() {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+  #[cfg(target_os = "linux")]
+  std::env::set_var("__NV_DISABLE_EXPLICIT_SYNC", "1");
+
     tauri::Builder::default()
         .plugin(
             tauri_plugin_log::Builder::new()

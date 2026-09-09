@@ -83,6 +83,7 @@ async function initTrayIcon() {
           text: "Clear Progression",
           action: async () => {
             store.delete("tracker");
+            store.delete("char")
             await relaunch();
           },
         },
