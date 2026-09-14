@@ -2,7 +2,6 @@ import { createSignal, For, Show } from "solid-js";
 import { BaseWidget } from "./BaseWidget";
 import { tracker } from "../../state/Tracker";
 import { passthrough } from "../../state/Passthrough";
-import sc from "../../assets/sc.png";
 import {
   addEmptyLayout,
   addIcon,
@@ -67,6 +66,15 @@ function LayoutWidget() {
     "tawhoa test",
     "tasalio test",
     "ngamahu test",
+    "ascendancy altar",
+    "vaal beacon",
+    "spirit",
+    "essence",
+    "expedition",
+    "seven",
+    "strongbox",
+    "megalith",
+    "dark omen",
   ];
   let containerRef!: HTMLDivElement;
 
@@ -110,6 +118,7 @@ function LayoutWidget() {
   };
 
   return (
+    // <Show when={layouts[tracker.zone]}>
     <BaseWidget
       name="layout"
       defaultPos={{ x: 1375, y: 5 }}
@@ -137,7 +146,7 @@ function LayoutWidget() {
           >
             <img
               // src={layouts?.[tracker.zone]?.[layoutIndex()]?.image}
-              src={sc}
+              src=""
               draggable={false}
               class="w-full h-full opacity-0"
             />
@@ -435,6 +444,7 @@ function LayoutWidget() {
         </div>
       </Show>
     </BaseWidget>
+    // </Show>
   );
 }
 
