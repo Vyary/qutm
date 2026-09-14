@@ -211,7 +211,7 @@ function SettingsWidget() {
                 await store.set("showSw", isEnabled);
                 await store.save();
               }}
-              class="toggle toggle-sm"
+              class="toggle toggle-sm toggle-success"
             />
           </div>
 
@@ -345,7 +345,7 @@ function SettingsWidget() {
                 await store.set("showInventory", isEnabled);
                 await store.save();
               }}
-              class="toggle toggle-sm"
+              class="toggle toggle-sm toggle-success"
             />
           </div>
 
@@ -375,7 +375,7 @@ function SettingsWidget() {
                 await store.set("RTL", isEnabled);
                 await store.save();
               }}
-              class="toggle toggle-sm"
+              class="toggle toggle-sm toggle-success"
             />
           </div>
 
@@ -405,7 +405,7 @@ function SettingsWidget() {
                 await store.set("showLayout", isEnabled);
                 await store.save();
               }}
-              class="toggle toggle-sm"
+              class="toggle toggle-sm toggle-success"
             />
           </div>
         </div>
@@ -454,7 +454,7 @@ function SettingsWidget() {
               await store.set("autoUpdate", isEnabled);
               await store.save();
             }}
-            class="toggle toggle-sm"
+            class="toggle toggle-sm toggle-success"
           />
         </div>
         <button

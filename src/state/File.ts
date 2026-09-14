@@ -23,7 +23,7 @@ const startTailing = async () => {
     try {
       const line = event.payload as string;
 
-      info("\n ➡️" + line.split(": "));
+      // info("\n ➡️" + line.split(": "));
 
       if (
         line.includes("[STARTUP] Loading Start") ||
