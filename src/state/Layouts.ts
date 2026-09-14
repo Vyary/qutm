@@ -179,7 +179,6 @@ const deleteLayout = (index: number) => {
 const saveLayouts = async () => {
   await store.set("layouts", layouts);
   await store.save();
-  localStorage.setItem("layouts", JSON.stringify(layouts));
 };
 
 const loadLayouts = async () => {
