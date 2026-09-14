@@ -19,7 +19,6 @@ import {
   saveLayouts,
 } from "../../state/Layouts";
 import { info } from "@tauri-apps/plugin-log";
-import { create } from "@tauri-apps/plugin-fs";
 
 function LayoutWidget() {
   const [iconIndex, setIconIndex] = createSignal(0);
@@ -59,6 +58,15 @@ function LayoutWidget() {
     "stone altar",
     "generator",
     "incursion vault",
+    "corpse",
+    "rare monster",
+    "chapel",
+    "kaom trial",
+    "rakiata trial",
+    "maata trial",
+    "tawhoa test",
+    "tasalio test",
+    "ngamahu test",
   ];
   let containerRef!: HTMLDivElement;
 
