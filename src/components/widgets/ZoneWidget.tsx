@@ -7,7 +7,13 @@ import { passthrough } from "../../state/Passthrough";
 import { content } from "../../state/Content";
 import { character } from "../../state/Character";
 import { BaseWidget } from "./BaseWidget";
-import { RTL, textSize, textSizeSmall, textSlider } from "./SettingsWidget";
+import {
+  dev,
+  RTL,
+  textSize,
+  textSizeSmall,
+  textSlider,
+} from "./SettingsWidget";
 
 function ZoneWidget() {
   const [openEditor, setOpenEditor] = createSignal(false);
@@ -135,7 +141,7 @@ function ZoneWidget() {
           </For>
         </div>
 
-        <Show when={!passthrough()}>
+        <Show when={!passthrough() && dev()}>
           <div
             class="absolute top-1 h-5 w-1 cursor-pointer p-1 text-base-content/50 hover:text-base-content transition-colors"
             classList={{

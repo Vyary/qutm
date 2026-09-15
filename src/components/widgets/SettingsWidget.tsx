@@ -28,8 +28,9 @@ const textSizeSmall = () =>
 const [showSw, setShowSw] = createSignal(false);
 const [showInventory, setShowInventory] = createSignal(false);
 const [RTL, setRTL] = createSignal(false);
-const [showLayout, setShowLayout] = createSignal(false);
+const [showLayout, setShowLayout] = createSignal(true);
 const [autoUpdate, setAutoUpdate] = createSignal(true);
+const [dev, setDev] = createSignal(false);
 
 function SettingsWidget() {
   const [PtScErr, setPtScErr] = createSignal(false);
@@ -43,6 +44,7 @@ function SettingsWidget() {
     setTextSlider((await store.get("textSize")) ?? textSlider());
     setShowInventory((await store.get("showInventory")) ?? showInventory());
     setShowLayout((await store.get("showLayout")) ?? showLayout());
+    setDev((await store.get("dev")) ?? dev());
   });
 
   return (
@@ -432,6 +434,30 @@ function SettingsWidget() {
         </div>
 
         <div class="divider my-0 opacity-50"></div>
+        <div class="flex items-center justify-between">
+          <span
+            class="cursor-pointer text-sm"
+            onClick={async () => {
+              const isEnabled = !dev();
+              setDev(isEnabled);
+              await store.set("dev", isEnabled);
+              await store.save();
+            }}
+          >
+            Dev Options
+          </span>
+          <input
+            type="checkbox"
+            checked={dev()}
+            onClick={async () => {
+              const isEnabled = !dev();
+              setDev(isEnabled);
+              await store.set("dev", isEnabled);
+              await store.save();
+            }}
+            class="toggle toggle-sm toggle-success"
+          />
+        </div>
 
         <div class="flex items-center justify-between">
           <span
@@ -480,6 +506,7 @@ export {
   RTL,
   showSw,
   showInventory,
+  dev,
   showLayout,
   autoUpdate,
   textSlider,
