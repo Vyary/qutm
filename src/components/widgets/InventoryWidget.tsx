@@ -45,7 +45,7 @@ const fetchOverview = async () => {
 
   for (const cat of currencyCategories) {
     const response = await fetch(
-      `https://poe.ninja/poe2/api/economy/exchange/current/overview?league=Runes+of+Aldur&type=${cat}`,
+      `https://poe.ninja/poe2/api/economy/exchange/current/overview?league=Forbidden+Rites&type=${cat}`,
       {
         method: "GET",
       },
@@ -135,7 +135,7 @@ function InventoryWidget(props: { shortcut: string }) {
     const dItem = ItemsRecord[sItem.name];
     dItem.quantity = sItem.quantity;
     const details = await fetchItemData(
-      "Runes+of+Aldur",
+      "Forbidden+Rites",
       dItem.category,
       dItem.detailsId,
     );
