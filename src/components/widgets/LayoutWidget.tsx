@@ -219,7 +219,7 @@ function LayoutWidget() {
               </For>
             </div>
 
-            <Show when={!passthrough()}>
+            <Show when={!passthrough() && dev()}>
               <div class="flex flex-col gap-2 pt-1 border-t border-base-content/10 max-w-60">
                 <div class="inline-flex items-center justify-center gap-2">
                   <select class="select select-sm select-bordered w-full bg-base-200">
