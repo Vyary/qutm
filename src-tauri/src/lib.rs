@@ -1,12 +1,21 @@
-use enigo::{
-    Direction::{Click, Press, Release},
-    Enigo, Key, Keyboard, Settings,
-};
+use std::thread;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tauri::{Emitter, Window};
 use tauri_plugin_log::log::info;
 use tokio::fs::File;
 use tokio::io::{AsyncBufReadExt, AsyncSeekExt, BufReader, SeekFrom};
+
+// --- LINUX SPECIFIC IMPORTS ---
+#[cfg(target_os = "linux")]
+use evdev::{uinput::VirtualDevice, AttributeSet, KeyCode, InputId, InputEvent, EventType};
+
+// --- NON-LINUX SPECIFIC IMPORTS ---
+#[cfg(not(target_os = "linux"))]
+use enigo::{
+    Direction::{Press, Release},
+    Enigo, Keyboard, Key as EnigoKey, Settings,
+};
+
 
 #[tauri::command]
 async fn tail_file(window: Window, file_path: String) -> Result<(), String> {
@@ -35,12 +44,59 @@ async fn tail_file(window: Window, file_path: String) -> Result<(), String> {
     }
 }
 
+
+
+
 #[tauri::command]
-fn os_copy() {
-    let mut enigo = Enigo::new(&Settings::default()).unwrap();
-    let _ = enigo.key(Key::Control, Press);
-    let _ = enigo.key(Key::Unicode('c'), Click);
-    let _ = enigo.key(Key::Control, Release);
+fn os_copy() -> Result<(), String> {
+    // --- LINUX IMPLEMENTATION (Wayland/Gamescope Compatible) ---
+    #[cfg(target_os = "linux")]
+    {
+        let mut keys = AttributeSet::<KeyCode>::new();
+        keys.insert(KeyCode::KEY_LEFTCTRL);
+        keys.insert(KeyCode::KEY_C);
+
+        let mut device = VirtualDevice::builder()
+            .map_err(|e| e.to_string())?
+            .name("CachyOS Tauri Virtual Input")
+            .input_id(InputId::new(evdev::BusType::BUS_USB, 0x1234, 0x5678, 0x01))
+            .with_keys(&keys)
+            .map_err(|e| e.to_string())?
+            .build()
+            .map_err(|e| e.to_string())?;
+
+        // Allow kernel to initialize the device node
+        thread::sleep(Duration::from_millis(100));
+
+        let key_type = EventType::KEY.0;
+
+        // Press Ctrl + C (Value 1 = Down)
+        device.emit(&[
+            InputEvent::new(key_type, KeyCode::KEY_LEFTCTRL.code(), 1),
+            InputEvent::new(key_type, KeyCode::KEY_C.code(), 1),
+        ]).map_err(|e| e.to_string())?;
+        
+        // Polling delay for the game engine
+        thread::sleep(Duration::from_millis(30)); 
+
+        // Release Ctrl + C (Value 0 = Up)
+        device.emit(&[
+            InputEvent::new(key_type, KeyCode::KEY_C.code(), 0),
+            InputEvent::new(key_type, KeyCode::KEY_LEFTCTRL.code(), 0),
+        ]).map_err(|e| e.to_string())?;
+    }
+
+    // --- NON-LINUX IMPLEMENTATION (Windows / macOS via Enigo) ---
+    #[cfg(not(target_os = "linux"))]
+    {
+        let mut enigo = Enigo::new(&Settings::default()).map_err(|e| e.to_string())?;
+        let _ = enigo.key(EnigoKey::Control, Press);
+        let _ = enigo.key(EnigoKey::Unicode('c'), Press); 
+        let _ = enigo.key(EnigoKey::Unicode('c'), Release);
+        let _ = enigo.key(EnigoKey::Control, Release);
+    }
+
+    Ok(())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
