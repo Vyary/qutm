@@ -66,7 +66,7 @@ fn os_copy() -> Result<(), String> {
             .map_err(|e| e.to_string())?;
 
         // Allow kernel to initialize the device node
-        thread::sleep(Duration::from_millis(100));
+        thread::sleep(Duration::from_millis(150));
 
         let key_type = EventType::KEY.0;
 
@@ -77,7 +77,7 @@ fn os_copy() -> Result<(), String> {
         ]).map_err(|e| e.to_string())?;
         
         // Polling delay for the game engine
-        thread::sleep(Duration::from_millis(30)); 
+        thread::sleep(Duration::from_millis(50)); 
 
         // Release Ctrl + C (Value 0 = Up)
         device.emit(&[
@@ -93,6 +93,7 @@ fn os_copy() -> Result<(), String> {
         let _ = enigo.key(EnigoKey::Control, Press);
         let _ = enigo.key(EnigoKey::Unicode('c'), Press); 
         let _ = enigo.key(EnigoKey::Unicode('c'), Release);
+        thread::sleep(Duration::from_millis(150));
         let _ = enigo.key(EnigoKey::Control, Release);
     }
 
