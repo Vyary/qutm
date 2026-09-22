@@ -2,9 +2,9 @@ import { open } from "@tauri-apps/plugin-dialog";
 import { save } from "@tauri-apps/plugin-dialog";
 import { readTextFile, writeTextFile } from "@tauri-apps/plugin-fs";
 import { createStore, produce, reconcile } from "solid-js/store";
-import { store } from "./Store";
+import { store } from "@/lib/Store";
 import { error, info } from "@tauri-apps/plugin-log";
-import guideQuotesjson from "../assets/guide.json";
+import guideQuotesjson from "@/assets/guide.json";
 
 export interface Guide {
   prev?: string;

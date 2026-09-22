@@ -1,7 +1,8 @@
 import { createSignal, JSX, onCleanup, onMount, Show } from "solid-js";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { passthrough } from "../../state/Passthrough";
-import { store } from "../../state/Store";
+import { info } from "@tauri-apps/plugin-log";
+import { store } from "@/lib/Store";
+import { passthrough } from "@/lib/Passthrough";
 
 function BaseWidget(props: {
   name: string;
@@ -87,6 +88,7 @@ function BaseWidget(props: {
 
   onMount(async () => {
     loadState(props.name);
+    info("loaded widget: " + props.name);
 
     const unlisten = await getCurrentWindow().onCloseRequested(async () => {
       cleanUp(props.name);
@@ -110,7 +112,7 @@ function BaseWidget(props: {
           <div class="cursor-move h-1 select-none" onMouseDown={onDown}></div>
         </Show>
 
-        <div class="min-h-0 overflow-x-auto flex-1 max-h-200">
+        <div class="min-h-0 overflow-x-auto flex-1 max-h-230">
           {props.children}
         </div>
 

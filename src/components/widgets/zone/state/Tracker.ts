@@ -1,6 +1,5 @@
 import { createStore, produce, reconcile } from "solid-js/store";
-import { store } from "./Store";
-import { info } from "@tauri-apps/plugin-log";
+import { store } from "@/lib/Store";
 
 interface Tracker {
   zone: string;

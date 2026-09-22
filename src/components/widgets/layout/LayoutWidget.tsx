@@ -1,7 +1,4 @@
-import { createSignal, For, Show } from "solid-js";
-import { BaseWidget } from "./BaseWidget";
-import { tracker } from "../../state/Tracker";
-import { passthrough } from "../../state/Passthrough";
+import { createSignal, For, onCleanup, onMount, Show } from "solid-js";
 import {
   addEmptyLayout,
   addIcon,
@@ -14,11 +11,16 @@ import {
   deleteLayout,
   deleteLines,
   layouts,
+  layoutZone,
+  loadLayouts,
   removeIcon,
   saveLayouts,
-} from "../../state/Layouts";
-import { info } from "@tauri-apps/plugin-log";
-import { dev } from "./SettingsWidget";
+} from "./LayoutsState";
+import { error, info } from "@tauri-apps/plugin-log";
+import { getCurrentWindow } from "@tauri-apps/api/window";
+import { passthrough } from "@/lib/Passthrough";
+import { dev } from "../settings/SettingsWidget";
+import { BaseWidget } from "../BaseWidget";
 
 function LayoutWidget() {
   const [iconIndex, setIconIndex] = createSignal(0);
@@ -118,8 +120,29 @@ function LayoutWidget() {
     }
   };
 
+  onMount(async () => {
+    loadLayouts();
+
+    await getCurrentWindow().onCloseRequested(async (e) => {
+      e.preventDefault();
+
+      info("saving layouts state");
+
+      try {
+        await saveLayouts();
+      } catch (e) {
+        error(`Failed to save data before closing: ${e}`);
+      }
+    });
+  });
+
+  onCleanup(async () => {
+    info("saving layouts state");
+    await saveLayouts();
+  });
+
   return (
-    <Show when={layouts[tracker.zone] || dev()}>
+    <Show when={layouts[layoutZone()] || dev()}>
       <BaseWidget
         name="layout"
         defaultPos={{ x: 1375, y: 5 }}
@@ -128,12 +151,12 @@ function LayoutWidget() {
         transparencySlider={true}
       >
         <Show
-          when={layouts[tracker.zone]}
+          when={layouts[layoutZone()]}
           fallback={
-            <Show when={tracker.zone !== ""}>
+            <Show when={layoutZone() !== ""}>
               <div
                 class="flex items-center px-5 py-8 justify-center text-sm text-base-content/50 cursor-pointer hover:text-base-content/70 transition-colors"
-                onClick={() => addLayout(tracker.zone)}
+                onClick={() => addLayout()}
               >
                 No Zone Layout — click to add
               </div>
@@ -146,7 +169,7 @@ function LayoutWidget() {
               class="relative w-60 h-60 mx-auto rounded-lg overflow-hidden"
             >
               <img
-                // src={layouts?.[tracker.zone]?.[layoutIndex()]?.image}
+                // src={layouts?.[layoutZone()]?.[layoutIndex()]?.image}
                 src=""
                 draggable={false}
                 class="w-full h-full opacity-0"
@@ -157,14 +180,14 @@ function LayoutWidget() {
                 viewBox="0 0 100 100"
                 preserveAspectRatio="none"
               >
-                <For each={layouts?.[tracker.zone]?.[layoutIndex()]?.lines}>
+                <For each={layouts?.[layoutZone()]?.[layoutIndex()]?.lines}>
                   {(line) => {
                     const from = () =>
-                      layouts[tracker.zone]?.[layoutIndex()].icons[
+                      layouts[layoutZone()]?.[layoutIndex()].icons[
                         line.fromIconId
                       ];
                     const to = () =>
-                      layouts[tracker.zone]?.[layoutIndex()].icons[
+                      layouts[layoutZone()]?.[layoutIndex()].icons[
                         line.toIconId
                       ];
                     return (
@@ -184,7 +207,7 @@ function LayoutWidget() {
                 </For>
               </svg>
 
-              <For each={layouts?.[tracker.zone]?.[layoutIndex()]?.icons}>
+              <For each={layouts?.[layoutZone()]?.[layoutIndex()]?.icons}>
                 {(icon, i) => (
                   <div
                     class="absolute flex flex-col items-center pointer-events-none"
@@ -202,8 +225,10 @@ function LayoutWidget() {
 
                     <img
                       src={
-                        new URL(`../../assets/${icon.id}.webp`, import.meta.url)
-                          .href
+                        new URL(
+                          `../../../assets/${icon.id}.webp`,
+                          import.meta.url,
+                        ).href
                       }
                       class="w-5 h-5 drop-shadow-md pointer-events-auto"
                       classList={{
@@ -223,7 +248,7 @@ function LayoutWidget() {
               <div class="flex flex-col gap-2 pt-1 border-t border-base-content/10 max-w-60">
                 <div class="inline-flex items-center justify-center gap-2">
                   <select class="select select-sm select-bordered w-full bg-base-200">
-                    <For each={layouts?.[tracker.zone]}>
+                    <For each={layouts?.[layoutZone()]}>
                       {(l, i) => (
                         <option
                           selected={i() == layoutIndex()}
@@ -242,7 +267,7 @@ function LayoutWidget() {
                     onClick={() =>
                       setLayoutIndex(
                         (layoutIndex() + 1) %
-                          (layouts?.[tracker.zone]?.length || 1),
+                          (layouts?.[layoutZone()]?.length || 1),
                       )
                     }
                   >
@@ -252,7 +277,7 @@ function LayoutWidget() {
                     type="text"
                     placeholder="Icon Label..."
                     class="input input-sm input-bordered w-full bg-base-200"
-                    value={layouts?.[tracker.zone][layoutIndex()]?.name}
+                    value={layouts?.[layoutZone()][layoutIndex()]?.name}
                     onChange={(e) =>
                       changeLayoutName(layoutIndex(), e.currentTarget.value)
                     }
@@ -293,7 +318,7 @@ function LayoutWidget() {
                     class="btn btn-sm flex-1 hover:text-success hover:bg-success/10"
                     onClick={() => {
                       copyLayout(layoutIndex());
-                      setLayoutIndex(layouts?.[tracker.zone]?.length - 1);
+                      setLayoutIndex(layouts?.[layoutZone()]?.length - 1);
                     }}
                   >
                     <svg
@@ -316,7 +341,7 @@ function LayoutWidget() {
                     class="btn btn-sm flex-1 hover:text-success hover:bg-success/10"
                     onClick={() => {
                       addEmptyLayout();
-                      setLayoutIndex(layouts?.[tracker.zone]?.length - 1);
+                      setLayoutIndex(layouts?.[layoutZone()]?.length - 1);
                     }}
                   >
                     <svg

@@ -2,13 +2,19 @@ import { TrayIcon } from "@tauri-apps/api/tray";
 import { Menu, PredefinedMenuItem, Submenu } from "@tauri-apps/api/menu";
 import { relaunch } from "@tauri-apps/plugin-process";
 import { defaultWindowIcon } from "@tauri-apps/api/app";
-import { getAllWindows, getCurrentWindow } from "@tauri-apps/api/window";
-import { togglePassthrough } from "../state/Passthrough";
-import { exportGuide, importGuide } from "../state/Guide";
-import { store } from "../state/Store";
-import { exportLayouts, importLayouts } from "../state/Layouts";
-import { exportTowns } from "../state/Towns";
-import { info } from "@tauri-apps/plugin-log";
+import { getAllWindows } from "@tauri-apps/api/window";
+import { disblePassthrough, togglePassthrough } from "./Passthrough";
+import { store } from "./Store";
+import {
+  exportGuide,
+  importGuide,
+} from "@/components/widgets/zone/state/Guide";
+import {
+  exportLayouts,
+  importLayouts,
+} from "@/components/widgets/layout/LayoutsState";
+import { exportTowns } from "@/components/widgets/zone/state/Towns";
+import { setShowSettings } from "@/components/widgets/settings/SettingsSettings";
 
 async function initTrayIcon() {
   try {
@@ -73,7 +79,10 @@ async function initTrayIcon() {
         {
           id: "settings",
           text: "Settings",
-          action: async () => togglePassthrough(),
+          action: async () => {
+            setShowSettings(true);
+            disblePassthrough();
+          },
         },
         sep,
         exportImportSubmenu,
@@ -83,7 +92,7 @@ async function initTrayIcon() {
           text: "Clear Progression",
           action: async () => {
             store.delete("tracker");
-            store.delete("char")
+            store.delete("char");
             await relaunch();
           },
         },

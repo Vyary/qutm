@@ -2,21 +2,32 @@ import { open } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { createSignal } from "solid-js";
-import { setFlag, setZone, setZoneLevel, tracker } from "./Tracker";
-import { addTown, quotes } from "./Guide";
+import {
+  setFlag,
+  setZone,
+  setZoneLevel,
+  tracker,
+} from "@/components/widgets/zone/state/Tracker";
+import { addTown, quotes } from "@/components/widgets/zone/state/Guide";
 import {
   character,
   updateCharacterClass,
   setCharacterName,
   updateCharacterLevel,
-} from "./Character";
-import { store } from "./Store";
+} from "@/components/widgets/zone/state/Character";
 import { error, info } from "@tauri-apps/plugin-log";
+import { store } from "./Store";
 import { togglePassthrough } from "./Passthrough";
+import { setLayoutZone } from "@/components/widgets/layout/LayoutsState";
 
 const [filePath, setFilePath] = createSignal("");
 const [watching, setWatching] = createSignal(false);
 const [showOverlay, setShowOverlay] = createSignal(false);
+
+const updateZone = (zone: string) => {
+  setZone(zone);
+  setLayoutZone(zone);
+};
 
 const startTailing = async () => {
   await listen("tail-line", (event) => {
@@ -53,7 +64,7 @@ const startTailing = async () => {
 
           if (!zone.toLowerCase().includes("hideout")) {
             // addLayout(zone);
-            setZone(zone);
+            updateZone(zone);
             setZoneLevel(Number(level));
             addTown(zone);
           }
@@ -165,4 +176,5 @@ export {
   startTailing,
   selectFile,
   showOverlay,
+  updateZone,
 };
