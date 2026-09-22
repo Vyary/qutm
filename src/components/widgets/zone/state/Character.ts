@@ -1,5 +1,5 @@
+import { store } from "@/lib/Store";
 import { createStore, reconcile } from "solid-js/store";
-import { store } from "./Store";
 
 interface Character {
   name: string;

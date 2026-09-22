@@ -2,14 +2,19 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { register, unregister } from "@tauri-apps/plugin-global-shortcut";
 import { createSignal } from "solid-js";
 import { createStore } from "solid-js/store";
-import { store } from "./Store";
 import { error } from "@tauri-apps/plugin-log";
+import { store } from "./Store";
 
 const [passthrough, setPassthrough] = createSignal(false);
 
 const enablePassthrough = () => {
   setPassthrough(true);
   getCurrentWindow().setIgnoreCursorEvents(true);
+};
+
+const disblePassthrough = () => {
+  setPassthrough(false);
+  getCurrentWindow().setIgnoreCursorEvents(false);
 };
 
 const togglePassthrough = () => {
@@ -74,6 +79,7 @@ export {
   passthrough,
   setPassthrough,
   enablePassthrough,
+  disblePassthrough,
   togglePassthrough,
   PtSc,
   registerPasstroughShortcut,

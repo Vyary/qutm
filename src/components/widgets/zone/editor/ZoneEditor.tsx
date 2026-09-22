@@ -15,11 +15,12 @@ import {
   moveTaskDown,
   moveTaskUp,
   removeTask,
-} from "../../state/Guide";
-import { setZone, tracker } from "../../state/Tracker";
-import { towns } from "../../state/Towns";
-import ConfirmModal from "../ConfirmModal";
-import { BaseWidget } from "./BaseWidget";
+} from "../state/Guide";
+import ConfirmModal from "./ConfirmModal";
+import { updateZone } from "@/lib/File";
+import { towns } from "../state/Towns";
+import { tracker } from "../state/Tracker";
+import { BaseWidget } from "../../BaseWidget";
 
 function ZoneEditor() {
   return (
@@ -46,7 +47,7 @@ function ZoneEditor() {
               list="towns"
               placeholder="Select Zone..."
               class="input input-sm input-bordered w-full max-w-xs"
-              onChange={(e) => setZone(e.currentTarget.value)}
+              onChange={(e) => updateZone(e.currentTarget.value)}
             />
 
             <datalist id="towns">

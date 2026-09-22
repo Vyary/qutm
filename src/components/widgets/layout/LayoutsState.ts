@@ -3,9 +3,9 @@ import { open } from "@tauri-apps/plugin-dialog";
 import { save } from "@tauri-apps/plugin-dialog";
 import { error, info } from "@tauri-apps/plugin-log";
 import { readTextFile, writeTextFile } from "@tauri-apps/plugin-fs";
-import { tracker } from "./Tracker";
-import layoutsjson from "../assets/layouts.json";
-import { store } from "./Store";
+import layoutsjson from "@/assets/layouts.json";
+import { store } from "@/lib/Store";
+import { createSignal } from "solid-js";
 
 type LayoutIcon = {
   id: string;
@@ -27,10 +27,11 @@ type ZoneLayout = {
 };
 
 const [layouts, setLayouts] = createStore<Record<string, ZoneLayout[]>>();
+const [layoutZone, setLayoutZone] = createSignal("");
 
-const addLayout = (zone: string) => {
-  if (!layouts[zone]) {
-    setLayouts(zone, [
+const addLayout = () => {
+  if (!layouts[layoutZone()]) {
+    setLayouts(layoutZone(), [
       {
         name: "1",
         image: "",
@@ -45,8 +46,8 @@ const addEmptyLayout = () => {
   setLayouts(
     produce(
       (s) =>
-        (s[tracker.zone] = [
-          ...s[tracker.zone],
+        (s[layoutZone()] = [
+          ...s[layoutZone()],
           {
             name: "1",
             image: "",
@@ -62,9 +63,9 @@ const copyLayout = (layoutIndex: number) => {
   setLayouts(
     produce(
       (s) =>
-        (s[tracker.zone] = [
-          ...s[tracker.zone],
-          JSON.parse(JSON.stringify(s[tracker.zone][layoutIndex])),
+        (s[layoutZone()] = [
+          ...s[layoutZone()],
+          JSON.parse(JSON.stringify(s[layoutZone()][layoutIndex])),
         ]),
     ),
   );
@@ -73,7 +74,7 @@ const copyLayout = (layoutIndex: number) => {
 const changeLayoutName = (layoutIndex: number, name: string) => {
   setLayouts(
     produce((s) => {
-      s[tracker.zone][layoutIndex].name = name;
+      s[layoutZone()][layoutIndex].name = name;
     }),
   );
 };
@@ -81,9 +82,9 @@ const changeLayoutName = (layoutIndex: number, name: string) => {
 const changeDefaultLayout = (layoutIndex: number) => {
   setLayouts(
     produce((s) => {
-      [s[tracker.zone][layoutIndex], s[tracker.zone][0]] = [
-        s[tracker.zone][0],
-        s[tracker.zone][layoutIndex],
+      [s[layoutZone()][layoutIndex], s[layoutZone()][0]] = [
+        s[layoutZone()][0],
+        s[layoutZone()][layoutIndex],
       ];
     }),
   );
@@ -95,8 +96,8 @@ const addIcon = (layoutIndex: number, iconType: string, iconLabel: string) => {
   setLayouts(
     produce(
       (s) =>
-        (s[tracker.zone][layoutIndex]["icons"] = [
-          ...s[tracker.zone][layoutIndex]["icons"],
+        (s[layoutZone()][layoutIndex]["icons"] = [
+          ...s[layoutZone()][layoutIndex]["icons"],
           { id: iconType, label: iconLabel, x: 0.5, y: 0.5 },
         ]),
     ),
@@ -105,7 +106,7 @@ const addIcon = (layoutIndex: number, iconType: string, iconLabel: string) => {
 
 const removeIcon = (layoutIndex: number, iconIndex: number) => {
   setLayouts(
-    produce((s) => s[tracker.zone][layoutIndex]["icons"].splice(iconIndex, 1)),
+    produce((s) => s[layoutZone()][layoutIndex]["icons"].splice(iconIndex, 1)),
   );
 };
 
@@ -124,8 +125,8 @@ const changeIconLocation = (
     Math.min(1, (e.clientY - rect.top) / rect.height),
   );
 
-  setLayouts(tracker.zone, layoutIndex, "icons", iconIndex, "x", xPercent);
-  setLayouts(tracker.zone, layoutIndex, "icons", iconIndex, "y", yPercent);
+  setLayouts(layoutZone(), layoutIndex, "icons", iconIndex, "x", xPercent);
+  setLayouts(layoutZone(), layoutIndex, "icons", iconIndex, "y", yPercent);
 };
 
 const addLine = (
@@ -138,8 +139,8 @@ const addLine = (
   setLayouts(
     produce(
       (s) =>
-        (s[tracker.zone][layoutIndex]["lines"] = [
-          ...s[tracker.zone][layoutIndex]["lines"],
+        (s[layoutZone()][layoutIndex]["lines"] = [
+          ...s[layoutZone()][layoutIndex]["lines"],
           { fromIconId: start, toIconId: end },
         ]),
     ),
@@ -149,7 +150,7 @@ const addLine = (
 const deleteLines = (layoutIndex: number) => {
   setLayouts(
     produce((s) => {
-      s[tracker.zone][layoutIndex]["lines"] = [];
+      s[layoutZone()][layoutIndex]["lines"] = [];
     }),
   );
 };
@@ -157,13 +158,13 @@ const deleteLines = (layoutIndex: number) => {
 const deleteLayout = (index: number) => {
   setLayouts(
     produce((s) => {
-      const filtered = s[tracker.zone].filter((_, i) => i !== index);
+      const filtered = s[layoutZone()].filter((_, i) => i !== index);
       if (filtered.length > 0) {
-        s[tracker.zone] = filtered;
+        s[layoutZone()] = filtered;
       }
 
       if (filtered.length === 0) {
-        s[tracker.zone] = [
+        s[layoutZone()] = [
           {
             name: "1",
             image: "",
@@ -178,6 +179,7 @@ const deleteLayout = (index: number) => {
 
 const saveLayouts = async () => {
   await store.set("layouts", layouts);
+  await store.set("layoutsZone", layoutZone());
   await store.save();
 };
 
@@ -188,6 +190,9 @@ const loadLayouts = async () => {
     setLayouts(reconcile(layoutsjson));
     saveLayouts();
   }
+
+  const lz = await store.get<string>("layoutsZone");
+  if (lz) setLayoutZone(lz);
 };
 
 const exportLayouts = async () => {
@@ -259,4 +264,6 @@ export {
   loadLayouts,
   exportLayouts,
   importLayouts,
+  layoutZone,
+  setLayoutZone,
 };

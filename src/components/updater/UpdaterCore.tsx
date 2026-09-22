@@ -2,7 +2,7 @@ import { check } from "@tauri-apps/plugin-updater";
 import { relaunch } from "@tauri-apps/plugin-process";
 import { createSignal, onMount, Show } from "solid-js";
 
-function Updater() {
+function UpdaterCore() {
   const [isUpdating, setIsUpdating] = createSignal(false);
   const [updateStatus, setUpdateStatus] = createSignal("");
   const [downloaded, setDownloaded] = createSignal(0);
@@ -53,4 +53,4 @@ function Updater() {
   );
 }
 
-export default Updater;
+export { UpdaterCore };

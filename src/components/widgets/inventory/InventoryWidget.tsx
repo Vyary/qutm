@@ -1,12 +1,12 @@
 import { invoke } from "@tauri-apps/api/core";
 import { readText } from "@tauri-apps/plugin-clipboard-manager";
 import { register, unregister } from "@tauri-apps/plugin-global-shortcut";
-import { createSignal, For, onCleanup, onMount, Show } from "solid-js";
+import { For, onCleanup, onMount, Show } from "solid-js";
 import { fetch } from "@tauri-apps/plugin-http";
-import { BaseWidget } from "./BaseWidget.tsx";
 import { createStore, reconcile } from "solid-js/store";
-import { store } from "../../state/Store.ts";
 import { error, info } from "@tauri-apps/plugin-log";
+import { store } from "@/lib/Store";
+import { BaseWidget } from "../BaseWidget";
 
 interface ItemInfo {
   id: string;
@@ -207,8 +207,10 @@ function InventoryWidget(props: { shortcut: string }) {
     if (
       Date.now() - ((await store.get<number>("timestamp")) ?? TWELVE_HOURS) >=
       TWELVE_HOURS
-    )
+    ) {
       refreshOverview();
+      return;
+    }
     const overviews = await store.get<ExchangePrices>("overviews");
     if (overviews) setOverviews(reconcile(overviews));
     if (!overviews) {
@@ -285,4 +287,4 @@ function InventoryWidget(props: { shortcut: string }) {
   );
 }
 
-export { InventoryWidget as Inventory };
+export { InventoryWidget };

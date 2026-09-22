@@ -1,19 +1,29 @@
-import { createMemo, createSignal, For, Show } from "solid-js";
+import {
+  createMemo,
+  createSignal,
+  For,
+  onCleanup,
+  onMount,
+  Show,
+} from "solid-js";
 import { TransitionGroup } from "solid-transition-group";
-import { tracker } from "../../state/Tracker";
-import { towns } from "../../state/Towns";
-import { ZoneEditor } from "./ZoneEditor";
-import { passthrough } from "../../state/Passthrough";
-import { content } from "../../state/Content";
-import { character } from "../../state/Character";
-import { BaseWidget } from "./BaseWidget";
+import { loadTowns, saveTowns, towns } from "./state/Towns";
+import { passthrough } from "@/lib/Passthrough";
+import { content } from "./state/Content";
+import { character, loadCharacter, saveCharacter } from "./state/Character";
+import { BaseWidget } from "../BaseWidget";
 import {
   dev,
   RTL,
   textSize,
   textSizeSmall,
   textSlider,
-} from "./SettingsWidget";
+} from "../settings/SettingsWidget";
+import { ZoneEditor } from "./editor/ZoneEditor";
+import { loadTracker, saveTracker, tracker } from "./state/Tracker";
+import { loadGuide, saveGuide } from "./state/Guide";
+import { getCurrentWindow } from "@tauri-apps/api/window";
+import { error, info } from "@tauri-apps/plugin-log";
 
 function ZoneWidget() {
   const [openEditor, setOpenEditor] = createSignal(false);
@@ -33,6 +43,39 @@ function ZoneWidget() {
 
   const expections = () =>
     character.level != 0 && !tracker.zone.toLowerCase().includes("town");
+
+  onMount(async () => {
+    loadGuide();
+    loadTowns();
+    loadTracker();
+    loadCharacter();
+
+    await getCurrentWindow().onCloseRequested(async (e) => {
+      e.preventDefault();
+
+      info("saving zone state");
+
+      try {
+        await Promise.all([
+          saveTracker(),
+          saveGuide(),
+          saveTowns(),
+          saveCharacter(),
+        ]);
+      } catch (e) {
+        error(`Failed to save data before closing: ${e}`);
+      }
+    });
+  });
+
+  onCleanup(async () => {
+    await Promise.all([
+      saveTracker(),
+      saveGuide(),
+      saveTowns(),
+      saveCharacter(),
+    ]);
+  });
 
   return (
     <>
