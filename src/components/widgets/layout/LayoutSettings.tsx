@@ -1,7 +1,7 @@
 import { store } from "@/lib/Store";
 import { createSignal, onMount } from "solid-js";
 
-const [showLayout, setShowLayout] = createSignal(true);
+const [showLayout, setShowLayout] = createSignal(false);
 
 function LayoutSettings() {
   onMount(async () =>

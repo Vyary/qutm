@@ -1,118 +1,18 @@
 import { invoke } from "@tauri-apps/api/core";
 import { readText } from "@tauri-apps/plugin-clipboard-manager";
 import { register, unregister } from "@tauri-apps/plugin-global-shortcut";
-import { For, onCleanup, onMount, Show } from "solid-js";
-import { fetch } from "@tauri-apps/plugin-http";
-import { createStore, reconcile } from "solid-js/store";
-import { error, info } from "@tauri-apps/plugin-log";
-import { store } from "@/lib/Store";
+import { createMemo, For, onCleanup, onMount, Show } from "solid-js";
+import { error } from "@tauri-apps/plugin-log";
 import { BaseWidget } from "../BaseWidget";
+import { loadOverviews, overviews } from "./Overviews";
+import {
+  addToInventory,
+  inventory,
+  loadInventory,
+  saveInventory,
+} from "./InventoryState";
 
-interface ItemInfo {
-  id: string;
-  name: string;
-  image: string;
-  category: string;
-  detailsId: string;
-}
-
-export interface CurrencyResponse {
-  core: {
-    primary: string;
-    secondary: string;
-    rates: Record<string, number>;
-    items: ItemInfo[];
-  };
-  lines: {
-    id: string;
-    primaryValue: number;
-    maxVolumeCurrency: string;
-  }[];
-  items: ItemInfo[];
-}
-
-type ExchangePrices = Record<
-  string,
-  {
-    id: string;
-    name: string;
-    image: string;
-    category: string;
-    detailsId: string;
-    maxVolumeCurrency: string;
-    prices: {
-      exalted: number;
-      chaos: number;
-      divine: number;
-    };
-  }
->;
-
-const TWELVE_HOURS = 12 * 60 * 60 * 1000;
-
-const fetchOverviews = async () => {
-  const currencyCategories = [
-    "Currency",
-    "Fragments",
-    "Abyss",
-    "UncutGems",
-    "LineageSupportGems",
-    "Essences",
-    "SoulCores",
-    "Idols",
-    "Runes",
-    "Ritual",
-    "Expedition",
-    "Delirium",
-    "Breach",
-    "Verisium",
-  ];
-
-  const ep: ExchangePrices = {};
-
-  for (const cat of currencyCategories) {
-    const response = await fetch(
-      `https://poe.ninja/poe2/api/economy/exchange/current/overview?league=Forbidden+Rites&type=${cat}`,
-      {
-        method: "GET",
-      },
-    );
-
-    info("fetched: " + cat);
-
-    const data: CurrencyResponse = await response.json();
-
-    const exaltedPrice = data.core.rates["exalted"];
-    const chaosPrice = data.core.rates["chaos"];
-
-    for (const item of data.items) {
-      ep[item.name] = {
-        id: item.id,
-        name: item.name,
-        image: item.image,
-        category: item.category,
-        detailsId: item.detailsId,
-        maxVolumeCurrency: "",
-        prices: { exalted: 0, chaos: 0, divine: 0 },
-      };
-
-      for (const price of data.lines) {
-        if (ep[item.name].id == price.id) {
-          ep[item.name].prices.exalted = price.primaryValue * exaltedPrice;
-          ep[item.name].prices.chaos = price.primaryValue * chaosPrice;
-          ep[item.name].prices.divine = price.primaryValue;
-          ep[item.name].maxVolumeCurrency = price.maxVolumeCurrency;
-        }
-      }
-    }
-  }
-
-  return ep;
-};
-
-const parseItem = async () => {
-  const itemString = await readText();
-
+const parseItem = async (itemString: string) => {
   const lines = itemString
     .split("\n")
     .map((l) => l.trim())
@@ -120,9 +20,6 @@ const parseItem = async () => {
 
   const item = {
     name: "",
-    base: "",
-    class: "",
-    rarity: "",
     quantity: 1,
   };
 
@@ -130,18 +27,6 @@ const parseItem = async () => {
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-
-    // if (i == 3 && line.includes("--------")) {
-    //   item.base = line;
-    // }
-    //
-    // if (line.startsWith("Item Class: ")) {
-    //   item.class = line.substring(12).trim();
-    // }
-    //
-    // if (line.startsWith("Rarity: ")) {
-    //   item.rarity = line.substring(8).trim();
-    // }
 
     if (line.startsWith("Stack Size: ")) {
       const match = line.match(/Stack Size:\s*([\d,]+)/);
@@ -155,70 +40,66 @@ const parseItem = async () => {
 };
 
 function InventoryWidget(props: { shortcut: string }) {
-  const [overviews, setOverviews] = createStore<ExchangePrices>();
-  const [inventory, setInventory] = createStore<Record<string, number>>();
-
-  const addToInventory = async (item: { name: string; quantity: number }) => {
-    setInventory(item.name, item.quantity);
-    info("added item: " + JSON.stringify(item));
-    await store.set("inventory", inventory);
-    await store.save();
-  };
+  const filtered = () =>
+    Object.entries(inventory).filter((el) => overviews[el[0]]);
 
   const sorted = () =>
-    Object.entries(inventory)
-      .filter((el) => overviews[el[0]])
-      .sort(
-        (a, b) =>
-          b[1] * overviews[b[0]]?.prices.divine -
-          a[1] * overviews[a[0]]?.prices.divine,
-      );
+    filtered().sort(
+      (a, b) =>
+        b[1] * overviews[b[0]]?.prices.divine -
+        a[1] * overviews[a[0]]?.prices.divine,
+    );
 
-  const sliced = () => {
-    const sliced = sorted().slice(0, 10);
+  const sliced = () => sorted().slice(0, 10);
 
-    return sliced;
-  };
+  const currencyTotals = createMemo(() => {
+    const totals: Record<string, number> = { exalted: 0, chaos: 0, divine: 0 };
 
-  const refreshOverview = async () => {
-    const o = await fetchOverviews();
-    setOverviews(o);
-    store.set("overviews", o);
-    store.set("timestamp", Date.now());
-    store.save();
-  };
+    for (const [key, quantity] of filtered()) {
+      const item = overviews[key];
+      const maxCurr = item.maxVolumeCurrency;
+
+      const basePrice =
+        item.prices[
+          maxCurr == "exalted"
+            ? "exalted"
+            : maxCurr == "chaos"
+              ? "chaos"
+              : "divine"
+        ] ?? 0;
+
+      totals[maxCurr] += quantity * basePrice;
+    }
+
+    return {
+      exalted: Number(totals.exalted.toFixed(2)),
+      chaos: Number(totals.chaos.toFixed(2)),
+      divine: Number(totals.divine.toFixed(2)),
+    };
+  });
 
   onMount(async () => {
+    loadOverviews();
+    loadInventory();
+
     try {
       await register(props.shortcut, async (e) => {
         if (e.state === "Pressed") {
           await invoke("os_copy");
-          const item = await parseItem();
+          const itemString = await readText();
+          const item = await parseItem(itemString);
           addToInventory(item);
         }
       });
     } catch (e) {
       error("failed to register copy shortcut: " + e);
     }
-
-    const inv = await store.get<Record<string, number>>("inventory");
-    if (inv) setInventory(inv);
-
-    if (
-      Date.now() - ((await store.get<number>("timestamp")) ?? TWELVE_HOURS) >=
-      TWELVE_HOURS
-    ) {
-      refreshOverview();
-      return;
-    }
-    const overviews = await store.get<ExchangePrices>("overviews");
-    if (overviews) setOverviews(reconcile(overviews));
-    if (!overviews) {
-      refreshOverview();
-    }
   });
 
-  onCleanup(() => unregister(props.shortcut));
+  onCleanup(() => {
+    saveInventory();
+    unregister(props.shortcut);
+  });
 
   return (
     <BaseWidget
@@ -282,6 +163,22 @@ function InventoryWidget(props: { shortcut: string }) {
             </tr>
           </Show>
         </tbody>
+
+        <tfoot>
+          <tr>
+            <th class="text-primary-content">Total</th>
+            <th></th>
+            <th class="font-mono text-primary-content">
+              {currencyTotals()["divine"]}d
+            </th>
+            <th class="font-mono text-primary-content">
+              {currencyTotals()["chaos"]}c
+            </th>
+            <th class="font-mono text-primary-content">
+              {currencyTotals()["exalted"]}ex
+            </th>
+          </tr>
+        </tfoot>
       </table>
     </BaseWidget>
   );

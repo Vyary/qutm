@@ -12,7 +12,7 @@ import {
 } from "../zone/state/Character";
 import { BaseWidget } from "../BaseWidget";
 import { store } from "@/lib/Store";
-import { setShowSettings } from "./SettingsSettings";
+import { setShowSettings, showSettings } from "./SettingsSettings";
 import { UpdaterSettings } from "@/components/updater/UpdaterSettings";
 import { ZoneSettings } from "../zone/ZoneSettings";
 import { InventorySettings } from "../inventory/InventorySettings";
@@ -43,7 +43,12 @@ function SettingsWidget() {
       defaultWidth={{ w: 340 }}
       defaultTransparency={100}
     >
-      <fieldset class="fieldset select-none w-full gap-3 px-4 py-3">
+      <fieldset
+        class="fieldset select-none w-full gap-3 px-4 py-3"
+        classList={{
+          hidden: !showSettings(),
+        }}
+      >
         <legend class="fieldset-legend text-sm font-semibold uppercase tracking-wider opacity-70">
           Settings
         </legend>
