@@ -26,7 +26,7 @@
     "core:event:default",
     {
           "identifier": "http:default",
-          "allow": [{ "url": "https://poe.ninja/*" }]
+          "allow": [{ "url": "https://poe.ninja/*" }, { "url": "https://www.pathofexile.com/api/*" }]
         }
   ]
 }

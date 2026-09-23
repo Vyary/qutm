@@ -77,7 +77,7 @@ fn os_copy() -> Result<(), String> {
         ]).map_err(|e| e.to_string())?;
         
         // Polling delay for the game engine
-        thread::sleep(Duration::from_millis(50)); 
+        thread::sleep(Duration::from_millis(80)); 
 
         // Release Ctrl + C (Value 0 = Up)
         device.emit(&[
@@ -93,7 +93,7 @@ fn os_copy() -> Result<(), String> {
         let _ = enigo.key(EnigoKey::Control, Press);
         let _ = enigo.key(EnigoKey::Unicode('c'), Press); 
         let _ = enigo.key(EnigoKey::Unicode('c'), Release);
-        thread::sleep(Duration::from_millis(150));
+        thread::sleep(Duration::from_millis(100));
         let _ = enigo.key(EnigoKey::Control, Release);
     }
 
