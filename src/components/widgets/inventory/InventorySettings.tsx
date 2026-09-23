@@ -41,4 +41,4 @@ function InventorySettings() {
   );
 }
 
-export { InventorySettings, showInventory };
+export { InventorySettings, showInventory, setShowInventory };
