@@ -16,6 +16,7 @@ import initTrayIcon from "./lib/TrayIcon";
 import { Settings } from "./components/widgets/settings/Settings";
 import { Updater } from "./components/updater/Updater";
 import { Inventory } from "./components/widgets/inventory/Inventory";
+import { Price } from "./components/widgets/price/Price";
 
 function App() {
   onMount(async () => {
@@ -63,6 +64,7 @@ function App() {
       >
         <Settings />
         <Inventory />
+        <Price />
       </div>
 
       <div

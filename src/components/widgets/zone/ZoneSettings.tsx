@@ -1,7 +1,7 @@
 import { createSignal, onMount } from "solid-js";
 import { store } from "@/lib/Store";
 
-const [showZone, setShowZone] = createSignal(true);
+const [showZone, setShowZone] = createSignal(false);
 
 function ZoneSettings() {
   onMount(async () => setShowZone((await store.get("showZone")) ?? showZone()));
