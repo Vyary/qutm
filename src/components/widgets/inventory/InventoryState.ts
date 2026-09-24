@@ -8,14 +8,14 @@ const addToInventory = async (item: { name: string; quantity: number }) => {
   saveInventory();
 };
 
-const loadInventory = async () => {
-  const inv = await store.get<Record<string, number>>("inventory");
-  if (inv) setInventory(inv);
-};
-
 const saveInventory = async () => {
   await store.set("inventory", inventory);
   await store.save();
+};
+
+const loadInventory = async () => {
+  const inv = await store.get<Record<string, number>>("inventory");
+  if (inv) setInventory(inv);
 };
 
 export { inventory, addToInventory, loadInventory, saveInventory };

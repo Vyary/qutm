@@ -7,15 +7,18 @@ use tokio::io::{AsyncBufReadExt, AsyncSeekExt, BufReader, SeekFrom};
 
 // --- LINUX SPECIFIC IMPORTS ---
 #[cfg(target_os = "linux")]
-use evdev::{uinput::VirtualDevice, AttributeSet, KeyCode, InputId, InputEvent, EventType};
+use evdev::{
+    uinput::VirtualDevice, AbsInfo, AbsoluteAxisCode, AttributeSet, BusType, EventType, InputEvent,
+    InputId, KeyCode, UinputAbsSetup,
+};
 
 // --- NON-LINUX SPECIFIC IMPORTS ---
 #[cfg(not(target_os = "linux"))]
 use enigo::{
+    Coordinate,
     Direction::{Press, Release},
-    Enigo, Keyboard, Key as EnigoKey, Settings,
+    Enigo, Key as EnigoKey, Keyboard, Mouse, Settings,
 };
-
 
 #[tauri::command]
 async fn tail_file(window: Window, file_path: String) -> Result<(), String> {
@@ -44,9 +47,6 @@ async fn tail_file(window: Window, file_path: String) -> Result<(), String> {
     }
 }
 
-
-
-
 #[tauri::command]
 fn os_copy() -> Result<(), String> {
     // --- LINUX IMPLEMENTATION (Wayland/Gamescope Compatible) ---
@@ -71,19 +71,23 @@ fn os_copy() -> Result<(), String> {
         let key_type = EventType::KEY.0;
 
         // Press Ctrl + C (Value 1 = Down)
-        device.emit(&[
-            InputEvent::new(key_type, KeyCode::KEY_LEFTCTRL.code(), 1),
-            InputEvent::new(key_type, KeyCode::KEY_C.code(), 1),
-        ]).map_err(|e| e.to_string())?;
-        
+        device
+            .emit(&[
+                InputEvent::new(key_type, KeyCode::KEY_LEFTCTRL.code(), 1),
+                InputEvent::new(key_type, KeyCode::KEY_C.code(), 1),
+            ])
+            .map_err(|e| e.to_string())?;
+
         // Polling delay for the game engine
-        thread::sleep(Duration::from_millis(50)); 
+        thread::sleep(Duration::from_millis(50));
 
         // Release Ctrl + C (Value 0 = Up)
-        device.emit(&[
-            InputEvent::new(key_type, KeyCode::KEY_C.code(), 0),
-            InputEvent::new(key_type, KeyCode::KEY_LEFTCTRL.code(), 0),
-        ]).map_err(|e| e.to_string())?;
+        device
+            .emit(&[
+                InputEvent::new(key_type, KeyCode::KEY_C.code(), 0),
+                InputEvent::new(key_type, KeyCode::KEY_LEFTCTRL.code(), 0),
+            ])
+            .map_err(|e| e.to_string())?;
     }
 
     // --- NON-LINUX IMPLEMENTATION (Windows / macOS via Enigo) ---
@@ -91,7 +95,7 @@ fn os_copy() -> Result<(), String> {
     {
         let mut enigo = Enigo::new(&Settings::default()).map_err(|e| e.to_string())?;
         let _ = enigo.key(EnigoKey::Control, Press);
-        let _ = enigo.key(EnigoKey::Unicode('c'), Press); 
+        let _ = enigo.key(EnigoKey::Unicode('c'), Press);
         let _ = enigo.key(EnigoKey::Unicode('c'), Release);
         thread::sleep(Duration::from_millis(150));
         let _ = enigo.key(EnigoKey::Control, Release);
@@ -100,10 +104,68 @@ fn os_copy() -> Result<(), String> {
     Ok(())
 }
 
+#[tauri::command]
+fn os_move_mouse(window: Window, x: i32, y: i32) -> Result<(), String> {
+    // --- LINUX ---
+    #[cfg(target_os = "linux")]
+    {
+        const MAX: i64 = 65535;
+
+        // Window size (physical pixels) = screen size for a fullscreen overlay
+        let size = window.inner_size().map_err(|e| e.to_string())?;
+        let (w, h) = (size.width.max(1) as i64, size.height.max(1) as i64);
+
+        let mut keys = AttributeSet::<KeyCode>::new();
+        keys.insert(KeyCode::BTN_LEFT);
+
+        let abs = |axis| UinputAbsSetup::new(axis, AbsInfo::new(0, 0, MAX as i32, 0, 0, 0));
+
+        let mut device = VirtualDevice::builder()
+            .map_err(|e| e.to_string())?
+            .name("Tauri Virtual Mouse")
+            .input_id(InputId::new(BusType::BUS_USB, 0x1234, 0x5679, 0x01))
+            .with_keys(&keys)
+            .map_err(|e| e.to_string())?
+            .with_absolute_axis(&abs(AbsoluteAxisCode::ABS_X))
+            .map_err(|e| e.to_string())?
+            .with_absolute_axis(&abs(AbsoluteAxisCode::ABS_Y))
+            .map_err(|e| e.to_string())?
+            .build()
+            .map_err(|e| e.to_string())?;
+
+        thread::sleep(Duration::from_millis(150));
+
+        let nx = (x as i64 * MAX / w).clamp(0, MAX) as i32;
+        let ny = (y as i64 * MAX / h).clamp(0, MAX) as i32;
+        let t = EventType::ABSOLUTE.0;
+
+        device
+            .emit(&[
+                InputEvent::new(t, AbsoluteAxisCode::ABS_X.0, nx),
+                InputEvent::new(t, AbsoluteAxisCode::ABS_Y.0, ny),
+            ])
+            .map_err(|e| e.to_string())?;
+
+        thread::sleep(Duration::from_millis(10));
+    }
+
+    // --- WINDOWS / MACOS ---
+    #[cfg(not(target_os = "linux"))]
+    {
+        let _ = &window;
+        let mut enigo = Enigo::new(&Settings::default()).map_err(|e| e.to_string())?;
+        enigo
+            .move_mouse(x, y, Coordinate::Abs)
+            .map_err(|e| e.to_string())?;
+    }
+
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-  #[cfg(target_os = "linux")]
-  std::env::set_var("__NV_DISABLE_EXPLICIT_SYNC", "1");
+    #[cfg(target_os = "linux")]
+    std::env::set_var("__NV_DISABLE_EXPLICIT_SYNC", "1");
 
     tauri::Builder::default()
         .plugin(
@@ -132,7 +194,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![tail_file, os_copy])
+        .invoke_handler(tauri::generate_handler![tail_file, os_copy, os_move_mouse])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

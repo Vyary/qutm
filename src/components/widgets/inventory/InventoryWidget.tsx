@@ -1,7 +1,14 @@
 import { invoke } from "@tauri-apps/api/core";
 import { readText } from "@tauri-apps/plugin-clipboard-manager";
 import { register, unregister } from "@tauri-apps/plugin-global-shortcut";
-import { createMemo, For, onCleanup, onMount, Show } from "solid-js";
+import {
+  createMemo,
+  createSignal,
+  For,
+  onCleanup,
+  onMount,
+  Show,
+} from "solid-js";
 import { error } from "@tauri-apps/plugin-log";
 import { BaseWidget } from "../BaseWidget";
 import { loadOverviews, overviews } from "./Overviews";
@@ -11,6 +18,7 @@ import {
   loadInventory,
   saveInventory,
 } from "./InventoryState";
+import { loadStashArea, saveStashArea, stashArea } from "./StashScanner";
 
 const parseItem = async (itemString: string) => {
   const lines = itemString
@@ -40,6 +48,7 @@ const parseItem = async (itemString: string) => {
 };
 
 function InventoryWidget(props: { shortcut: string }) {
+  const [scanning, setScanning] = createSignal(false);
   const filtered = () =>
     Object.entries(inventory).filter((el) => overviews[el[0]]);
 
@@ -81,6 +90,7 @@ function InventoryWidget(props: { shortcut: string }) {
   onMount(async () => {
     loadOverviews();
     loadInventory();
+    loadStashArea();
 
     try {
       await register(props.shortcut, async (e) => {
@@ -94,11 +104,51 @@ function InventoryWidget(props: { shortcut: string }) {
     } catch (e) {
       error("failed to register copy shortcut: " + e);
     }
+
+    try {
+      await register("Alt+D", async (e) => {
+        if (e.state === "Pressed") {
+          if (scanning()) {
+            setScanning(false);
+            return;
+          }
+
+          setScanning(true);
+
+          const blockW = () => (stashArea().endX - stashArea().startX) / 12;
+          const blockH = () => (stashArea().endY - stashArea().startY) / 12;
+          const halfBlockW = () => blockW() / 2;
+          const halfBlockH = () => blockH() / 2;
+
+          const gridWidth = 12;
+          const gridHeight = 12;
+
+          for (let row = 0; row < gridHeight; row++) {
+            for (let col = 0; col < gridWidth; col++) {
+              if (!scanning()) break;
+
+              const targetX = Math.round(
+                stashArea().startX + halfBlockW() + col * blockW(),
+              );
+              const targetY = Math.round(
+                stashArea().startY + halfBlockH() + row * blockH(),
+              );
+
+              await invoke("os_move_mouse", { x: targetX, y: targetY });
+            }
+          }
+        }
+      });
+    } catch (e) {
+      error("failed to register copy shortcut: " + e);
+    }
   });
 
   onCleanup(() => {
     saveInventory();
+    saveStashArea();
     unregister(props.shortcut);
+    unregister("Alt+D");
   });
 
   return (
