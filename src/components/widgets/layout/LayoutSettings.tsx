@@ -4,9 +4,7 @@ import { createSignal, onMount } from "solid-js";
 const [showLayout, setShowLayout] = createSignal(false);
 
 function LayoutSettings() {
-  onMount(async () =>
-    setShowLayout((await store.get("showLayout")) ?? showLayout()),
-  );
+  onMount(async () => setShowLayout((await store.get("showLayout")) ?? true));
 
   return (
     <div class="flex items-center justify-between">

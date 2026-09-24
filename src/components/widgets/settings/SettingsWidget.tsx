@@ -52,7 +52,6 @@ function SettingsWidget() {
         <legend class="fieldset-legend text-sm font-semibold uppercase tracking-wider opacity-70">
           Settings
         </legend>
-
         <div class="flex flex-col gap-1">
           <span class="text-xs font-medium uppercase tracking-wide opacity-60">
             Overlay Toggle
@@ -102,9 +101,7 @@ function SettingsWidget() {
             />
           </div>
         </div>
-
         <div class="divider my-0 opacity-50"></div>
-
         <div class="flex flex-col gap-1">
           <span class="text-xs font-medium uppercase tracking-wide opacity-60">
             Client.txt File
@@ -146,9 +143,7 @@ function SettingsWidget() {
             </p>
           </Show>
         </div>
-
         <div class="divider my-0 opacity-50"></div>
-
         <div class="flex flex-col gap-1">
           <span class="text-xs font-medium uppercase tracking-wide opacity-60">
             Character Name
@@ -161,7 +156,6 @@ function SettingsWidget() {
             onInput={(e) => setCharacterName(e.target.value.trim())}
           />
         </div>
-
         <div class="flex flex-col gap-1">
           <span class="text-xs font-medium uppercase tracking-wide opacity-60">
             Character Class
@@ -174,9 +168,7 @@ function SettingsWidget() {
             onInput={(e) => updateCharacterClass(e.target.value.trim())}
           />
         </div>
-
         <div class="divider my-0 opacity-50"></div>
-
         <div class="flex flex-col gap-2">
           <span class="text-xs font-medium uppercase tracking-wide opacity-60">
             Features
@@ -186,9 +178,7 @@ function SettingsWidget() {
           <LayoutSettings />
           <InventorySettings />
         </div>
-
         <div class="divider my-0 opacity-50"></div>
-
         <div class="flex flex-col gap-2">
           <span class="text-xs font-medium uppercase tracking-wide opacity-60">
             Text Size
@@ -207,7 +197,6 @@ function SettingsWidget() {
             }}
           />
         </div>
-
         <div class="flex items-center justify-between">
           <span
             class="cursor-pointer text-sm"
@@ -237,7 +226,6 @@ function SettingsWidget() {
             class="toggle toggle-sm toggle-success"
           />
         </div>
-
         <div class="divider my-0 opacity-50"></div>
         <div class="flex items-center justify-between">
           <span
@@ -263,9 +251,15 @@ function SettingsWidget() {
             class="toggle toggle-sm toggle-success"
           />
         </div>
-
         <UpdaterSettings />
-
+        <button
+          class="btn btn-soft btn-sm w-full mt-1"
+          onClick={async () => {
+            await store.delete("inventory");
+          }}
+        >
+          Clean inventory
+        </button>{" "}
         <button
           class="btn btn-soft btn-sm w-full mt-1"
           onClick={() => {
