@@ -21,6 +21,7 @@
     "fs:allow-write-text-file",
     "fs:allow-read-text-file",
     "clipboard-manager:allow-read-text",
+    "clipboard-manager:allow-write-text",
     "store:default",
     "log:default",
     "core:event:default",

@@ -251,15 +251,9 @@ function SettingsWidget() {
             class="toggle toggle-sm toggle-success"
           />
         </div>
+
         <UpdaterSettings />
-        <button
-          class="btn btn-soft btn-sm w-full mt-1"
-          onClick={async () => {
-            await store.delete("inventory");
-          }}
-        >
-          Clean inventory
-        </button>{" "}
+
         <button
           class="btn btn-soft btn-sm w-full mt-1"
           onClick={() => {
