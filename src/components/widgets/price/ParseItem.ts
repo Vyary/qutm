@@ -122,19 +122,28 @@ export const parseItem = (item: string) => {
       continue;
     }
 
-    // TODO: fix having same more twice
     if (
       lines[i].includes("Prefix") ||
       lines[i].includes("Suffix") ||
       lines[i].includes("Unique")
     ) {
       const increase = parseInt(lines[i].match(/(\d+)%/)?.[0] || "0", 10);
-
       const mod = parseModLine(lines[i + 1]);
+
       if (increase > 0 && mod.min) mod.min = mod.min * (1 + increase / 100);
       if (mod.min) mod.min = Math.floor(mod.min);
-      itemStruct.explicit.push(mod);
 
+      const modIndex = itemStruct.explicit.findIndex(
+        (item) => item.mod == mod.mod,
+      );
+      if (modIndex === -1) {
+        itemStruct.explicit.push(mod);
+      }
+      if (modIndex > -1 && itemStruct.explicit[modIndex].min && mod.min) {
+        itemStruct.explicit[modIndex].min += mod.min;
+      }
+
+      // check if mod is double lined
       if (
         !lines[i + 2].includes("Prefix") &&
         !lines[i + 2].includes("Suffix") &&
@@ -145,7 +154,15 @@ export const parseItem = (item: string) => {
         const mod = parseModLine(lines[i + 2]);
         if (increase > 0 && mod.min) mod.min = mod.min * (1 + increase / 100);
         if (mod.min) mod.min = Math.floor(mod.min);
-        itemStruct.explicit.push(mod);
+
+        const modIndex = itemStruct.explicit.findIndex(
+          (item) => item.mod == mod.mod,
+        );
+        if (modIndex === -1) {
+          itemStruct.explicit.push(mod);
+        }
+        if (modIndex > -1 && itemStruct.explicit[modIndex].min && mod.min)
+          itemStruct.explicit[modIndex].min += mod.min;
       }
       continue;
     }
