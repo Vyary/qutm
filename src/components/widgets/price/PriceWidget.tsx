@@ -18,10 +18,12 @@ function PriceWidget(props: { shortcut: string }) {
     rarity: "",
     name: { value: "", disabled: false },
     type: { value: "", disabled: false },
-    requires: { value: {}, disabled: false },
     ilvl: { value: 0, disabled: false },
+    quality: { value: 0, disabled: false },
+    requires: { value: {}, disabled: false },
     implicit: [],
     explicit: [],
+    skill: [],
   });
 
   const itemReq = (
@@ -70,8 +72,8 @@ function PriceWidget(props: { shortcut: string }) {
 
   onMount(async () => {
     loadMods();
-    const i = await store.get<Item>("item");
-    if (i) setItem(i);
+    // const i = await store.get<Item>("item");
+    // if (i) setItem(i);
 
     try {
       await register(props.shortcut, async (e) => {
@@ -131,6 +133,15 @@ function PriceWidget(props: { shortcut: string }) {
           </span>
         </div>
 
+        <div
+          class="cursor-pointer"
+          onClick={() => setItem("quality", "disabled", (d) => !d)}
+        >
+          <span classList={{ "opacity-40": item.quality.disabled }}>
+            Quality: {item.quality.value}
+          </span>
+        </div>
+
         <div classList={{ "opacity-40": item.requires.disabled }}>
           <span
             class="cursor-pointer"
@@ -147,6 +158,53 @@ function PriceWidget(props: { shortcut: string }) {
         </div>
 
         <div class="border-t border-base-content/10 pt-1">
+          <For each={item.skill}>
+            {(mod, i) => (
+              <div classList={{ "opacity-40": mod.disabled }}>
+                <span class="inline-flex gap-1">
+                  <input
+                    type="text"
+                    placeholder="min"
+                    value={mod.min || ""}
+                    onInput={(e) => {
+                      const val = e.currentTarget.value;
+                      setItem(
+                        "implicit",
+                        i(),
+                        "min",
+                        val === "" ? undefined : Number(val),
+                      );
+                    }}
+                    class="input input-xs max-w-12"
+                  />
+                  <span class="opacity-40">-</span>
+                  <input
+                    type="text"
+                    placeholder="max"
+                    value={mod.max || ""}
+                    onInput={(e) => {
+                      const val = e.currentTarget.value;
+                      setItem(
+                        "implicit",
+                        i(),
+                        "max",
+                        val === "" ? undefined : Number(val),
+                      );
+                    }}
+                    class="input input-xs max-w-12"
+                  />
+                  <div
+                    class="cursor-pointer"
+                    onClick={() =>
+                      setItem("implicit", i(), "disabled", (d) => !d)
+                    }
+                  >
+                    {mod.mod}
+                  </div>
+                </span>
+              </div>
+            )}
+          </For>
           <For each={item.implicit}>
             {(mod, i) => (
               <div classList={{ "opacity-40": mod.disabled }}>

@@ -94,6 +94,23 @@ export const createQuery = (item: Item) => {
   ]);
 
   const createFilters = () => {
+    for (let i = 0; i < item.skill.length; i++) {
+      const id = findModId("skill", item.skill[i].mod) || "";
+      if (id == "") continue;
+
+      setStats(0, "filters", (filters) => [
+        ...filters,
+        {
+          disabled: item.skill[i].disabled,
+          id: id,
+          value: {
+            min: item.skill[i]?.min,
+            max: item.skill[i]?.max,
+          },
+        },
+      ]);
+    }
+
     for (let i = 0; i < item.implicit.length; i++) {
       const id = findModId("implicit", item.implicit[i].mod) || "";
       if (id == "") continue;
@@ -164,9 +181,9 @@ export const createQuery = (item: Item) => {
             ilvl: {
               min: item.ilvl?.value,
             },
-            // quality: {
-            //   min: 0,
-            // },
+            quality: {
+              min: item.quality?.value,
+            },
             rarity: {
               option: item.rarity.toLowerCase(),
             },
