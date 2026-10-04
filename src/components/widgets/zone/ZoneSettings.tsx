@@ -4,7 +4,7 @@ import { store } from "@/lib/Store";
 const [showZone, setShowZone] = createSignal(false);
 
 function ZoneSettings() {
-  onMount(async () => setShowZone((await store.get("showZone")) ?? showZone()));
+  onMount(async () => setShowZone((await store.get("showZone")) ?? true));
 
   return (
     <div class="flex items-center justify-between">
