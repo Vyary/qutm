@@ -4,7 +4,6 @@ import { register, unregister } from "@tauri-apps/plugin-global-shortcut";
 import { createMemo, For, onCleanup, onMount, Show } from "solid-js";
 import { error } from "@tauri-apps/plugin-log";
 import { BaseWidget } from "../BaseWidget";
-import { loadOverviews, overviews } from "./Overviews";
 import {
   addToInventory,
   inventory,
@@ -13,6 +12,7 @@ import {
   saveInventory,
 } from "./InventoryState";
 import { togglePassthrough } from "@/lib/Passthrough";
+import { loadOverviews, overviews } from "@/lib/Overviews";
 
 const parseItem = async (itemString: string) => {
   const lines = itemString
