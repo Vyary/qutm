@@ -24,6 +24,7 @@ function PriceWidget(props: { shortcut: string }) {
     implicit: [],
     explicit: [],
     skill: [],
+    corrupted: false,
   });
 
   const itemReq = (
@@ -72,8 +73,8 @@ function PriceWidget(props: { shortcut: string }) {
 
   onMount(async () => {
     loadMods();
-    // const i = await store.get<Item>("item");
-    // if (i) setItem(i);
+    const i = await store.get<Item>("item");
+    if (i) setItem(i);
 
     try {
       await register(props.shortcut, async (e) => {
@@ -312,6 +313,7 @@ function PriceWidget(props: { shortcut: string }) {
               JSON.stringify(createQuery(item)),
           );
 
+          togglePassthrough();
           info(JSON.stringify(createQuery(item)));
         }}
         class="btn btn-xs"

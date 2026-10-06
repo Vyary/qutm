@@ -42,7 +42,7 @@ const convertToCategory = (itemClass: string) => {
   if (itemClass.includes("Shield")) return "armour.shield";
   if (itemClass.includes("Quiver")) return "armour.quiver";
 
-  if (itemClass.includes("Staff")) return "weapon.staff";
+  if (itemClass.includes("Staves")) return "weapon.staff";
   if (itemClass.includes("Quarterstaff")) return "weapon.warstaff";
   if (itemClass.includes("Spear")) return "weapon.spear";
   if (itemClass.includes("Two Hand Mace")) return "weapon.twomace";
@@ -64,10 +64,6 @@ const convertToCategory = (itemClass: string) => {
 };
 
 const findModId = (modType: string, modText: string) => {
-  // edge cases
-  if (modText.includes("Charm Slots"))
-    modText = modText.replace("Slots", "Slot");
-
   const id = mods[modType][modText];
   if (id) return id;
 
@@ -84,19 +80,17 @@ export const createQuery = (item: Item) => {
       filters: [],
       type: "and",
     },
-    {
-      filters: [],
-      type: "count",
-      value: {
-        min: 1,
-      },
-    },
   ]);
 
   const createFilters = () => {
     for (let i = 0; i < item.skill.length; i++) {
-      const id = findModId("skill", item.skill[i].mod) || "";
+      let id = findModId("skill", item.skill[i].mod) || "";
       if (id == "") continue;
+
+      // Decompose has 2 variants for a wep and boots
+      if (id == "skill.corpse_cloud" && item.category == "Boots") {
+        id = "skill.corpse_cloud_triggered";
+      }
 
       setStats(0, "filters", (filters) => [
         ...filters,
@@ -112,7 +106,7 @@ export const createQuery = (item: Item) => {
     }
 
     for (let i = 0; i < item.implicit.length; i++) {
-      const id = findModId("implicit", item.implicit[i].mod) || "";
+      let id = findModId("implicit", item.implicit[i].mod) || "";
       if (id == "") continue;
 
       setStats(0, "filters", (filters) => [
@@ -131,7 +125,28 @@ export const createQuery = (item: Item) => {
     for (let i = 0; i < item.explicit.length; i++) {
       let id = findModId("explicit", item.explicit[i].mod) || "";
       if (id == "") continue;
-      if (id == "explicit.stat_2704225257") id = "explicit.stat_3981240776";
+
+      // exceptions
+      // explicit.stat_2704225257 - is never used
+      if (id == "explicit.stat_2704225257") {
+        id = "explicit.stat_3981240776";
+      }
+      // switch to local instead of generic stats
+      if (
+        id == "explicit.stat_2106365538" &&
+        item.category != "Amulet" &&
+        item.category != "Rings"
+      ) {
+        id = "explicit.stat_124859000";
+      }
+
+      if (
+        id == "explicit.stat_2866361420" &&
+        item.category != "Amulet" &&
+        item.category != "Rings"
+      ) {
+        id = "explicit.stat_1062208444";
+      }
 
       setStats(1, "filters", (filters) => [
         ...filters,
@@ -152,6 +167,14 @@ export const createQuery = (item: Item) => {
   return {
     query: {
       filters: {
+        misc_filters: {
+          disabled: false,
+          filters: {
+            corrupted: {
+              option: item.corrupted,
+            },
+          },
+        },
         req_filters: {
           disabled: item.requires.disabled,
           filters: {
@@ -198,7 +221,10 @@ export const createQuery = (item: Item) => {
       status: {
         option: "securable",
       },
-      type: !item.type.disabled ? item.type.value : undefined,
+      type:
+        !item.type.disabled && item.type.value != ""
+          ? item.type.value
+          : undefined,
     },
   };
 };

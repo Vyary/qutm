@@ -1,4 +1,4 @@
-import { info } from "@tauri-apps/plugin-log";
+import { debug, info } from "@tauri-apps/plugin-log";
 
 interface Toggleable<T> {
   value: T;
@@ -30,10 +30,41 @@ export interface Item {
   implicit: ItemMod[];
   explicit: ItemMod[];
   skill: ItemMod[];
+  corrupted: boolean;
 }
 
 const parseModLine = (line: string): ItemMod => {
   line = line.trim().replace("+", "").replace(" — Unscalable Value", "");
+
+  if (
+    line ===
+    "Every 4 seconds, Recover 1 Life for every 0.2 Life Recovery per second from Regeneration"
+  ) {
+    return {
+      mod: "Every 4 seconds, Recover 1 Life for every # Life Recovery per second from Regeneration",
+      min: 0.2,
+      disabled: false,
+    };
+  }
+
+  if (line === "Physical Damage of Enemies Hitting you is Unlucky") {
+    return {
+      mod: "Physical Damage of Enemies Hitting you is Lucky",
+      max: -1,
+      disabled: false,
+    };
+  }
+
+  if (line === "Trigger Decompose every 1.2 metres travelled") {
+    return {
+      mod: "Trigger Decompose every 1.2 metres travelled",
+      disabled: false,
+    };
+  }
+
+  if (line.includes("Charm Slots")) {
+    line = line.replace("Slots", "Slot");
+  }
 
   // number possibly with a range that itself may contain negative numbers
   const numPattern = String.raw`-?\d+(?:\.\d+)?(?:\(-?\d+(?:\.\d+)?--?\d+(?:\.\d+)?\))?`;
@@ -53,16 +84,26 @@ const parseModLine = (line: string): ItemMod => {
   // Case 2: "+71(61-84) to Accuracy Rating" / "10(10--10)% reduced Charm Charges used"
   m = line.match(new RegExp(`^(.*?)(${numPattern})(.*)$`));
   if (m) {
-    const [, pre, numRaw, post] = m;
+    let [, pre, numRaw, post] = m;
+
+    if (post.includes("reduced Life")) {
+      post = post.replace("reduced", "increased");
+      return {
+        mod: `${pre}#${post}`,
+        max: -parseFloat(numRaw),
+        disabled: false,
+      };
+    }
+
     return { mod: `${pre}#${post}`, min: parseFloat(numRaw), disabled: false };
   }
 
   // Case 3: no numbers at all -> flag mod
-  return { mod: line, min: 1, disabled: false };
+  return { mod: line, disabled: false };
 };
 
 export const parseItem = (item: string) => {
-  info("parsing item");
+  debug("parsing item");
 
   const lines = item.split("\n");
 
@@ -71,25 +112,35 @@ export const parseItem = (item: string) => {
     category: "",
     rarity: "",
     name: { value: lines[2], disabled: true },
-    type: { value: lines[3], disabled: false },
+    type: { value: "", disabled: false },
     quality: { value: 0, disabled: true },
     requires: { value: {}, disabled: true },
     ilvl: { value: 0, disabled: true },
     implicit: [],
     explicit: [],
     skill: [],
+    corrupted: false,
   };
+
+  if (!lines[3].includes("---")) {
+    itemStruct.type = { value: lines[3], disabled: false };
+  }
 
   for (let i = 0; i < lines.length; i++) {
     if (lines[i].includes("---")) continue;
 
-    info("line: " + lines[i]);
+    if (lines[i] === "Corrupted") {
+      itemStruct.corrupted = true;
+      continue;
+    }
+
+    debug("line: " + lines[i]);
 
     if (lines[i].includes("Item Class")) {
       const c = lines[i].split("Item Class: ")[1];
 
       itemStruct.category = c;
-      info("added category: " + c);
+      debug("added category: " + c);
       continue;
     }
 
@@ -97,7 +148,7 @@ export const parseItem = (item: string) => {
       const r = lines[i].split("Rarity: ")[1];
 
       itemStruct.rarity = r;
-      info("added rarity: " + r);
+      debug("added rarity: " + r);
       continue;
     }
 
@@ -109,7 +160,7 @@ export const parseItem = (item: string) => {
         disabled: false,
       };
 
-      info("added ilvl: " + ilvl);
+      debug("added ilvl: " + ilvl);
       continue;
     }
 
@@ -118,7 +169,7 @@ export const parseItem = (item: string) => {
 
       if (match) {
         itemStruct.quality.value = Number(match[1]);
-        info("added quality: " + match[1]);
+        debug("added quality: " + match[1]);
       }
 
       continue;
@@ -142,7 +193,7 @@ export const parseItem = (item: string) => {
         disabled: true,
       };
 
-      info("added requirements: " + JSON.stringify(itemStruct.requires));
+      debug("added requirements: " + JSON.stringify(itemStruct.requires));
       continue;
     }
 
@@ -156,19 +207,20 @@ export const parseItem = (item: string) => {
           (lines[i + j].includes("Suffix") &&
             !lines[i + j].includes("allowed")) ||
           lines[i + j].includes("Unique") ||
+          lines[i + j].includes("Implicit") ||
           lines[i + j].includes("---") ||
           !lines[i + j].trim()
         ) {
-          info("breaking inner loop");
+          debug("breaking inner loop");
           break;
         }
 
-        info("---> 2nd loop ---> checking line: " + lines[i + j]);
+        debug("---> 2nd loop ---> checking line: " + lines[i + j]);
         const mod = parseModLine(lines[i + j]);
         if (increase > 0 && mod.min) mod.min = mod.min * (1 + increase / 100);
         if (mod.min) mod.min = Math.floor(mod.min);
         itemStruct.implicit.push(mod);
-        info("added implicit: " + JSON.stringify(mod));
+        debug("added implicit: " + JSON.stringify(mod));
       }
 
       continue;
@@ -196,11 +248,11 @@ export const parseItem = (item: string) => {
           lines[i + j].includes("---") ||
           !lines[i + j].trim()
         ) {
-          info("breaking inner loop");
+          debug("breaking inner loop");
           break;
         }
 
-        info("---> 2nd loop ---> checking line: " + lines[i + j]);
+        debug("---> 2nd loop ---> checking line: " + lines[i + j]);
         const mod = parseModLine(lines[i + j]);
 
         if (increase > 0 && mod.min) mod.min = mod.min * (1 + increase / 100);
@@ -211,14 +263,23 @@ export const parseItem = (item: string) => {
         );
         if (modIndex === -1) {
           itemStruct.explicit.push(mod);
-          info("added explicit: " + JSON.stringify(mod));
+          debug("added explicit: " + JSON.stringify(mod));
         }
         if (modIndex > -1 && itemStruct.explicit[modIndex].min && mod.min) {
           itemStruct.explicit[modIndex].min += mod.min;
-          info("increased explicit: " + JSON.stringify(mod));
+          debug("increased explicit: " + JSON.stringify(mod));
         }
       }
     }
+  }
+
+  if (itemStruct.type.value === "") {
+    itemStruct.type.disabled = true;
+    itemStruct.name.disabled = false;
+  }
+
+  if (itemStruct.rarity === "Unique") {
+    itemStruct.name.disabled = false;
   }
 
   return itemStruct;
