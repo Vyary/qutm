@@ -49,20 +49,22 @@ function InventorySettings() {
         />
       </div>
       <Show when={showInventory()}>
-        <button
-          class="btn btn-soft btn-sm w-full mt-1"
-          onClick={() => clearInventory()}
-        >
-          Clear Inventory
-        </button>
-        <button
-          class="btn btn-soft btn-sm w-full mt-1"
-          onClick={() => {
-            setPlaces([]);
-          }}
-        >
-          Clear Recording
-        </button>
+        <div class="inline-flex">
+          <button
+            class="btn btn-soft btn-sm mt-1"
+            onClick={() => clearInventory()}
+          >
+            Clear Inventory
+          </button>
+          <button
+            class="btn btn-soft btn-sm mt-1"
+            onClick={() => {
+              setPlaces([]);
+            }}
+          >
+            Clear Recording
+          </button>
+        </div>
         <Shortcut
           name="Inventory Auto Scan Shortcut"
           action={autoScanAction()}
