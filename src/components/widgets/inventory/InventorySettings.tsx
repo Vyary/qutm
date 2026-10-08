@@ -5,7 +5,6 @@ import {
   addMouseClickAction,
   addStepAction,
   autoScanAction,
-  inventoryAction,
   setPlaces,
 } from "./InventoryWidget";
 import { Shortcut } from "@/components/Shortcut";

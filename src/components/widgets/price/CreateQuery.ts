@@ -40,6 +40,7 @@ const convertToCategory = (itemClass: string) => {
 
   if (itemClass.includes("Foci")) return "armour.focus";
   if (itemClass.includes("Shield")) return "armour.shield";
+  if (itemClass.includes("Bucklers")) return "armour.buckler";
   if (itemClass.includes("Quiver")) return "armour.quiver";
 
   if (itemClass.includes("Staves")) return "weapon.staff";
@@ -68,6 +69,88 @@ const findModId = (modType: string, modText: string) => {
   if (id) return id;
 
   info("couldnt find id for mod: " + modText);
+};
+
+const modIdExceptions = (id: string, category: string): string => {
+  // explicit.stat_2704225257 - is never used
+  if (id == "explicit.stat_2704225257") {
+    return "explicit.stat_3981240776";
+  }
+
+  // maximum Energy Shield / maximum Energy Shield (Local)
+  if (
+    id == "explicit.stat_3489782002" &&
+    category != "Amulet" &&
+    category != "Jewel"
+  ) {
+    return "explicit.stat_4052037485";
+  }
+
+  // # to Evasion Rating / # to Evasion Rating (local)
+  if (
+    id == "explicit.stat_2144192055" &&
+    category != "Amulet" &&
+    category != "Rings"
+  ) {
+    return "explicit.stat_53045048";
+  }
+
+  // # to Accuracy Rating / # to Accuracy Rating (Local)
+  if (
+    id == "explicit.stat_803737631" &&
+    category != "Gloves" &&
+    category != "Helmet" &&
+    category != "Rings" &&
+    category != "Quiver" &&
+    category != "Amulet"
+  ) {
+    return "explicit.stat_691932474";
+  }
+
+  // increased Evasion Rating / increased Evasion Rating (Local)
+  if (
+    id == "explicit.stat_2106365538" &&
+    category != "Amulet" &&
+    category != "Rings"
+  ) {
+    return "explicit.stat_124859000";
+  }
+
+  // # to Armour / # to Armour (Local)
+  if (id == "explicit.stat_809229260" && category != "Belt") {
+    return "explicit.stat_3484657501";
+  }
+
+  // increased Armour / increased Armour (Local)
+  if (
+    id == "explicit.stat_2866361420" &&
+    category != "Amulet" &&
+    category != "Rings"
+  ) {
+    return "explicit.stat_1062208444";
+  }
+
+  // increased Attack Speed / increased Attack Speed (Local)
+  if (
+    id == "explicit.stat_681332047" &&
+    category != "Quiver" &&
+    category != "Jewel" &&
+    category != "Rings" &&
+    category != "Gloves"
+  ) {
+    return "explicit.stat_210067635";
+  }
+
+  // #% increased Block chance // #% increased Block chance (Local)
+  if (
+    id == "explicit.stat_4147897060" &&
+    category != "Amulet" &&
+    category != "Jewel"
+  ) {
+    return "explicit.stat_2481353198";
+  }
+
+  return id;
 };
 
 export const createQuery = (item: Item) => {
@@ -105,6 +188,23 @@ export const createQuery = (item: Item) => {
       ]);
     }
 
+    for (let i = 0; i < item.enhancement.length; i++) {
+      let id = findModId("enchant", item.enhancement[i].mod) || "";
+      if (id == "") continue;
+
+      setStats(0, "filters", (filters) => [
+        ...filters,
+        {
+          disabled: item.enhancement[i].disabled,
+          id: id,
+          value: {
+            min: item.enhancement[i]?.min,
+            max: item.enhancement[i]?.max,
+          },
+        },
+      ]);
+    }
+
     for (let i = 0; i < item.implicit.length; i++) {
       let id = findModId("implicit", item.implicit[i].mod) || "";
       if (id == "") continue;
@@ -126,27 +226,7 @@ export const createQuery = (item: Item) => {
       let id = findModId("explicit", item.explicit[i].mod) || "";
       if (id == "") continue;
 
-      // exceptions
-      // explicit.stat_2704225257 - is never used
-      if (id == "explicit.stat_2704225257") {
-        id = "explicit.stat_3981240776";
-      }
-      // switch to local instead of generic stats
-      if (
-        id == "explicit.stat_2106365538" &&
-        item.category != "Amulet" &&
-        item.category != "Rings"
-      ) {
-        id = "explicit.stat_124859000";
-      }
-
-      if (
-        id == "explicit.stat_2866361420" &&
-        item.category != "Amulet" &&
-        item.category != "Rings"
-      ) {
-        id = "explicit.stat_1062208444";
-      }
+      id = modIdExceptions(id, item.category);
 
       setStats(1, "filters", (filters) => [
         ...filters,

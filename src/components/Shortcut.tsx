@@ -9,11 +9,14 @@ function Shortcut(props: {
   name: string;
   action: () => Promise<void>;
   defaultKey: string;
+  ctrl?: boolean;
+  shift?: boolean;
+  alt?: boolean;
 }) {
   const [keys, setKeys] = createStore({
-    Ctrl: false,
-    Shift: false,
-    Alt: false,
+    Ctrl: props.ctrl ?? false,
+    Shift: props.shift ?? false,
+    Alt: props.alt ?? false,
     Key: props.defaultKey,
   });
 
