@@ -1,20 +1,16 @@
+use enigo::{
+    Button, Coordinate, Direction,
+    Direction::{Press, Release},
+    Enigo, Key, Keyboard, Mouse, Settings,
+};
 use std::thread;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use tauri::AppHandle;
 use tauri::{Emitter, Window};
+use tauri_plugin_clipboard_manager::ClipboardExt;
 use tauri_plugin_log::log::info;
 use tokio::fs::File;
 use tokio::io::{AsyncBufReadExt, AsyncSeekExt, BufReader, SeekFrom};
-
-// --- LINUX SPECIFIC IMPORTS ---
-#[cfg(target_os = "linux")]
-use evdev::{uinput::VirtualDevice, AttributeSet, EventType, InputEvent, InputId, KeyCode};
-
-// --- NON-LINUX SPECIFIC IMPORTS ---
-#[cfg(not(target_os = "linux"))]
-use enigo::{
-    Direction::{Press, Release},
-    Enigo, Key as EnigoKey, Keyboard, Settings,
-};
 
 #[tauri::command]
 async fn tail_file(window: Window, file_path: String) -> Result<(), String> {
@@ -44,61 +40,59 @@ async fn tail_file(window: Window, file_path: String) -> Result<(), String> {
 }
 
 #[tauri::command]
-fn os_copy() -> Result<(), String> {
-    // --- LINUX IMPLEMENTATION (Wayland/Gamescope Compatible) ---
+fn os_copy(app: AppHandle) -> Result<String, String> {
+    let mut enigo = Enigo::new(&Settings::default()).map_err(|e| e.to_string())?;
+
     #[cfg(target_os = "linux")]
-    {
-        let mut keys = AttributeSet::<KeyCode>::new();
-        keys.insert(KeyCode::KEY_LEFTCTRL);
-        keys.insert(KeyCode::KEY_C);
-
-        let mut device = VirtualDevice::builder()
-            .map_err(|e| e.to_string())?
-            .name("CachyOS Tauri Virtual Input")
-            .input_id(InputId::new(evdev::BusType::BUS_USB, 0x1234, 0x5678, 0x01))
-            .with_keys(&keys)
-            .map_err(|e| e.to_string())?
-            .build()
-            .map_err(|e| e.to_string())?;
-
-        // Allow kernel to initialize the device node
-        thread::sleep(Duration::from_millis(200));
-
-        let key_type = EventType::KEY.0;
-
-        // Press Ctrl + C (Value 1 = Down)
-        device
-            .emit(&[
-                InputEvent::new(key_type, KeyCode::KEY_LEFTCTRL.code(), 1),
-                InputEvent::new(key_type, KeyCode::KEY_C.code(), 1),
-            ])
-            .map_err(|e| e.to_string())?;
-
-        // Polling delay for the game engine
-        thread::sleep(Duration::from_millis(10));
-
-        // Release Ctrl + C (Value 0 = Up)
-        device
-            .emit(&[
-                InputEvent::new(key_type, KeyCode::KEY_C.code(), 0),
-                InputEvent::new(key_type, KeyCode::KEY_LEFTCTRL.code(), 0),
-            ])
-            .map_err(|e| e.to_string())?;
-    }
-
-    // --- NON-LINUX IMPLEMENTATION (Windows / macOS via Enigo) ---
+    let (pre, mid, post) = (100, 30, 40);
     #[cfg(not(target_os = "linux"))]
-    {
-        let mut enigo = Enigo::new(&Settings::default()).map_err(|e| e.to_string())?;
-        let _ = enigo.key(EnigoKey::Control, Press);
-        thread::sleep(Duration::from_millis(20));
-        let _ = enigo.key(EnigoKey::Unicode('c'), Press);
-        thread::sleep(Duration::from_millis(20));
-        let _ = enigo.key(EnigoKey::Unicode('c'), Release);
-        let _ = enigo.key(EnigoKey::Control, Release);
-    }
+    let (pre, mid, post) = (20, 20, 20);
 
+    enigo
+        .key(Key::Control, Direction::Press)
+        .map_err(|e| e.to_string())?;
+    thread::sleep(Duration::from_millis(pre));
+    enigo
+        .key(Key::Unicode('c'), Direction::Press)
+        .map_err(|e| e.to_string())?;
+    thread::sleep(Duration::from_millis(mid));
+    enigo
+        .key(Key::Unicode('c'), Direction::Release)
+        .map_err(|e| e.to_string())?;
+    enigo
+        .key(Key::Control, Direction::Release)
+        .map_err(|e| e.to_string())?;
+
+    thread::sleep(Duration::from_millis(post));
+
+    app.clipboard().read_text().map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn mouse_move(x: i32, y: i32) -> Result<(), String> {
+    let mut enigo = Enigo::new(&Settings::default()).unwrap();
+    enigo.move_mouse(x, y, Coordinate::Abs).unwrap();
     Ok(())
+}
+
+#[tauri::command]
+async fn mouse_click() -> Result<(), String> {
+    let mut enigo = Enigo::new(&Settings::default()).unwrap();
+    enigo.button(Button::Left, Press).unwrap();
+    enigo.button(Button::Left, Release).unwrap();
+    Ok(())
+}
+
+#[tauri::command]
+fn get_global_mouse_position() -> Option<(i32, i32)> {
+    // Initialize the Enigo input manager
+    if let Ok(enigo) = Enigo::new(&Settings::default()) {
+        // Enigo's location tracking returns Result<(i32, i32), InputError>
+        if let Ok(pos) = enigo.location() {
+            return Some(pos);
+        }
+    }
+    None
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -133,7 +127,13 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![tail_file, os_copy])
+        .invoke_handler(tauri::generate_handler![
+            tail_file,
+            os_copy,
+            mouse_move,
+            mouse_click,
+            get_global_mouse_position,
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

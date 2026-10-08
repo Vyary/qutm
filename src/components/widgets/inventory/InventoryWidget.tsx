@@ -1,8 +1,15 @@
 import { invoke } from "@tauri-apps/api/core";
-import { readText, writeText } from "@tauri-apps/plugin-clipboard-manager";
+import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { register, unregister } from "@tauri-apps/plugin-global-shortcut";
-import { createMemo, For, onCleanup, onMount, Show } from "solid-js";
-import { error } from "@tauri-apps/plugin-log";
+import {
+  createMemo,
+  createSignal,
+  For,
+  onCleanup,
+  onMount,
+  Show,
+} from "solid-js";
+import { error, info } from "@tauri-apps/plugin-log";
 import { BaseWidget } from "../BaseWidget";
 import {
   addToInventory,
@@ -13,6 +20,9 @@ import {
 } from "./InventoryState";
 import { togglePassthrough } from "@/lib/Passthrough";
 import { loadOverviews, overviews } from "@/lib/Overviews";
+import { store } from "@/lib/Store";
+import { getCurrentWindow } from "@tauri-apps/api/window";
+import { showOverlay } from "@/lib/File";
 
 const parseItem = async (itemString: string) => {
   const lines = itemString
@@ -40,6 +50,24 @@ const parseItem = async (itemString: string) => {
 
   return item;
 };
+
+interface place {
+  x: number;
+  y: number;
+  click: boolean;
+}
+
+const [places, setPlaces] = createSignal<place[]>([]);
+
+const [autoScanAction, setAutoScanAction] = createSignal<() => Promise<void>>(
+  () => Promise.resolve(),
+);
+const [addStepAction, setAddStepAction] = createSignal<() => Promise<void>>(
+  () => Promise.resolve(),
+);
+const [addMouseClickAction, setAddMouseClickAction] = createSignal<
+  () => Promise<void>
+>(() => Promise.resolve());
 
 function InventoryWidget(props: { shortcut: string }) {
   const filtered = () =>
@@ -85,27 +113,68 @@ function InventoryWidget(props: { shortcut: string }) {
     togglePassthrough();
   };
 
+  const addItem = async () => {
+    const itemString: string = await invoke("os_copy");
+    const item = await parseItem(itemString);
+    addToInventory(item);
+  };
+
+  const autoScan = async () => {
+    for (const p of places()) {
+      if (p.click) {
+        await invoke("mouse_move", { x: p.x, y: p.y });
+        await invoke("mouse_click");
+        continue;
+      }
+
+      await invoke("mouse_move", { x: p.x, y: p.y });
+      await addItem();
+    }
+  };
+
+  const addStep = async () => {
+    const loc: number[] = await invoke("get_global_mouse_position");
+    setPlaces([...places(), { x: loc[0], y: loc[1], click: false }]);
+    await addItem();
+  };
+
+  const mouseClick = async () => {
+    const loc: number[] = await invoke("get_global_mouse_position");
+    setPlaces([...places(), { x: loc[0], y: loc[1], click: true }]);
+    await invoke("mouse_move", { x: loc[0], y: loc[1] });
+    await invoke("mouse_click");
+  };
+
   onMount(async () => {
     loadOverviews();
     loadInventory();
 
-    try {
-      await register(props.shortcut, async (e) => {
-        if (e.state === "Pressed") {
-          await invoke("os_copy");
-          const itemString = await readText();
-          const item = await parseItem(itemString);
-          addToInventory(item);
-        }
-      });
-    } catch (e) {
-      error("failed to register copy shortcut: " + e);
-    }
+    setAutoScanAction(() => autoScan);
+    setAddStepAction(() => addStep);
+    setAddMouseClickAction(() => mouseClick);
+
+    const p = await store.get<place[]>("places");
+    if (p) setPlaces(p);
+
+    await getCurrentWindow().onCloseRequested(async (e) => {
+      e.preventDefault();
+
+      info("saving places state");
+
+      try {
+        await store.set("places", places());
+        await store.save();
+      } catch (e) {
+        error(`Failed to save data before closing: ${e}`);
+      }
+    });
   });
 
-  onCleanup(() => {
+  onCleanup(async () => {
+    await store.set("places", places());
+    await store.save();
+
     saveInventory();
-    unregister(props.shortcut);
   });
 
   return (
@@ -220,4 +289,10 @@ function InventoryWidget(props: { shortcut: string }) {
   );
 }
 
-export { InventoryWidget };
+export {
+  InventoryWidget,
+  setPlaces,
+  autoScanAction,
+  addStepAction,
+  addMouseClickAction,
+};

@@ -1,5 +1,4 @@
 import { invoke } from "@tauri-apps/api/core";
-import { readText } from "@tauri-apps/plugin-clipboard-manager";
 import { register, unregister } from "@tauri-apps/plugin-global-shortcut";
 import { error, info } from "@tauri-apps/plugin-log";
 import { For, onCleanup, onMount } from "solid-js";
@@ -11,6 +10,7 @@ import { Item, parseItem, Requirements } from "./ParseItem";
 import { createQuery } from "./CreateQuery";
 import { store } from "@/lib/Store";
 import { togglePassthrough } from "@/lib/Passthrough";
+import { showOverlay } from "@/lib/File";
 
 function PriceWidget(props: { shortcut: string }) {
   const [item, setItem] = createStore<Item>({
@@ -78,9 +78,12 @@ function PriceWidget(props: { shortcut: string }) {
 
     try {
       await register(props.shortcut, async (e) => {
+        if (!showOverlay()) {
+          return;
+        }
+
         if (e.state === "Pressed") {
-          await invoke("os_copy");
-          const itemCopy = await readText();
+          const itemCopy: string = await invoke("os_copy");
           const itemStruct = parseItem(itemCopy);
           setItem(itemStruct);
           togglePassthrough();
@@ -320,6 +323,7 @@ function PriceWidget(props: { shortcut: string }) {
       >
         Trade
       </button>
+      <button onClick={() => invoke("move_mouse")}> Move </button>
     </BaseWidget>
   );
 }
