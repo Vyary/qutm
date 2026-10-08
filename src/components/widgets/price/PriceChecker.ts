@@ -1,14 +1,36 @@
 import { overviews, ts } from "@/lib/Overviews";
 import { Item } from "./ParseItem";
 import { Prices } from "./PriceWidget";
-import { info } from "@tauri-apps/plugin-log";
 import { createSignal, onMount } from "solid-js";
+import { fetch } from "@tauri-apps/plugin-http";
+
+export interface Listing {
+  indexed: string;
+  price: {
+    amount: number;
+    currency: string;
+  };
+  fee: number;
+}
+
+export interface SearchItem {
+  listing: Listing;
+}
+
+export interface SearchResponse {
+  result: SearchItem[];
+}
+
+export interface SearchResult {
+  id: string;
+  complexity: number;
+  result: string[];
+  total: number;
+  inexact: boolean;
+}
 
 function StaticTimeAgo(timestamp: string) {
-  // Start with an empty string or a generic fallback
   const [text, setText] = createSignal("");
-
-  info(timestamp);
 
   onMount(() => {
     const past = new Date(timestamp).getTime();
@@ -34,9 +56,7 @@ function StaticTimeAgo(timestamp: string) {
   return text();
 }
 
-const PriceCheck = (item: Item): Prices[] => {
-  info(item.name.value);
-
+const PriceCheck = async (item: Item, query: string): Promise<Prices[]> => {
   const itemO = overviews[item.name.value];
   if (itemO) {
     const maxCurr = itemO.maxVolumeCurrency;
@@ -56,18 +76,45 @@ const PriceCheck = (item: Item): Prices[] => {
     ];
   }
 
-  return [
-    { amount: 5, currency: "chaos", listed: "1h ago" },
-    { amount: 6, currency: "divine", listed: "3h ago" },
-    { amount: 7, currency: "divine", listed: "1d ago" },
-    { amount: 8, currency: "divine", listed: "12h ago" },
-    { amount: 9, currency: "divine", listed: "10h ago" },
-    { amount: 11, currency: "divine", listed: "just now" },
-    { amount: 25, currency: "divine", listed: "1w ago" },
-    { amount: 50, currency: "divine", listed: "1h ago" },
-    { amount: 100, currency: "divine", listed: "1h ago" },
-    { amount: 1, currency: "mirror", listed: "1h ago" },
-  ];
+  const searchReq = await fetch(
+    "https://www.pathofexile.com/api/trade2/search/poe2/Forbidden%20Rites",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: query,
+    },
+  );
+
+  const sqData: SearchResult = await searchReq.json();
+
+  const searchRes = await fetch(
+    "https://www.pathofexile.com/api/trade2/fetch/" +
+      sqData.result.slice(0, 10).join(","),
+    {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    },
+  );
+
+  const srData: SearchResponse = await searchRes.json();
+
+  const prices = srData?.result?.map((r) => {
+    return {
+      amount: r.listing.price.amount,
+      currency: r.listing.price.currency,
+      listed: StaticTimeAgo(r.listing.indexed),
+    };
+  });
+
+  if (prices?.length) {
+    return prices;
+  }
+
+  return [];
 };
 
 export { PriceCheck };

@@ -10,7 +10,7 @@ import { store } from "@/lib/Store";
 import { togglePassthrough } from "@/lib/Passthrough";
 import { PriceCheck } from "./PriceChecker";
 import { loadOverviews } from "@/lib/Overviews";
-import { error } from "@tauri-apps/plugin-log";
+import { error, info } from "@tauri-apps/plugin-log";
 
 const [scanItemAction, setScanItemAction] = createSignal<() => Promise<void>>(
   () => Promise.resolve(),
@@ -89,12 +89,13 @@ function PriceWidget() {
     const itemCopy: string = await invoke("os_copy");
     const itemStruct = parseItem(itemCopy);
     setItem(itemStruct);
+    togglePassthrough();
     try {
-      setPrices(PriceCheck(item));
+      setPrices(await PriceCheck(item, query()));
     } catch (e) {
+      setPrices([]);
       error("getting price: " + e);
     }
-    togglePassthrough();
   };
 
   onMount(async () => {
@@ -373,7 +374,23 @@ function PriceWidget() {
 
         <div class="divider my-0 opacity-50"></div>
 
-        <div class="w-full inline-flex justify-end px-3">
+        <div class="w-full inline-flex justify-between px-3">
+          <button
+            onClick={async () => {
+              const s = performance.now();
+              try {
+                setPrices(await PriceCheck(item, query()));
+              } catch (e) {
+                setPrices([]);
+                error("getting price: " + e);
+              }
+
+              info(`fetched prices in ${(performance.now() - s).toFixed(2)}ms`);
+            }}
+            class="btn btn-xs btn-soft"
+          >
+            Recheck
+          </button>
           <button
             onClick={async () => {
               await openUrl(
@@ -393,7 +410,7 @@ function PriceWidget() {
           {(p) => (
             <div class="flex justify-between px-3">
               <span class="">
-                {p.amount.toFixed(4)} {p.currency}
+                {p.amount > 1 ? p.amount : p.amount.toFixed(4)} {p.currency}
               </span>
               <span>{p.listed}</span>
             </div>
