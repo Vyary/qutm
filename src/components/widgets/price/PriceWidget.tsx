@@ -1,5 +1,4 @@
 import { invoke } from "@tauri-apps/api/core";
-import { info } from "@tauri-apps/plugin-log";
 import { createSignal, For, onCleanup, onMount } from "solid-js";
 import { createStore } from "solid-js/store";
 import { BaseWidget } from "../BaseWidget";
@@ -9,10 +8,19 @@ import { Item, parseItem, Requirements } from "./ParseItem";
 import { createQuery } from "./CreateQuery";
 import { store } from "@/lib/Store";
 import { togglePassthrough } from "@/lib/Passthrough";
+import { PriceCheck } from "./PriceChecker";
+import { loadOverviews } from "@/lib/Overviews";
+import { error } from "@tauri-apps/plugin-log";
 
 const [scanItemAction, setScanItemAction] = createSignal<() => Promise<void>>(
   () => Promise.resolve(),
 );
+
+export interface Prices {
+  amount: number;
+  currency: string;
+  listed: string;
+}
 
 function PriceWidget() {
   const [item, setItem] = createStore<Item>({
@@ -29,6 +37,9 @@ function PriceWidget() {
     skill: [],
     corrupted: false,
   });
+  const query = () => JSON.stringify(createQuery(item));
+
+  const [prices, setPrices] = createSignal<Prices[]>([]);
 
   const itemReq = (
     req: Requirements,
@@ -78,11 +89,17 @@ function PriceWidget() {
     const itemCopy: string = await invoke("os_copy");
     const itemStruct = parseItem(itemCopy);
     setItem(itemStruct);
+    try {
+      setPrices(PriceCheck(item));
+    } catch (e) {
+      error("getting price: " + e);
+    }
     togglePassthrough();
   };
 
   onMount(async () => {
     loadMods();
+    loadOverviews();
 
     const i = await store.get<Item>("item");
     if (i) setItem(i);
@@ -156,7 +173,9 @@ function PriceWidget() {
           </div>
         </div>
 
-        <div class="border-t border-base-content/10 pt-1">
+        <div class="divider my-0 opacity-50"></div>
+
+        <div class="">
           <For each={item.skill}>
             {(mod, i) => (
               <div classList={{ "opacity-40": mod.disabled }}>
@@ -202,6 +221,7 @@ function PriceWidget() {
               </div>
             )}
           </For>
+
           <For each={item.enhancement}>
             {(mod, i) => (
               <div classList={{ "opacity-40": mod.disabled }}>
@@ -249,6 +269,7 @@ function PriceWidget() {
               </div>
             )}
           </For>
+
           <For each={item.implicit}>
             {(mod, i) => (
               <div classList={{ "opacity-40": mod.disabled }}>
@@ -298,7 +319,9 @@ function PriceWidget() {
           </For>
         </div>
 
-        <div class="border-t border-base-content/10 pt-1 space-y-1">
+        <div class="divider my-0 opacity-50"></div>
+
+        <div class="space-y-1">
           <For each={item.explicit}>
             {(mod, i) => (
               <div classList={{ "opacity-40": mod.disabled }}>
@@ -347,23 +370,36 @@ function PriceWidget() {
             )}
           </For>
         </div>
+
+        <div class="divider my-0 opacity-50"></div>
+
+        <div class="w-full inline-flex justify-end px-3">
+          <button
+            onClick={async () => {
+              await openUrl(
+                "https://www.pathofexile.com/trade2/search/poe2/Forbidden%20Rites?q=" +
+                  query(),
+              );
+
+              togglePassthrough();
+            }}
+            class="btn btn-xs btn-soft"
+          >
+            Trade
+          </button>
+        </div>
+
+        <For each={prices()}>
+          {(p) => (
+            <div class="flex justify-between px-3">
+              <span class="">
+                {p.amount.toFixed(4)} {p.currency}
+              </span>
+              <span>{p.listed}</span>
+            </div>
+          )}
+        </For>
       </div>
-
-      <button
-        onClick={async () => {
-          await openUrl(
-            "https://www.pathofexile.com/trade2/search/poe2/Forbidden%20Rites?q=" +
-              JSON.stringify(createQuery(item)),
-          );
-
-          togglePassthrough();
-          info(JSON.stringify(createQuery(item)));
-        }}
-        class="btn btn-xs"
-      >
-        Trade
-      </button>
-      <button onClick={() => invoke("move_mouse")}> Move </button>
     </BaseWidget>
   );
 }
