@@ -15,7 +15,7 @@ function Price() {
         )}
       >
         <Suspense>
-          <PriceWidget shortcut="Alt+D" />
+          <PriceWidget />
         </Suspense>
       </ErrorBoundary>
     </Show>

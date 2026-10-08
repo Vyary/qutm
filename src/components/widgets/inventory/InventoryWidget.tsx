@@ -1,6 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
-import { register, unregister } from "@tauri-apps/plugin-global-shortcut";
 import {
   createMemo,
   createSignal,
@@ -22,7 +21,6 @@ import { togglePassthrough } from "@/lib/Passthrough";
 import { loadOverviews, overviews } from "@/lib/Overviews";
 import { store } from "@/lib/Store";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { showOverlay } from "@/lib/File";
 
 const parseItem = async (itemString: string) => {
   const lines = itemString
@@ -70,6 +68,7 @@ const [addMouseClickAction, setAddMouseClickAction] = createSignal<
 >(() => Promise.resolve());
 
 function InventoryWidget(props: { shortcut: string }) {
+  const [scanning, setScanning] = createSignal(false);
   const filtered = () =>
     Object.entries(inventory).filter((el) => overviews[el[0]]);
 
@@ -120,7 +119,11 @@ function InventoryWidget(props: { shortcut: string }) {
   };
 
   const autoScan = async () => {
+    setScanning(!scanning());
+
     for (const p of places()) {
+      if (scanning()) break;
+
       if (p.click) {
         await invoke("mouse_move", { x: p.x, y: p.y });
         await invoke("mouse_click");

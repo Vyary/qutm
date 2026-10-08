@@ -2,6 +2,7 @@ import { store } from "@/lib/Store";
 import { info } from "@tauri-apps/plugin-log";
 import { createStore, reconcile } from "solid-js/store";
 import { fetch } from "@tauri-apps/plugin-http";
+import { createSignal } from "solid-js";
 
 interface ItemInfo {
   id: string;
@@ -46,6 +47,7 @@ type ExchangePrices = Record<
 const TWELVE_HOURS = 12 * 60 * 60 * 1000;
 
 const [overviews, setOverviews] = createStore<ExchangePrices>();
+const [ts, setTs] = createSignal<string>("");
 
 const fetchOverviews = async () => {
   const currencyCategories = [
@@ -113,10 +115,13 @@ const refreshOverview = async () => {
 };
 
 const loadOverviews = async () => {
-  if (
-    Date.now() - ((await store.get<number>("timestamp")) ?? TWELVE_HOURS) >=
-    TWELVE_HOURS
-  ) {
+  const ts = await store.get<number>("timestamp");
+  if (ts) {
+    const nd = new Date(ts);
+    setTs(nd.toISOString());
+  }
+
+  if (Date.now() - (ts ?? TWELVE_HOURS) >= TWELVE_HOURS) {
     refreshOverview();
     return;
   }
@@ -134,4 +139,4 @@ const saveOverviews = async () => {
   store.save();
 };
 
-export { overviews, loadOverviews };
+export { overviews, loadOverviews, ts };

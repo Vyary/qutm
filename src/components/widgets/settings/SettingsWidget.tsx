@@ -17,6 +17,7 @@ import { UpdaterSettings } from "@/components/updater/UpdaterSettings";
 import { ZoneSettings } from "../zone/ZoneSettings";
 import { InventorySettings } from "../inventory/InventorySettings";
 import { LayoutSettings } from "../layout/LayoutSettings";
+import { PriceSettings } from "../price/PriceSettings";
 
 const [textSlider, setTextSlider] = createSignal(1);
 const sizes = ["text-xs", "text-sm", "text-base", "text-lg", "text-lg"];
@@ -182,6 +183,7 @@ function SettingsWidget() {
             Beta Features
           </span>
           <InventorySettings />
+          <PriceSettings />
         </div>
         <div class="divider my-0 opacity-50"></div>
         <div class="flex flex-col gap-2">

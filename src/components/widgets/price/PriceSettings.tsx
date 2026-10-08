@@ -1,5 +1,7 @@
-import { createSignal, onMount } from "solid-js";
+import { createSignal, onMount, Show } from "solid-js";
 import { store } from "@/lib/Store";
+import { scanItemAction } from "./PriceWidget";
+import { Shortcut } from "@/components/Shortcut";
 
 const [showPrice, setShowPrice] = createSignal(false);
 
@@ -35,6 +37,14 @@ function PriceSettings() {
           class="toggle toggle-sm toggle-success"
         />
       </div>
+      <Show when={showPrice()}>
+        <Shortcut
+          name="Price Item Scan Shortcut"
+          action={scanItemAction()}
+          alt={true}
+          defaultKey="D"
+        />
+      </Show>
     </>
   );
 }

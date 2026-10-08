@@ -27,6 +27,7 @@ export interface Item {
   ilvl: Toggleable<number>;
   quality: Toggleable<number>;
   requires: Toggleable<Requirements>;
+  enhancement: ItemMod[];
   implicit: ItemMod[];
   explicit: ItemMod[];
   skill: ItemMod[];
@@ -116,6 +117,7 @@ export const parseItem = (item: string) => {
     quality: { value: 0, disabled: true },
     requires: { value: {}, disabled: true },
     ilvl: { value: 0, disabled: true },
+    enhancement: [],
     implicit: [],
     explicit: [],
     skill: [],
@@ -194,6 +196,30 @@ export const parseItem = (item: string) => {
       };
 
       debug("added requirements: " + JSON.stringify(itemStruct.requires));
+      continue;
+    }
+
+    if (lines[i].includes("Enhancement ")) {
+      const increase = parseInt(lines[i].match(/(\d+)%/)?.[0] || "0", 10);
+
+      for (let j = 1; j <= 3; i++) {
+        if (
+          lines[i + j].includes("Enhancement") ||
+          lines[i + j].includes("---") ||
+          !lines[i + j].trim()
+        ) {
+          debug("breaking inner loop");
+          break;
+        }
+
+        debug("---> 2nd loop ---> checking line: " + lines[i + j]);
+        const mod = parseModLine(lines[i + j]);
+        if (increase > 0 && mod.min) mod.min = mod.min * (1 + increase / 100);
+        if (mod.min) mod.min = Math.floor(mod.min);
+        itemStruct.enhancement.push(mod);
+        debug("added enhancement: " + JSON.stringify(mod));
+      }
+
       continue;
     }
 
