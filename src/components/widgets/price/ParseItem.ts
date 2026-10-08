@@ -1,4 +1,4 @@
-import { debug, info } from "@tauri-apps/plugin-log";
+import { debug } from "@tauri-apps/plugin-log";
 
 interface Toggleable<T> {
   value: T;
