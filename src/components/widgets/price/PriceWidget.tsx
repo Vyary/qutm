@@ -10,17 +10,19 @@ import { store } from "@/lib/Store";
 import { togglePassthrough } from "@/lib/Passthrough";
 import { PriceCheck } from "./PriceChecker";
 import { loadOverviews } from "@/lib/Overviews";
-import { error, info } from "@tauri-apps/plugin-log";
-
-const [scanItemAction, setScanItemAction] = createSignal<() => Promise<void>>(
-  () => Promise.resolve(),
-);
+import { error } from "@tauri-apps/plugin-log";
 
 export interface Prices {
   amount: number;
   currency: string;
   listed: string;
 }
+
+const [scanItemAction, setScanItemAction] = createSignal<() => Promise<void>>(
+  () => Promise.resolve(),
+);
+
+let interval: ReturnType<typeof setInterval> | undefined;
 
 function PriceWidget() {
   const [item, setItem] = createStore<Item>({
@@ -38,6 +40,7 @@ function PriceWidget() {
     corrupted: false,
   });
   const query = () => JSON.stringify(createQuery(item));
+  const [timeout, setTimeoutLeft] = createSignal(0);
 
   const [prices, setPrices] = createSignal<Prices[]>([]);
 
@@ -85,17 +88,49 @@ function PriceWidget() {
     );
   };
 
+  const startCountdown = (ms: number) => {
+    clearInterval(interval);
+    const deadline = Date.now() + ms;
+    setTimeoutLeft(ms);
+
+    interval = setInterval(() => {
+      const rem = deadline - Date.now();
+      if (rem <= 0) {
+        clearInterval(interval);
+        setTimeoutLeft(0);
+        getPrice();
+      } else {
+        setTimeoutLeft(rem);
+      }
+    }, 100);
+  };
+
+  const getPrice = async () => {
+    if (timeout()) {
+      return;
+    }
+
+    setPrices([]);
+
+    try {
+      const pcr = await PriceCheck(item, query());
+      if (pcr.timeout) {
+        startCountdown(pcr.timeout);
+        return;
+      }
+      setPrices(pcr.prices);
+    } catch (e) {
+      setPrices([]);
+      error("getting price: " + e);
+    }
+  };
+
   const scanItem = async () => {
     const itemCopy: string = await invoke("os_copy");
     const itemStruct = parseItem(itemCopy);
     setItem(itemStruct);
     togglePassthrough();
-    try {
-      setPrices(await PriceCheck(item, query()));
-    } catch (e) {
-      setPrices([]);
-      error("getting price: " + e);
-    }
+    getPrice();
   };
 
   onMount(async () => {
@@ -112,6 +147,7 @@ function PriceWidget() {
     await store.set("item", item);
     await store.save();
     await saveMods();
+    clearInterval(interval);
   });
 
   return (
@@ -374,23 +410,23 @@ function PriceWidget() {
 
         <div class="divider my-0 opacity-50"></div>
 
-        <div class="w-full inline-flex justify-between px-3">
-          <button
-            onClick={async () => {
-              const s = performance.now();
-              try {
-                setPrices(await PriceCheck(item, query()));
-              } catch (e) {
-                setPrices([]);
-                error("getting price: " + e);
-              }
-
-              info(`fetched prices in ${(performance.now() - s).toFixed(2)}ms`);
-            }}
-            class="btn btn-xs btn-soft"
-          >
-            Recheck
-          </button>
+        <div class="w-full inline-flex justify-between">
+          <div>
+            <button
+              onClick={async () => {
+                getPrice();
+              }}
+              class="btn btn-xs btn-soft"
+              classList={{
+                "btn-disabled": timeout() > 0,
+                "font-mono": timeout() > 0,
+              }}
+            >
+              {timeout() > 0
+                ? `${(timeout() / 1000).toFixed(1)}s`
+                : "Recheck price"}
+            </button>
+          </div>
           <button
             onClick={async () => {
               await openUrl(
@@ -408,7 +444,7 @@ function PriceWidget() {
 
         <For each={prices()}>
           {(p) => (
-            <div class="flex justify-between px-3">
+            <div class="flex justify-between px-1">
               <span class="">
                 {p.amount > 1 ? p.amount : p.amount.toFixed(4)} {p.currency}
               </span>

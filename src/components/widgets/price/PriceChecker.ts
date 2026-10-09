@@ -3,6 +3,8 @@ import { Item } from "./ParseItem";
 import { Prices } from "./PriceWidget";
 import { createSignal, onMount } from "solid-js";
 import { fetch } from "@tauri-apps/plugin-http";
+import { info } from "@tauri-apps/plugin-log";
+import { RateLimiter, updateTimes } from "./RateLimiter";
 
 export interface Listing {
   indexed: string;
@@ -27,6 +29,11 @@ export interface SearchResult {
   result: string[];
   total: number;
   inexact: boolean;
+}
+
+export interface PriceCheckResult {
+  prices: Prices[];
+  timeout: number;
 }
 
 function StaticTimeAgo(timestamp: string) {
@@ -56,24 +63,35 @@ function StaticTimeAgo(timestamp: string) {
   return text();
 }
 
-const PriceCheck = async (item: Item, query: string): Promise<Prices[]> => {
+const PriceCheck = async (
+  item: Item,
+  query: string,
+): Promise<PriceCheckResult> => {
   const itemO = overviews[item.name.value];
   if (itemO) {
     const maxCurr = itemO.maxVolumeCurrency;
-    return [
-      {
-        amount:
-          itemO.prices[
-            maxCurr == "exalted"
-              ? "exalted"
-              : maxCurr == "chaos"
-                ? "chaos"
-                : "divine"
-          ],
-        currency: itemO.maxVolumeCurrency,
-        listed: StaticTimeAgo(ts()),
-      },
-    ];
+    return {
+      prices: [
+        {
+          amount:
+            itemO.prices[
+              maxCurr == "exalted"
+                ? "exalted"
+                : maxCurr == "chaos"
+                  ? "chaos"
+                  : "divine"
+            ],
+          currency: itemO.maxVolumeCurrency,
+          listed: StaticTimeAgo(ts()),
+        },
+      ],
+      timeout: 0,
+    };
+  }
+
+  const rateLimit = RateLimiter();
+  if (rateLimit) {
+    return { prices: [], timeout: rateLimit };
   }
 
   const searchReq = await fetch(
@@ -86,6 +104,13 @@ const PriceCheck = async (item: Item, query: string): Promise<Prices[]> => {
       body: query,
     },
   );
+
+  const ipLimits = searchReq.headers.get("x-rate-limit-ip");
+  const ipState = searchReq.headers.get("x-rate-limit-ip-state");
+
+  info(`rate limits: ${ipLimits} -> ${ipState}`);
+
+  updateTimes(ipState ?? "0:10:0,0:60:0,0:300:0,0:21600:0");
 
   const sqData: SearchResult = await searchReq.json();
 
@@ -111,10 +136,10 @@ const PriceCheck = async (item: Item, query: string): Promise<Prices[]> => {
   });
 
   if (prices?.length) {
-    return prices;
+    return { prices: prices, timeout: 0 };
   }
 
-  return [];
+  return { prices: [], timeout: 0 };
 };
 
 export { PriceCheck };
