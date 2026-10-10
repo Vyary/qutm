@@ -76,4 +76,5 @@ export const loadMods = async () => {
 export const saveMods = async () => {
   await store.set("mods", mods);
   await store.save();
+  info("mods saved");
 };

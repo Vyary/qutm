@@ -1,10 +1,6 @@
 import { createSignal, onMount, Show } from "solid-js";
 import { filePath, selectFile, startTailing, watching } from "@/lib/File";
-import {
-  enablePassthrough,
-  PtSc,
-  updatePasstroughShortcut,
-} from "@/lib/Passthrough";
+import { enablePassthrough, togglePassthrough } from "@/lib/Passthrough";
 import {
   character,
   updateCharacterClass,
@@ -18,6 +14,7 @@ import { ZoneSettings } from "../zone/ZoneSettings";
 import { InventorySettings } from "../inventory/InventorySettings";
 import { LayoutSettings } from "../layout/LayoutSettings";
 import { PriceSettings } from "../price/PriceSettings";
+import { Shortcut } from "@/components/Shortcut";
 
 const [textSlider, setTextSlider] = createSignal(1);
 const sizes = ["text-xs", "text-sm", "text-base", "text-lg", "text-lg"];
@@ -29,8 +26,6 @@ const [RTL, setRTL] = createSignal(false);
 const [dev, setDev] = createSignal(false);
 
 function SettingsWidget() {
-  const [PtScErr, setPtScErr] = createSignal(false);
-
   onMount(async () => {
     setRTL((await store.get("RTL")) ?? RTL());
     setTextSlider((await store.get("textSize")) ?? textSlider());
@@ -53,55 +48,15 @@ function SettingsWidget() {
         <legend class="fieldset-legend text-sm font-semibold uppercase tracking-wider opacity-70">
           Settings
         </legend>
-        <div class="flex flex-col gap-1">
-          <span class="text-xs font-medium uppercase tracking-wide opacity-60">
-            Overlay Toggle
-          </span>
-          <div class="join w-full">
-            <input
-              class="btn btn-soft btn-sm join-item flex-1"
-              type="checkbox"
-              name="modifier"
-              aria-label="Ctrl"
-              value="Ctrl"
-              checked={PtSc.Ctrl}
-              onChange={(e) => updatePasstroughShortcut(e)}
-            />
-            <input
-              class="btn btn-soft btn-sm join-item flex-1"
-              type="checkbox"
-              name="modifier"
-              aria-label="Shift"
-              value="Shift"
-              checked={PtSc.Shift}
-              onChange={(e) => updatePasstroughShortcut(e)}
-            />
-            <input
-              class="btn btn-soft btn-sm join-item flex-1"
-              type="checkbox"
-              name="modifier"
-              aria-label="Alt"
-              value="Alt"
-              checked={PtSc.Alt}
-              onChange={(e) => updatePasstroughShortcut(e)}
-            />
-            <input
-              type="text"
-              placeholder="Key"
-              class="input input-sm join-item w-16 text-center font-mono uppercase"
-              classList={{ "input-error": PtScErr() }}
-              value={PtSc.Key.toUpperCase()}
-              onInput={(e) => {
-                if (e.target.value.trim() === "") {
-                  setPtScErr(true);
-                  return;
-                }
-                setPtScErr(false);
-                updatePasstroughShortcut(e, true);
-              }}
-            />
-          </div>
-        </div>
+        <Shortcut
+          name="Overlay Toggle"
+          action={async () => togglePassthrough()}
+          defaultKey="F"
+          ctrl={true}
+          shift={true}
+          global={true}
+        />
+
         <div class="divider my-0 opacity-50"></div>
         <div class="flex flex-col gap-1">
           <span class="text-xs font-medium uppercase tracking-wide opacity-60">
@@ -140,7 +95,7 @@ function SettingsWidget() {
                   d="M12 9v4m0 4h.01M10.29 3.86 2.1 18.04A1.5 1.5 0 0 0 3.42 20.3h17.16a1.5 1.5 0 0 0 1.31-2.26L13.7 3.86a1.5 1.5 0 0 0-2.6 0Z"
                 />
               </svg>
-              Locate Client.txt to enable zone tracking
+              Locate Client.txt to enable the overlay
             </p>
           </Show>
         </div>

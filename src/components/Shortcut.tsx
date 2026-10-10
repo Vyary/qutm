@@ -1,7 +1,9 @@
+import { showOverlay } from "@/lib/File";
 import { store } from "@/lib/Store";
+import { UnlistenFn } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { register, unregister } from "@tauri-apps/plugin-global-shortcut";
-import { error } from "@tauri-apps/plugin-log";
+import { error, info } from "@tauri-apps/plugin-log";
 import { createSignal, onCleanup, onMount } from "solid-js";
 import { createStore } from "solid-js/store";
 
@@ -12,6 +14,7 @@ function Shortcut(props: {
   ctrl?: boolean;
   shift?: boolean;
   alt?: boolean;
+  global?: boolean;
 }) {
   const [keys, setKeys] = createStore({
     Ctrl: props.ctrl ?? false,
@@ -37,7 +40,14 @@ function Shortcut(props: {
     try {
       await register(shortcutString(), async (e) => {
         if (e.state === "Released") {
-          await props.action();
+          if (props.global) {
+            await props.action();
+            return;
+          }
+          if (showOverlay()) {
+            await props.action();
+            return;
+          }
         }
       });
     } catch (e) {
@@ -65,23 +75,22 @@ function Shortcut(props: {
     await store.save();
   };
 
+  let unlisten: UnlistenFn = () =>
+    info("shortcut on close unlisten not updated");
+
   onMount(async () => {
     const k = await store.get(props.name);
     if (k) setKeys(k);
     registerShortcut();
 
-    await getCurrentWindow().onCloseRequested(async (e) => {
-      e.preventDefault();
-      try {
-        await unregister(shortcutString());
-      } catch (e) {
-        error(`Failed to unregister ${props.name}: ${e}`);
-      }
+    unlisten = await getCurrentWindow().onCloseRequested(async () => {
+      await unregister(shortcutString());
     });
   });
 
   onCleanup(async () => {
     await unregister(shortcutString());
+    unlisten();
   });
 
   return (

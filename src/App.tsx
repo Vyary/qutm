@@ -1,14 +1,9 @@
-import { onMount } from "solid-js";
+import { onCleanup, onMount } from "solid-js";
 import "./App.css";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import {
-  enablePassthrough,
-  passthrough,
-  registerPasstroughShortcut,
-} from "./lib/Passthrough";
+import { enablePassthrough, passthrough } from "./lib/Passthrough";
 import { unregisterAll } from "@tauri-apps/plugin-global-shortcut";
 import { loadFilePath, showOverlay } from "./lib/File";
-import { exit } from "@tauri-apps/plugin-process";
 import { info } from "@tauri-apps/plugin-log";
 import { Layouts } from "./components/widgets/layout/Layouts";
 import { Zone } from "./components/widgets/zone/Zone";
@@ -17,8 +12,11 @@ import { Settings } from "./components/widgets/settings/Settings";
 import { Updater } from "./components/updater/Updater";
 import { Inventory } from "./components/widgets/inventory/Inventory";
 import { Price } from "./components/widgets/price/Price";
+import { UnlistenFn } from "@tauri-apps/api/event";
 
 function App() {
+  let unlisten: UnlistenFn = () => info("app on close unlisten not updated");
+
   onMount(async () => {
     info(Date.now().toString());
 
@@ -27,7 +25,6 @@ function App() {
 
       initTrayIcon();
       enablePassthrough();
-      registerPasstroughShortcut();
       getCurrentWindow().maximize();
 
       loadFilePath();
@@ -39,11 +36,13 @@ function App() {
 
     initializeApp();
 
-    await getCurrentWindow().onCloseRequested(async (e) => {
-      e.preventDefault();
-      unregisterAll();
-      await exit(0);
+    unlisten = await getCurrentWindow().onCloseRequested(async () => {
+      await unregisterAll();
     });
+  });
+
+  onCleanup(async () => {
+    unlisten();
   });
 
   return (

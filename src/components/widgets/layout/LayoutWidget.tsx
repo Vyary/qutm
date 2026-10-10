@@ -16,11 +16,12 @@ import {
   removeIcon,
   saveLayouts,
 } from "./LayoutsState";
-import { error, info } from "@tauri-apps/plugin-log";
+import { info } from "@tauri-apps/plugin-log";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { passthrough } from "@/lib/Passthrough";
 import { dev } from "../settings/SettingsWidget";
 import { BaseWidget } from "../BaseWidget";
+import { UnlistenFn } from "@tauri-apps/api/event";
 
 function LayoutWidget() {
   const [iconIndex, setIconIndex] = createSignal(0);
@@ -120,25 +121,20 @@ function LayoutWidget() {
     }
   };
 
+  let unlisten: UnlistenFn = () =>
+    info("layouts widget on close unlisten not updated");
+
   onMount(async () => {
     loadLayouts();
 
-    await getCurrentWindow().onCloseRequested(async (e) => {
-      e.preventDefault();
-
-      info("saving layouts state");
-
-      try {
-        await saveLayouts();
-      } catch (e) {
-        error(`Failed to save data before closing: ${e}`);
-      }
+    unlisten = await getCurrentWindow().onCloseRequested(async () => {
+      await saveLayouts();
     });
   });
 
   onCleanup(async () => {
-    info("saving layouts state");
     await saveLayouts();
+    unlisten();
   });
 
   return (

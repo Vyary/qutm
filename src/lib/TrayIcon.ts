@@ -1,8 +1,8 @@
 import { TrayIcon } from "@tauri-apps/api/tray";
 import { Menu, PredefinedMenuItem, Submenu } from "@tauri-apps/api/menu";
-import { relaunch } from "@tauri-apps/plugin-process";
+import { exit, relaunch } from "@tauri-apps/plugin-process";
 import { defaultWindowIcon } from "@tauri-apps/api/app";
-import { getAllWindows } from "@tauri-apps/api/window";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { disblePassthrough, togglePassthrough } from "./Passthrough";
 import { store } from "./Store";
 import {
@@ -102,10 +102,9 @@ async function initTrayIcon() {
           id: "quit",
           text: "Quit Application",
           action: async () => {
-            const windows = await getAllWindows();
-            for (const win of windows) {
-              await win.close();
-            }
+            await getCurrentWindow().close();
+            await new Promise((r) => setTimeout(r, 1000));
+            await exit(0);
           },
         },
         {
