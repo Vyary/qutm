@@ -14,6 +14,7 @@ const addTownName = (id: string, name: string) => {
 const saveTowns = async () => {
   await store.set("towns", towns);
   await store.save();
+  info("towns saved");
 };
 
 const loadTowns = async () => {

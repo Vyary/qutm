@@ -6,15 +6,14 @@
   "permissions": [
     "core:default",
     "opener:default",
-    "core:window:allow-set-ignore-cursor-events",
+    "core:window:default",
     "core:window:allow-close",
-    "core:window:allow-destroy",
+    "core:window:allow-maximize",
+    "core:window:allow-set-ignore-cursor-events",
     "global-shortcut:allow-register",
     "global-shortcut:allow-unregister",
     "global-shortcut:allow-unregister-all",
-    "dialog:allow-open",
-    "dialog:allow-save",
-    "core:window:allow-maximize",
+    "dialog:default",
     "core:app:allow-default-window-icon",
     "process:default",
     "updater:default",
@@ -26,8 +25,8 @@
     "log:default",
     "core:event:default",
     {
-          "identifier": "http:default",
-          "allow": [{ "url": "https://poe.ninja/*" }, { "url": "https://www.pathofexile.com/api/*" }]
-        }
+      "identifier": "http:default",
+      "allow": [{ "url": "https://poe.ninja/*" }, { "url": "https://www.pathofexile.com/api/*" }]
+    }
   ]
 }

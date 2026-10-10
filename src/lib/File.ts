@@ -19,6 +19,10 @@ import { error, info } from "@tauri-apps/plugin-log";
 import { store } from "./Store";
 import { togglePassthrough } from "./Passthrough";
 import { setLayoutZone } from "@/components/widgets/layout/LayoutsState";
+import {
+  setShowSettings,
+  showSettings,
+} from "@/components/widgets/settings/SettingsSettings";
 
 const [filePath, setFilePath] = createSignal("");
 const [watching, setWatching] = createSignal(false);
@@ -163,7 +167,10 @@ const loadFilePath = async () => {
     startTailing();
   }
 
-  if (!filePath()) togglePassthrough();
+  if (!filePath()) {
+    togglePassthrough();
+    setShowSettings(true);
+  }
 };
 
 export {

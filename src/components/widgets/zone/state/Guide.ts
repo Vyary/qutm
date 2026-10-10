@@ -27,6 +27,7 @@ const saveGuide = async () => {
   await store.set("guide", guide);
   await store.set("quotes", quotes);
   await store.save();
+  info("guide saved");
 };
 
 const loadGuide = async () => {

@@ -23,7 +23,8 @@ import { ZoneEditor } from "./editor/ZoneEditor";
 import { loadTracker, saveTracker, tracker } from "./state/Tracker";
 import { loadGuide, saveGuide } from "./state/Guide";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { error, info } from "@tauri-apps/plugin-log";
+import { info } from "@tauri-apps/plugin-log";
+import { UnlistenFn } from "@tauri-apps/api/event";
 
 function ZoneWidget() {
   const [openEditor, setOpenEditor] = createSignal(false);
@@ -44,27 +45,22 @@ function ZoneWidget() {
   const expections = () =>
     character.level != 0 && !tracker.zone.toLowerCase().includes("town");
 
+  let unlisten: UnlistenFn = () =>
+    info("zone widget on close unlisten not updated");
+
   onMount(async () => {
     loadGuide();
     loadTowns();
     loadTracker();
     loadCharacter();
 
-    await getCurrentWindow().onCloseRequested(async (e) => {
-      e.preventDefault();
-
-      info("saving zone state");
-
-      try {
-        await Promise.all([
-          saveTracker(),
-          saveGuide(),
-          saveTowns(),
-          saveCharacter(),
-        ]);
-      } catch (e) {
-        error(`Failed to save data before closing: ${e}`);
-      }
+    unlisten = await getCurrentWindow().onCloseRequested(async () => {
+      await Promise.all([
+        saveTracker(),
+        saveGuide(),
+        saveTowns(),
+        saveCharacter(),
+      ]);
     });
   });
 
@@ -75,6 +71,8 @@ function ZoneWidget() {
       saveTowns(),
       saveCharacter(),
     ]);
+
+    unlisten();
   });
 
   return (
@@ -88,7 +86,7 @@ function ZoneWidget() {
       >
         <Show when={towns[tracker.zone]}>
           <div
-            class={`text-base-content text-shadow-lg leading-relaxed border-b border-base-content/5 px-5 py-3 select-none ${textSize()}`}
+            class={`text-base-content text-shadow-lg leading-relaxed border-b border-base-content/5 px-5 py-3 ${textSize()}`}
             classList={{
               "text-end": RTL(),
             }}
@@ -169,7 +167,7 @@ function ZoneWidget() {
                       classList={{ "flex-row-reverse": RTL() }}
                     >
                       <div
-                        class={`leading-6 text-base-content select-none ${textSize()}`}
+                        class={`leading-6 text-base-content ${textSize()}`}
                         innerHTML={task.text}
                       />
                       <div
@@ -186,7 +184,7 @@ function ZoneWidget() {
 
         <Show when={!passthrough() && dev()}>
           <div
-            class="absolute top-1 h-5 w-1 cursor-pointer p-1 text-base-content/50 hover:text-base-content transition-colors"
+            class="absolute top-1 h-5 w-1 cursor-pointer p-1 text-base-content/50 hover:text-base-content transition-colors z-11"
             classList={{
               "right-7": !RTL(),
               "left-1": RTL(),

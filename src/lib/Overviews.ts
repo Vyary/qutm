@@ -136,6 +136,7 @@ const loadOverviews = async () => {
 const saveOverviews = async () => {
   store.set("overviews", overviews);
   store.set("timestamp", Date.now());
+  setTs(new Date(Date.now()).toISOString());
   store.save();
 };
 

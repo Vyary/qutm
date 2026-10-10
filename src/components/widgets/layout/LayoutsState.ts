@@ -180,6 +180,7 @@ const deleteLayout = (index: number) => {
 const saveLayouts = async () => {
   await store.set("layouts", layouts);
   await store.set("layoutsZone", layoutZone());
+  info("layouts saved");
   await store.save();
 };
 

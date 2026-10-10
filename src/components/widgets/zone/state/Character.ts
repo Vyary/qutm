@@ -1,4 +1,5 @@
 import { store } from "@/lib/Store";
+import { info } from "@tauri-apps/plugin-log";
 import { createStore, reconcile } from "solid-js/store";
 
 interface Character {
@@ -28,6 +29,7 @@ const updateCharacterClass = (c: string) => {
 const saveCharacter = async () => {
   await store.set("char", character);
   await store.save();
+  info("character saved");
 };
 
 const loadCharacter = async () => {

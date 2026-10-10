@@ -1,5 +1,6 @@
 import { createStore, produce, reconcile } from "solid-js/store";
 import { store } from "@/lib/Store";
+import { info } from "@tauri-apps/plugin-log";
 
 interface Tracker {
   zone: string;
@@ -20,6 +21,7 @@ const [tracker, setTracker] = createStore<Tracker>({
 const saveTracker = async () => {
   await store.set("tracker", tracker);
   await store.save();
+  info("tracker saved");
 };
 
 const loadTracker = async () => {

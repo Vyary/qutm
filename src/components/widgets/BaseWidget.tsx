@@ -99,80 +99,81 @@ function BaseWidget(props: {
   onCleanup(() => cleanUp(props.name));
 
   return (
-    <div class="flex">
-      <div
-        class={`absolute h-auto backdrop-blur-md rounded-2xl ring-1 ring-base-content/5`}
-        style={{
-          left: `${pos().x}px`,
-          top: `${pos().y}px`,
-          "background-color": `color-mix(in oklch, var(--color-base-300) ${transparency()}%, transparent)`,
-        }}
-      >
-        <Show when={!passthrough()}>
-          <div class="cursor-move h-1 select-none" onMouseDown={onDown}></div>
-        </Show>
+    <div
+      class={`absolute h-auto backdrop-blur-md rounded-2xl ring-1 ring-base-content/5`}
+      style={{
+        left: `${pos().x}px`,
+        top: `${pos().y}px`,
+        "background-color": `color-mix(in oklch, var(--color-base-300) ${transparency()}%, transparent)`,
+      }}
+    >
+      <Show when={!passthrough()}>
+        <div
+          class="relative cursor-move h-5 -mb-5 z-10 select-none"
+          onMouseDown={onDown}
+        ></div>
+      </Show>
 
-        <div class="min-h-0 overflow-x-auto flex-1 max-h-230">
-          {props.children}
+      <div class="min-h-0 overflow-x-auto flex-1 max-h-230">
+        {props.children}
+      </div>
+
+      <Show when={false}>
+        <div
+          class="absolute top-1/2 -translate-y-1/2 right-1.5 cursor-e-resize text-base-content/50 hover:text-base-content transition-colors"
+          onMouseDown={onResizeDown}
+        >
+          <svg viewBox="0 0 8 60" class="w-1" fill="currentColor">
+            <rect x="0" y="0" width="8" height="60" rx="4" />
+          </svg>
         </div>
+      </Show>
 
-        <Show when={false}>
-          <div
-            class="absolute top-1/2 -translate-y-1/2 right-1.5 cursor-e-resize text-base-content/50 hover:text-base-content transition-colors"
-            onMouseDown={onResizeDown}
-          >
-            <svg viewBox="0 0 8 60" class="w-1" fill="currentColor">
-              <rect x="0" y="0" width="8" height="60" rx="4" />
-            </svg>
+      <Show when={!passthrough()}>
+        <Show when={props.transparencySlider}>
+          <div class="flex gap-0.5 bg-base-300/30 rounded-b-2xl border-t border-base-content/5">
+            <div class="flex items-center gap-2 px-5 py-3 w-65 justify-end">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="w-4 h-4 text-base-content/40"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 2v20" />
+              </svg>
+              <input
+                type="range"
+                min={0}
+                max={100}
+                value={transparency()}
+                class="range range-xs"
+                step={1}
+                onInput={(e) => {
+                  setTransparency(Number(e.currentTarget.value));
+                  saveTransparency(props.name);
+                }}
+              />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="w-4 h-4 text-base-content/80"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <circle cx="12" cy="12" r="10" />
+              </svg>
+            </div>
           </div>
         </Show>
-
-        <Show when={!passthrough()}>
-          <Show when={props.transparencySlider}>
-            <div class="flex gap-0.5 bg-base-300/30 rounded-b-2xl border-t border-base-content/5">
-              <div class="flex items-center gap-2 px-5 py-3 w-65 justify-end">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  class="w-4 h-4 text-base-content/40"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <circle cx="12" cy="12" r="10" />
-                  <path d="M12 2v20" />
-                </svg>
-                <input
-                  type="range"
-                  min={0}
-                  max={100}
-                  value={transparency()}
-                  class="range range-xs"
-                  step={1}
-                  onInput={(e) => {
-                    setTransparency(Number(e.currentTarget.value));
-                    saveTransparency(props.name);
-                  }}
-                />
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  class="w-4 h-4 text-base-content/80"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <circle cx="12" cy="12" r="10" />
-                </svg>
-              </div>
-            </div>
-          </Show>
-        </Show>
-      </div>
+      </Show>
     </div>
   );
 }

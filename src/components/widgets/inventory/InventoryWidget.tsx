@@ -8,7 +8,7 @@ import {
   onMount,
   Show,
 } from "solid-js";
-import { error, info } from "@tauri-apps/plugin-log";
+import { info } from "@tauri-apps/plugin-log";
 import { BaseWidget } from "../BaseWidget";
 import {
   addToInventory,
@@ -21,6 +21,7 @@ import { togglePassthrough } from "@/lib/Passthrough";
 import { loadOverviews, overviews } from "@/lib/Overviews";
 import { store } from "@/lib/Store";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { UnlistenFn } from "@tauri-apps/api/event";
 
 const parseItem = async (itemString: string) => {
   const lines = itemString
@@ -122,7 +123,9 @@ function InventoryWidget(props: { shortcut: string }) {
     setScanning(!scanning());
 
     for (const p of places()) {
-      if (scanning()) break;
+      if (!scanning()) {
+        break;
+      }
 
       if (p.click) {
         await invoke("mouse_move", { x: p.x, y: p.y });
@@ -133,6 +136,8 @@ function InventoryWidget(props: { shortcut: string }) {
       await invoke("mouse_move", { x: p.x, y: p.y });
       await addItem();
     }
+
+    setScanning(false);
   };
 
   const addStep = async () => {
@@ -148,6 +153,9 @@ function InventoryWidget(props: { shortcut: string }) {
     await invoke("mouse_click");
   };
 
+  let unlisten: UnlistenFn = () =>
+    info("inventory widget on close unlisten not updated");
+
   onMount(async () => {
     loadOverviews();
     loadInventory();
@@ -159,17 +167,10 @@ function InventoryWidget(props: { shortcut: string }) {
     const p = await store.get<place[]>("places");
     if (p) setPlaces(p);
 
-    await getCurrentWindow().onCloseRequested(async (e) => {
-      e.preventDefault();
-
-      info("saving places state");
-
-      try {
-        await store.set("places", places());
-        await store.save();
-      } catch (e) {
-        error(`Failed to save data before closing: ${e}`);
-      }
+    unlisten = await getCurrentWindow().onCloseRequested(async () => {
+      await store.set("places", places());
+      await store.save();
+      saveInventory();
     });
   });
 
@@ -178,6 +179,7 @@ function InventoryWidget(props: { shortcut: string }) {
     await store.save();
 
     saveInventory();
+    unlisten();
   });
 
   return (

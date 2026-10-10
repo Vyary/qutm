@@ -1,11 +1,11 @@
 import { store } from "@/lib/Store";
+import { info } from "@tauri-apps/plugin-log";
 import { createStore, reconcile } from "solid-js/store";
 
 const [inventory, setInventory] = createStore<Record<string, number>>();
 
 const addToInventory = async (item: { name: string; quantity: number }) => {
   setInventory(item.name, item.quantity);
-  saveInventory();
 };
 
 const removeItem = (name: string) => {
@@ -25,6 +25,7 @@ const loadInventory = async () => {
 const saveInventory = async () => {
   await store.set("inventory", inventory);
   await store.save();
+  info("inventory saved");
 };
 
 export {
