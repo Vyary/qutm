@@ -34,6 +34,7 @@ function PriceWidget() {
     ilvl: { value: 0, disabled: false },
     quality: { value: 0, disabled: false },
     requires: { value: {}, disabled: false },
+    sockets: { value: 0, disabled: false },
     enhancement: [],
     implicit: [],
     explicit: [],
@@ -201,6 +202,15 @@ function PriceWidget() {
           >
             <span classList={{ "opacity-40": item.quality.disabled }}>
               Quality: {item.quality.value}
+            </span>
+          </div>
+
+          <div
+            class="cursor-pointer"
+            onClick={() => setItem("sockets", "disabled", (d) => !d)}
+          >
+            <span classList={{ "opacity-40": item.sockets.disabled }}>
+              Sockets: {item.sockets.value}
             </span>
           </div>
 
@@ -457,7 +467,7 @@ function PriceWidget() {
             {(p) => (
               <div class="flex justify-between px-1">
                 <span class="">
-                  {p.amount > 1 ? p.amount : p.amount.toFixed(4)} {p.currency}
+                  {p.amount >= 1 ? p.amount : p.amount.toFixed(4)} {p.currency}
                 </span>
                 <span>{p.listed}</span>
               </div>

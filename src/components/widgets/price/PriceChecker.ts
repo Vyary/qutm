@@ -3,7 +3,7 @@ import { Item } from "./ParseItem";
 import { Prices } from "./PriceWidget";
 import { createSignal, onMount } from "solid-js";
 import { fetch } from "@tauri-apps/plugin-http";
-import { info } from "@tauri-apps/plugin-log";
+import { debug } from "@tauri-apps/plugin-log";
 import { RateLimiter, updateTimes } from "./RateLimiter";
 
 export interface Listing {
@@ -108,15 +108,19 @@ const PriceCheck = async (
   const ipLimits = searchReq.headers.get("x-rate-limit-ip");
   const ipState = searchReq.headers.get("x-rate-limit-ip-state");
 
-  info(`rate limits: ${ipLimits} -> ${ipState}`);
+  debug(`rate limits: ${ipLimits} -> ${ipState}`);
 
   updateTimes(ipState ?? "0:10:0,0:60:0,0:300:0,0:21600:0");
 
   const sqData: SearchResult = await searchReq.json();
 
+  if (!sqData.result) {
+    return { prices: [], timeout: 0 };
+  }
+
   const searchRes = await fetch(
     "https://www.pathofexile.com/api/trade2/fetch/" +
-      sqData.result.slice(0, 10).join(","),
+      sqData?.result?.slice(0, 10).join(","),
     {
       method: "GET",
       headers: {

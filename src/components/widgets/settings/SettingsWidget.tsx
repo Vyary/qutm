@@ -1,11 +1,7 @@
 import { createSignal, onMount, Show } from "solid-js";
 import { filePath, selectFile, startTailing, watching } from "@/lib/File";
 import { enablePassthrough, togglePassthrough } from "@/lib/Passthrough";
-import {
-  character,
-  updateCharacterClass,
-  setCharacterName,
-} from "../zone/state/Character";
+import { character, setCharacterName } from "../zone/state/Character";
 import { BaseWidget } from "../BaseWidget";
 import { store } from "@/lib/Store";
 import { setShowSettings, showSettings } from "./SettingsSettings";
@@ -110,18 +106,6 @@ function SettingsWidget() {
             class="input input-sm w-full"
             value={character.name}
             onInput={(e) => setCharacterName(e.target.value.trim())}
-          />
-        </div>
-        <div class="flex flex-col gap-1">
-          <span class="text-xs font-medium uppercase tracking-wide opacity-60">
-            Character Class
-          </span>
-          <input
-            type="text"
-            placeholder="Character Class"
-            class="input input-sm w-full"
-            value={character.class}
-            onInput={(e) => updateCharacterClass(e.target.value.trim())}
           />
         </div>
         <div class="divider my-0 opacity-50"></div>

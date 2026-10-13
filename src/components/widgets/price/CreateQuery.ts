@@ -1,4 +1,4 @@
-import { error, info } from "@tauri-apps/plugin-log";
+import { error } from "@tauri-apps/plugin-log";
 import { mods } from "./Mods";
 import { Item } from "./ParseItem";
 import { createStore } from "solid-js/store";
@@ -30,7 +30,7 @@ const convertToCategory = (itemClass: string) => {
   if (itemClass.includes("Body Armour")) return "armour.chest";
   if (itemClass.includes("Gloves")) return "armour.gloves";
   if (itemClass.includes("Belt")) return "accessory.belt";
-  if (itemClass.includes("Amulet")) return "accessory.amulet";
+  if (itemClass.includes("Amulets")) return "accessory.amulet";
   if (itemClass.includes("Rings")) return "accessory.ring";
   if (itemClass.includes("Boots")) return "armour.boots";
 
@@ -59,16 +59,17 @@ const convertToCategory = (itemClass: string) => {
   if (itemClass.includes("Barya")) return "map.barya";
   if (itemClass.includes("Relic")) return "sanctum.relic";
   if (itemClass.includes("Charm")) return "flask.charm";
+  if (itemClass.includes("Jewel")) return "jewel";
 
-  error("no category found for: " + itemClass);
+  error(`--> no category found for: ${itemClass} <--`);
   return "";
 };
 
-const findModId = (modType: string, modText: string) => {
-  const id = mods[modType][modText];
+export const findModId = (modType: string, modText: string) => {
+  const id = mods?.[modType]?.[modText];
   if (id) return id;
 
-  info("couldnt find id for mod: " + modText);
+  error(`--> no mod id found for: ${modText} <--`);
 };
 
 const modIdExceptions = (id: string, category: string): string => {
@@ -80,7 +81,7 @@ const modIdExceptions = (id: string, category: string): string => {
   // maximum Energy Shield / maximum Energy Shield (Local)
   if (
     id == "explicit.stat_3489782002" &&
-    category != "Amulet" &&
+    category != "Amulets" &&
     category != "Jewel"
   ) {
     return "explicit.stat_4052037485";
@@ -89,7 +90,7 @@ const modIdExceptions = (id: string, category: string): string => {
   // # to Evasion Rating / # to Evasion Rating (local)
   if (
     id == "explicit.stat_2144192055" &&
-    category != "Amulet" &&
+    category != "Amulets" &&
     category != "Rings"
   ) {
     return "explicit.stat_53045048";
@@ -102,7 +103,7 @@ const modIdExceptions = (id: string, category: string): string => {
     category != "Helmet" &&
     category != "Rings" &&
     category != "Quiver" &&
-    category != "Amulet"
+    category != "Amulets"
   ) {
     return "explicit.stat_691932474";
   }
@@ -110,7 +111,7 @@ const modIdExceptions = (id: string, category: string): string => {
   // increased Evasion Rating / increased Evasion Rating (Local)
   if (
     id == "explicit.stat_2106365538" &&
-    category != "Amulet" &&
+    category != "Amulets" &&
     category != "Rings"
   ) {
     return "explicit.stat_124859000";
@@ -124,7 +125,7 @@ const modIdExceptions = (id: string, category: string): string => {
   // increased Armour / increased Armour (Local)
   if (
     id == "explicit.stat_2866361420" &&
-    category != "Amulet" &&
+    category != "Amulets" &&
     category != "Rings"
   ) {
     return "explicit.stat_1062208444";
@@ -144,10 +145,32 @@ const modIdExceptions = (id: string, category: string): string => {
   // #% increased Block chance // #% increased Block chance (Local)
   if (
     id == "explicit.stat_4147897060" &&
-    category != "Amulet" &&
+    category != "Amulets" &&
     category != "Jewel"
   ) {
     return "explicit.stat_2481353198";
+  }
+
+  // Crown of Thorns - Pain Attunement
+  if (id == "explicit.stat_3831171903|7" && category == "Helmets") {
+    return "explicit.stat_98977150";
+  }
+
+  if (id == "explicit.stat_1416406066" && category != "Amulets") {
+    return "explicit.stat_3984865854";
+  }
+
+  // Decompose has 2 variants for a wep and boots
+  if (id == "skill.corpse_cloud" && category == "Boots") {
+    id = "skill.corpse_cloud_triggered";
+  }
+
+  // to all Attributes
+  if (
+    id == "explicit.stat_2897413282" &&
+    (category == "Amulets" || category == "Rings")
+  ) {
+    id = "explicit.stat_1379411836";
   }
 
   return id;
@@ -167,13 +190,9 @@ export const createQuery = (item: Item) => {
 
   const createFilters = () => {
     for (let i = 0; i < item.skill.length; i++) {
-      let id = findModId("skill", item.skill[i].mod) || "";
-      if (id == "") continue;
+      let id = item.skill[i].id;
 
-      // Decompose has 2 variants for a wep and boots
-      if (id == "skill.corpse_cloud" && item.category == "Boots") {
-        id = "skill.corpse_cloud_triggered";
-      }
+      id = modIdExceptions(id, item.category);
 
       setStats(0, "filters", (filters) => [
         ...filters,
@@ -189,8 +208,7 @@ export const createQuery = (item: Item) => {
     }
 
     for (let i = 0; i < item.enhancement.length; i++) {
-      let id = findModId("enchant", item.enhancement[i].mod) || "";
-      if (id == "") continue;
+      let id = item.enhancement[i].id;
 
       setStats(0, "filters", (filters) => [
         ...filters,
@@ -206,8 +224,7 @@ export const createQuery = (item: Item) => {
     }
 
     for (let i = 0; i < item.implicit.length; i++) {
-      let id = findModId("implicit", item.implicit[i].mod) || "";
-      if (id == "") continue;
+      let id = item.implicit[i].id;
 
       setStats(0, "filters", (filters) => [
         ...filters,
@@ -223,8 +240,7 @@ export const createQuery = (item: Item) => {
     }
 
     for (let i = 0; i < item.explicit.length; i++) {
-      let id = findModId("explicit", item.explicit[i].mod) || "";
-      if (id == "") continue;
+      let id = item.explicit[i].id;
 
       id = modIdExceptions(id, item.category);
 
@@ -247,6 +263,17 @@ export const createQuery = (item: Item) => {
   return {
     query: {
       filters: {
+        equipment_filters: {
+          disabled: false,
+          filters: {
+            total_augment_sockets: {
+              min:
+                item.sockets.disabled || item.sockets.value == 0
+                  ? undefined
+                  : item.sockets.value,
+            },
+          },
+        },
         misc_filters: {
           disabled: false,
           filters: {
@@ -288,7 +315,7 @@ export const createQuery = (item: Item) => {
               min: item.quality?.value,
             },
             rarity: {
-              option: item.rarity.toLowerCase(),
+              option: item?.rarity?.toLowerCase() ?? undefined,
             },
           },
         },

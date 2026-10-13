@@ -1,4 +1,4 @@
-import { info } from "@tauri-apps/plugin-log";
+import { debug } from "@tauri-apps/plugin-log";
 
 const LIMITS = [
   { cap: 5, ms: 10 * 1000 },
@@ -17,7 +17,7 @@ const RateLimiter = () => {
   for (const limit of LIMITS) {
     const bucket = times.filter((t) => now - t < limit.ms);
 
-    info(`bucket cap: ${limit.cap}, length: ${bucket.length}`);
+    debug(`bucket cap: ${limit.cap}, length: ${bucket.length}`);
 
     if (bucket.length >= limit.cap) {
       return limit.ms - (now - bucket[0]);

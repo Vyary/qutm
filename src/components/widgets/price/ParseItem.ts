@@ -1,4 +1,5 @@
-import { debug } from "@tauri-apps/plugin-log";
+import { debug, info } from "@tauri-apps/plugin-log";
+import { findModId } from "./CreateQuery";
 
 interface Toggleable<T> {
   value: T;
@@ -17,6 +18,7 @@ export interface ItemMod {
   min?: number;
   max?: number;
   disabled: boolean;
+  id: string;
 }
 
 export interface Item {
@@ -27,6 +29,7 @@ export interface Item {
   ilvl: Toggleable<number>;
   quality: Toggleable<number>;
   requires: Toggleable<Requirements>;
+  sockets: Toggleable<number>;
   enhancement: ItemMod[];
   implicit: ItemMod[];
   explicit: ItemMod[];
@@ -34,73 +37,202 @@ export interface Item {
   corrupted: boolean;
 }
 
-const parseModLine = (line: string): ItemMod => {
+let multiLineMod = "";
+
+const parseModLine = (
+  modType: string,
+  line: string,
+  multiLine?: boolean,
+): ItemMod => {
   line = line.trim().replace("+", "").replace(" — Unscalable Value", "");
-
-  if (
-    line ===
-    "Every 4 seconds, Recover 1 Life for every 0.2 Life Recovery per second from Regeneration"
-  ) {
-    return {
-      mod: "Every 4 seconds, Recover 1 Life for every # Life Recovery per second from Regeneration",
-      min: 0.2,
-      disabled: false,
-    };
-  }
-
-  if (line === "Physical Damage of Enemies Hitting you is Unlucky") {
-    return {
-      mod: "Physical Damage of Enemies Hitting you is Lucky",
-      max: -1,
-      disabled: false,
-    };
-  }
-
-  if (line === "Trigger Decompose every 1.2 metres travelled") {
-    return {
-      mod: "Trigger Decompose every 1.2 metres travelled",
-      disabled: false,
-    };
-  }
 
   if (line.includes("Charm Slots")) {
     line = line.replace("Slots", "Slot");
   }
 
-  // number possibly with a range that itself may contain negative numbers
-  const numPattern = String.raw`-?\d+(?:\.\d+)?(?:\(-?\d+(?:\.\d+)?--?\d+(?:\.\d+)?\))?`;
-
-  // Case 1: "Adds 1 to 3(2-3) Cold damage..." or "Adds 13(12-13) to 20(18-20) Fire damage..."
-  let m = line.match(
-    new RegExp(`^(.*?)(${numPattern})\\s+to\\s+(${numPattern})(.*)$`),
+  // match Adds 4(2-4) to 5(5-8) Physical Damage to Attacks
+  const XtoX = line.match(
+    /(?<pre>.* )?(?<low>-?\d+)\(.*?\) to (?<high>-?\d+)\(.*?\)(?<rest>.*)/,
   );
-  if (m) {
-    const [, pre, loRaw, hiRaw, post] = m;
-    const lo = parseFloat(loRaw);
-    const hi = parseFloat(hiRaw);
-    const value = (lo + hi) / 2;
-    return { mod: `${pre}# to #${post}`, min: value, disabled: false };
-  }
+  if (XtoX) {
+    const { pre, low, high, rest } = XtoX.groups!;
+    const mod = `${pre ? pre : ""}# to #${rest}`;
+    const value = (Number(low) + Number(high)) / 2;
 
-  // Case 2: "+71(61-84) to Accuracy Rating" / "10(10--10)% reduced Charm Charges used"
-  m = line.match(new RegExp(`^(.*?)(${numPattern})(.*)$`));
-  if (m) {
-    let [, pre, numRaw, post] = m;
-
-    if (post.includes("reduced Life")) {
-      post = post.replace("reduced", "increased");
+    const id = findModId(modType, mod);
+    if (id) {
+      info(`matched # to #${rest}, value: ${value}`);
+      multiLineMod = "";
       return {
-        mod: `${pre}#${post}`,
-        max: -parseFloat(numRaw),
+        id: id,
+        mod: mod,
+        min: value,
         disabled: false,
       };
     }
-
-    return { mod: `${pre}#${post}`, min: parseFloat(numRaw), disabled: false };
   }
 
-  // Case 3: no numbers at all -> flag mod
-  return { mod: line, disabled: false };
+  // match 4(3-7)% increased Cold Damage
+  // const valueMod = line.match(
+  //   /(?<pre>.* )?(?<value>-?\d+(?:\.\d+)?)(?:\(.*?\))?(?<rest>.*)/,
+  // );
+  // if (valueMod) {
+  //   let { pre, value, rest } = valueMod.groups!;
+  //
+  //   if (
+  //     rest.includes("reduced Life") ||
+  //     rest.includes("Reload Speed") ||
+  //     rest.includes("Attribute Requirements")
+  //   ) {
+  //     rest = rest.replace("reduced", "increased");
+  //     const mod = `${pre ? pre : ""}#${rest}`;
+  //
+  //     if (findModId(modType, mod)) {
+  //       info(`matched ${pre}#${rest}, value: ${-Number(value)}`);
+  //       multiLineMod = "";
+  //       return {
+  //         mod: mod,
+  //         max: -Number(value),
+  //         disabled: false,
+  //       };
+  //     }
+  //   }
+  //
+  //   if (rest.includes("Unlucky")) {
+  //     rest = rest.replace("Unlucky", "Lucky");
+  //     const mod = `${pre ? pre : ""}#${rest}`;
+  //
+  //     if (findModId(modType, mod)) {
+  //       info(`matched ${pre}#${rest}, value: ${-Number(value)}`);
+  //       multiLineMod = "";
+  //       return {
+  //         mod: mod,
+  //         max: -Number(value),
+  //         disabled: false,
+  //       };
+  //     }
+  //   }
+  //
+  //   const mod = `${pre ? pre : ""}#${rest}`;
+  //
+  //   if (findModId(modType, mod)) {
+  //     info(`matched ${pre}#${rest}, value: ${Number(value)}`);
+  //     multiLineMod = "";
+  //     return {
+  //       mod: mod,
+  //       min: Number(value),
+  //       disabled: false,
+  //     };
+  //   }
+  // }
+
+  // Alternating every 5 seconds: Take 40% less Damage from Hits Take 40% less Damage over time
+  line = line.replace(/\(.*?\)/, "");
+  const modValues = [...line.matchAll(/-?\d+(?:\.\d+)?/g)].map(
+    (match) => match[0],
+  );
+  if (modValues) {
+    let mod = line;
+    let value = 0;
+
+    for (const number of modValues) {
+      mod = mod.replace(`${number}`, "#");
+    }
+
+    for (let i = 0; i < modValues.length; i++) {
+      value = Number(modValues[i]);
+
+      const id = findModId(modType, mod);
+      if (id) {
+        multiLineMod = "";
+        return { id: id, mod: mod, min: value, disabled: false };
+      }
+
+      if (mod.includes("less")) {
+        const id = findModId(modType, mod.replaceAll("less", "more"));
+        if (id) {
+          multiLineMod = "";
+          return {
+            id: id,
+            mod: mod.replaceAll("less", "more"),
+            max: -value,
+            disabled: false,
+          };
+        }
+      }
+
+      if (mod.includes("Unlucky")) {
+        const id = findModId(modType, mod.replaceAll("Unlucky", "Lucky"));
+        if (id) {
+          multiLineMod = "";
+          return {
+            id: id,
+            mod: mod.replaceAll("Unlucky", "Lucky"),
+            max: -value,
+            disabled: false,
+          };
+        }
+      }
+
+      if (
+        mod.includes("reduced Life") ||
+        mod.includes("Reload Speed") ||
+        mod.includes("Attribute Requirements")
+      ) {
+        const id = findModId(modType, mod.replace("reduced", "increased"));
+        if (id) {
+          multiLineMod = "";
+          return {
+            id: id,
+            mod: mod.replace("reduced", "increased"),
+            max: -value,
+            disabled: false,
+          };
+        }
+      }
+
+      if (mod.includes("Charm Charges gained")) {
+        const id = findModId(modType, mod.replace("reduced", "increased"));
+        if (id) {
+          multiLineMod = "";
+          return {
+            id: id,
+            mod: mod.replace("reduced", "increased"),
+            min: -value,
+            disabled: false,
+          };
+        }
+      }
+
+      if (mod.includes("Charm Charges used")) {
+        const id = findModId(modType, mod.replace("increased", "reduced"));
+        if (id) {
+          multiLineMod = "";
+          return {
+            id: id,
+            mod: mod.replace("increased", "reduced"),
+            min: -value,
+            disabled: false,
+          };
+        }
+      }
+
+      mod = mod.replace("#", `${modValues[i]}`);
+    }
+  }
+
+  const id = findModId(modType, line);
+  if (id) {
+    multiLineMod = "";
+    return { id: id, mod: line, disabled: false };
+  }
+
+  if (!multiLine) {
+    multiLineMod += line.trim() + "\n";
+    return parseModLine(modType, multiLineMod, true);
+  }
+
+  return { id: "", mod: "", disabled: false };
 };
 
 export const parseItem = (item: string) => {
@@ -117,6 +249,7 @@ export const parseItem = (item: string) => {
     quality: { value: 0, disabled: true },
     requires: { value: {}, disabled: true },
     ilvl: { value: 0, disabled: true },
+    sockets: { value: 0, disabled: true },
     enhancement: [],
     implicit: [],
     explicit: [],
@@ -177,6 +310,14 @@ export const parseItem = (item: string) => {
       continue;
     }
 
+    if (lines[i].includes("Sockets")) {
+      const s = lines[i].split("Sockets: ")[1];
+      const sockets = s.split("S").length - 1;
+
+      itemStruct.sockets = { value: sockets, disabled: sockets <= 0 };
+      continue;
+    }
+
     if (lines[i].includes("Requires")) {
       const line = lines[i];
 
@@ -213,7 +354,9 @@ export const parseItem = (item: string) => {
         }
 
         debug("---> 2nd loop ---> checking line: " + lines[i + j]);
-        const mod = parseModLine(lines[i + j]);
+        const mod = parseModLine("enchant", lines[i + j]);
+        if (mod.mod == "") continue;
+
         if (increase > 0 && mod.min) mod.min = mod.min * (1 + increase / 100);
         if (mod.min) mod.min = Math.floor(mod.min);
         itemStruct.enhancement.push(mod);
@@ -242,7 +385,9 @@ export const parseItem = (item: string) => {
         }
 
         debug("---> 2nd loop ---> checking line: " + lines[i + j]);
-        const mod = parseModLine(lines[i + j]);
+        const mod = parseModLine("implicit", lines[i + j]);
+        if (mod.mod == "") continue;
+
         if (increase > 0 && mod.min) mod.min = mod.min * (1 + increase / 100);
         if (mod.min) mod.min = Math.floor(mod.min);
         itemStruct.implicit.push(mod);
@@ -253,7 +398,9 @@ export const parseItem = (item: string) => {
     }
 
     if (lines[i].includes("Grants Skill")) {
-      const mod = parseModLine(lines[i]);
+      const mod = parseModLine("skill", lines[i]);
+      if (mod.mod == "") continue;
+
       if (mod.min) mod.min = Math.floor(mod.min);
       itemStruct.skill.push(mod);
       continue;
@@ -279,7 +426,8 @@ export const parseItem = (item: string) => {
         }
 
         debug("---> 2nd loop ---> checking line: " + lines[i + j]);
-        const mod = parseModLine(lines[i + j]);
+        const mod = parseModLine("explicit", lines[i + j]);
+        if (mod.mod == "") continue;
 
         if (increase > 0 && mod.min) mod.min = mod.min * (1 + increase / 100);
         if (mod.min) mod.min = Math.floor(mod.min);
