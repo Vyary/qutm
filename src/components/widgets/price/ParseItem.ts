@@ -1,4 +1,4 @@
-import { debug, info } from "@tauri-apps/plugin-log";
+import { debug, info, warn } from "@tauri-apps/plugin-log";
 import { findModId } from "./CreateQuery";
 
 interface Toggleable<T> {
@@ -64,7 +64,9 @@ const parseModLine = (
 
     const id = findModId(modType, mod);
     if (id) {
-      info(`matched # to #${rest}, value: ${value}`);
+      info(
+        `XtoX matched: "${mod}" (${modType}) id=${id}, range ${low}-${high} -> min=${value}`,
+      );
       multiLineMod = "";
       return {
         id: id,
@@ -73,6 +75,10 @@ const parseModLine = (
         disabled: false,
       };
     }
+
+    warn(
+      `XtoX regex matched but no mod id found: "${mod}" (${modType}), raw="${line}"`,
+    );
   }
 
   line = line.replace(/\(.*?\)/, "");
@@ -87,6 +93,8 @@ const parseModLine = (
       mod = mod.replace(`${number}`, "#");
     }
 
+    info(`template="${mod}" numbers=[${modValues.join(", ")}]`);
+
     for (let i = 0; i < modValues.length; i++) {
       value = Number(modValues[i]);
 
@@ -99,6 +107,7 @@ const parseModLine = (
       if (mod.includes("+")) {
         const id = findModId(modType, mod.replace("+", ""));
         if (id) {
+          multiLineMod = "";
           return {
             id: id,
             mod: mod.replace("+", ""),
@@ -189,22 +198,22 @@ const parseModLine = (
   }
 
   if (!multiLine) {
+    info(`no match for "${line}", retrying with multi-line buffer`);
     multiLineMod += line.trim() + "\n";
     return parseModLine(modType, multiLineMod, true);
   }
 
+  info(`unmatched (${modType}): raw="${line}"`);
   return { id: "", mod: "", disabled: false };
 };
 
 export const parseItem = (item: string) => {
-  debug("parsing item");
-
   const lines = item.split("\n");
 
   const itemStruct: Item = {
     category: "",
     rarity: { value: "", disabled: false },
-    name: { value: lines[2].trim(), disabled: true },
+    name: { value: "", disabled: true },
     type: { value: "", disabled: false },
     quality: { value: 0, disabled: true },
     requires: { value: {}, disabled: true },
@@ -216,16 +225,17 @@ export const parseItem = (item: string) => {
     skill: [],
   };
 
+  itemStruct.name = { value: lines[2].trim(), disabled: true };
+
   if (!lines[3].includes("---")) {
     itemStruct.type = { value: lines[3].trim(), disabled: false };
   }
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
-
     if (line.includes("---")) continue;
 
-    if (line === "Corrupted" || lines[i] === "Twice Corrupted") {
+    if (line === "Corrupted" || line === "Twice Corrupted") {
       itemStruct.corrupted = { value: true, disabled: false };
       continue;
     }
@@ -240,13 +250,10 @@ export const parseItem = (item: string) => {
       continue;
     }
 
-    debug("line: " + line);
-
     if (line.includes("Item Class: ")) {
       const c = line.split("Item Class: ")[1].trim();
 
       itemStruct.category = c;
-      debug("added category: " + c);
       continue;
     }
 
@@ -254,24 +261,18 @@ export const parseItem = (item: string) => {
       const r = line.split("Rarity: ")[1].trim();
 
       itemStruct.rarity = { value: r, disabled: false };
-      debug("added rarity: " + r);
       continue;
     }
 
     if (line.includes("Item Level: ")) {
       const ilvl = Number(line.split("Item Level: ")[1]);
 
-      if (ilvl > 75) {
+      if (ilvl >= 75) {
         itemStruct.ilvl = { value: ilvl, disabled: false };
         continue;
       }
 
-      itemStruct.ilvl = {
-        value: ilvl,
-        disabled: true,
-      };
-
-      debug("added ilvl: " + ilvl);
+      itemStruct.ilvl = { value: ilvl, disabled: true };
       continue;
     }
 
@@ -287,8 +288,6 @@ export const parseItem = (item: string) => {
         }
 
         itemStruct.quality = { value: quality, disabled: true };
-
-        debug("added quality: " + match[1]);
       }
 
       continue;
@@ -323,7 +322,6 @@ export const parseItem = (item: string) => {
         disabled: true,
       };
 
-      debug("added requirements: " + JSON.stringify(itemStruct.requires));
       continue;
     }
 
@@ -336,18 +334,19 @@ export const parseItem = (item: string) => {
           lines[i + j].includes("---") ||
           !lines[i + j].trim()
         ) {
-          debug("breaking inner loop");
           break;
         }
 
-        debug("---> 2nd loop ---> checking line: " + lines[i + j]);
         const mod = parseModLine("enchant", lines[i + j]);
         if (mod.mod == "") continue;
 
         if (increase > 0 && mod.min) mod.min = mod.min * (1 + increase / 100);
         if (mod.min) mod.min = Math.floor(mod.min);
+
         itemStruct.enhancement.push(mod);
-        debug("added enhancement: " + JSON.stringify(mod));
+        info(
+          `enhancement added: "${mod.mod}" id=${mod.id} min=${mod.min} max=${mod.max} disabled=${mod.disabled}\n`,
+        );
       }
 
       continue;
@@ -367,18 +366,19 @@ export const parseItem = (item: string) => {
           lines[i + j].includes("---") ||
           !lines[i + j].trim()
         ) {
-          debug("breaking inner loop");
           break;
         }
 
-        debug("---> 2nd loop ---> checking line: " + lines[i + j]);
         const mod = parseModLine("implicit", lines[i + j]);
         if (mod.mod == "") continue;
 
         if (increase > 0 && mod.min) mod.min = mod.min * (1 + increase / 100);
         if (mod.min) mod.min = Math.floor(mod.min);
+
         itemStruct.implicit.push(mod);
-        debug("added implicit: " + JSON.stringify(mod));
+        info(
+          `implicit added: "${mod.mod}" id=${mod.id} min=${mod.min} max=${mod.max} disabled=${mod.disabled}\n`,
+        );
       }
 
       continue;
@@ -388,8 +388,10 @@ export const parseItem = (item: string) => {
       const mod = parseModLine("skill", line);
       if (mod.mod == "") continue;
 
-      if (mod.min) mod.min = Math.floor(mod.min);
       itemStruct.skill.push(mod);
+      info(
+        `skill added: "${mod.mod}" id=${mod.id} min=${mod.min} max=${mod.max} disabled=${mod.disabled}\n`,
+      );
       continue;
     }
 
@@ -413,13 +415,12 @@ export const parseItem = (item: string) => {
           lines[i + j].includes("---") ||
           !lines[i + j].trim()
         ) {
-          debug("breaking inner loop");
           break;
         }
 
-        debug("---> 2nd loop ---> checking line: " + lines[i + j]);
         const mod = parseModLine("explicit", lines[i + j]);
         if (mod.mod == "") continue;
+
         if (fractured) mod.fractured = { value: true, disabled: true };
         if (tier > 2) mod.disabled = true;
 
@@ -431,16 +432,23 @@ export const parseItem = (item: string) => {
         );
         if (modIndex === -1) {
           itemStruct.explicit.push(mod);
-          info("added explicit: " + JSON.stringify(mod));
+          info(
+            `explicit added: "${mod.mod}" id=${mod.id} min=${mod.min} max=${mod.max} disabled=${mod.disabled}\n`,
+          );
+
           continue;
         }
         if (modIndex > -1 && itemStruct.explicit[modIndex].min && mod.min) {
+          const before = itemStruct.explicit[modIndex].min;
           itemStruct.explicit[modIndex].min += mod.min;
-          info("increased explicit: " + JSON.stringify(mod));
+          info(
+            `explicit merged: "${mod.mod}" min ${before} + ${mod.min} = ${itemStruct.explicit[modIndex].min}\n`,
+          );
           continue;
         }
+
         itemStruct.explicit.push(mod);
-        info("added 2nd explicit: " + JSON.stringify(mod));
+        info(`explicit duplicate not merged: "${mod.mod}"\n`);
       }
     }
   }

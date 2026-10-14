@@ -1,4 +1,4 @@
-import { error, info } from "@tauri-apps/plugin-log";
+import { error, info, warn } from "@tauri-apps/plugin-log";
 import { mods } from "./Mods";
 import { Item } from "./ParseItem";
 import { createStore } from "solid-js/store";
@@ -67,9 +67,11 @@ const convertToCategory = (itemClass: string) => {
 
 export const findModId = (modType: string, modText: string) => {
   const id = mods?.[modType]?.[modText];
+
+  if (id) info(`[${modType}][${modText}] -> id=${id}`);
   if (id) return id;
 
-  info(`--> no mod id found for: ${modText} <--`);
+  warn(`[${modType}][${modText}] -> no id found`);
 };
 
 const modIdExceptions = (id: string, category: string): string => {
