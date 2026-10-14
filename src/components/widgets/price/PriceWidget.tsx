@@ -128,13 +128,13 @@ function PriceWidget() {
 
   const scanItem = async () => {
     const itemCopy: string = await invoke("os_copy");
+    info(`copied item: \n${itemCopy}`);
     const itemStruct = parseItem(itemCopy);
     setItem("corrupted", undefined);
     setItem("mirrored", undefined);
     setItem("sanctified", undefined);
     setItem(itemStruct);
     togglePassthrough();
-    // info(JSON.stringify(item));
     getPrice();
   };
 
@@ -251,38 +251,42 @@ function PriceWidget() {
               </div>
             </div>
 
-            <div
-              class="cursor-pointer"
-              onClick={() => setItem("rarity", "disabled", (d) => !d)}
-            >
-              <span classList={{ "opacity-40": item.rarity.disabled }}>
+            <div>
+              <span
+                class="cursor-pointer"
+                onClick={() => setItem("rarity", "disabled", (d) => !d)}
+                classList={{ "opacity-40": item.rarity.disabled }}
+              >
                 Rarity: {item.rarity.value}
               </span>
             </div>
 
-            <div
-              class="cursor-pointer"
-              onClick={() => setItem("ilvl", "disabled", (d) => !d)}
-            >
-              <span classList={{ "opacity-40": item.ilvl.disabled }}>
+            <div>
+              <span
+                class="cursor-pointer"
+                onClick={() => setItem("ilvl", "disabled", (d) => !d)}
+                classList={{ "opacity-40": item.ilvl.disabled }}
+              >
                 Item Level: {item.ilvl.value}
               </span>
             </div>
 
-            <div
-              class="cursor-pointer"
-              onClick={() => setItem("quality", "disabled", (d) => !d)}
-            >
-              <span classList={{ "opacity-40": item.quality.disabled }}>
+            <div>
+              <span
+                class="cursor-pointer"
+                onClick={() => setItem("quality", "disabled", (d) => !d)}
+                classList={{ "opacity-40": item.quality.disabled }}
+              >
                 Quality: {item.quality.value}
               </span>
             </div>
 
-            <div
-              class="cursor-pointer"
-              onClick={() => setItem("sockets", "disabled", (d) => !d)}
-            >
-              <span classList={{ "opacity-40": item.sockets.disabled }}>
+            <div>
+              <span
+                class="cursor-pointer"
+                onClick={() => setItem("sockets", "disabled", (d) => !d)}
+                classList={{ "opacity-40": item.sockets.disabled }}
+              >
                 Sockets: {item.sockets.value}
               </span>
             </div>

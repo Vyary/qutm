@@ -99,6 +99,10 @@ fn get_global_mouse_position() -> Option<(i32, i32)> {
     None
 }
 
+fn short_target(target: &str) -> &str {
+    target.rsplit_once('/').map_or(target, |(_, file)| file)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     #[cfg(target_os = "linux")]
@@ -112,6 +116,18 @@ pub fn run() {
                         file_name: Some("logs".to_string()),
                     },
                 ))
+                .format(|out, message, record| {
+                    out.finish(format_args!(
+                        "[{}][{}][{}][{}] {}",
+                        chrono::Local::now().format("%Y-%m-%d"),
+                        chrono::Local::now().format("%H:%M:%S"),
+                        short_target(record.target()),
+                        record.level(),
+                        message
+                    ))
+                })
+                .rotation_strategy(tauri_plugin_log::RotationStrategy::KeepAll)
+                .max_file_size(50_000_000)
                 .level(tauri_plugin_log::log::LevelFilter::Info)
                 .build(),
         )
