@@ -1,6 +1,7 @@
 import { check } from "@tauri-apps/plugin-updater";
 import { relaunch } from "@tauri-apps/plugin-process";
 import { createSignal, onMount, Show } from "solid-js";
+import { info } from "@tauri-apps/plugin-log";
 
 function UpdaterCore() {
   const [isUpdating, setIsUpdating] = createSignal(false);
@@ -10,6 +11,7 @@ function UpdaterCore() {
 
   const updateCheck = async () => {
     const update = await check();
+    info("update check");
     if (update) {
       setUpdateStatus(`New update available v${update.version}`);
       setIsUpdating(true);
