@@ -46,7 +46,7 @@ fn os_copy(app: AppHandle) -> Result<String, String> {
     #[cfg(target_os = "linux")]
     let (pre, mid, post) = (100, 30, 40);
     #[cfg(not(target_os = "linux"))]
-    let (pre, mid, post) = (20, 20, 20);
+    let (pre, mid, post) = (100, 30, 40);
 
     enigo
         .key(Key::Control, Direction::Press)

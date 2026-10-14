@@ -204,7 +204,7 @@ export const parseItem = (item: string) => {
   const itemStruct: Item = {
     category: "",
     rarity: { value: "", disabled: false },
-    name: { value: lines[2], disabled: true },
+    name: { value: lines[2].trim(), disabled: true },
     type: { value: "", disabled: false },
     quality: { value: 0, disabled: true },
     requires: { value: {}, disabled: true },
@@ -217,47 +217,49 @@ export const parseItem = (item: string) => {
   };
 
   if (!lines[3].includes("---")) {
-    itemStruct.type = { value: lines[3], disabled: false };
+    itemStruct.type = { value: lines[3].trim(), disabled: false };
   }
 
   for (let i = 0; i < lines.length; i++) {
-    if (lines[i].includes("---")) continue;
+    const line = lines[i].trim();
 
-    if (lines[i] === "Corrupted" || lines[i] === "Twice Corrupted") {
+    if (line.includes("---")) continue;
+
+    if (line === "Corrupted" || lines[i] === "Twice Corrupted") {
       itemStruct.corrupted = { value: true, disabled: false };
       continue;
     }
 
-    if (lines[i] === "Sanctified") {
+    if (line === "Sanctified") {
       itemStruct.sanctified = { value: true, disabled: false };
       continue;
     }
 
-    if (lines[i] === "Mirrored") {
+    if (line === "Mirrored") {
       itemStruct.mirrored = { value: true, disabled: false };
       continue;
     }
 
-    debug("line: " + lines[i]);
+    debug("line: " + line);
 
-    if (lines[i].includes("Item Class: ")) {
-      const c = lines[i].split("Item Class: ")[1];
+    if (line.includes("Item Class: ")) {
+      const c = line.split("Item Class: ")[1].trim();
 
       itemStruct.category = c;
       debug("added category: " + c);
       continue;
     }
 
-    if (lines[i].includes("Rarity: ")) {
-      const r = lines[i].split("Rarity: ")[1];
+    if (line.includes("Rarity: ")) {
+      const r = line.split("Rarity: ")[1].trim();
 
       itemStruct.rarity = { value: r, disabled: false };
       debug("added rarity: " + r);
       continue;
     }
 
-    if (lines[i].includes("Item Level: ")) {
-      const ilvl = Number(lines[i].split("Item Level: ")[1]);
+    if (line.includes("Item Level: ")) {
+      const ilvl = Number(line.split("Item Level: ")[1]);
 
       itemStruct.ilvl = {
         value: ilvl,
@@ -268,8 +270,8 @@ export const parseItem = (item: string) => {
       continue;
     }
 
-    if (lines[i].includes("Quality: ")) {
-      const match = lines[i].match(/\+(\d+)%/);
+    if (line.includes("Quality: ")) {
+      const match = line.match(/\+(\d+)%/);
 
       if (match) {
         itemStruct.quality.value = Number(match[1]);
@@ -279,17 +281,15 @@ export const parseItem = (item: string) => {
       continue;
     }
 
-    if (lines[i].includes("Sockets: ")) {
-      const s = lines[i].split("Sockets: ")[1];
+    if (line.includes("Sockets: ")) {
+      const s = line.split("Sockets: ")[1];
       const sockets = s.split("S").length - 1;
 
       itemStruct.sockets = { value: sockets, disabled: sockets <= 0 };
       continue;
     }
 
-    if (lines[i].includes("Requires")) {
-      const line = lines[i];
-
+    if (line.includes("Requires")) {
       const levelMatch = line.match(/Level (\d+)/);
       const strMatch = line.match(/(\d+)\s*(?:\([^)]*\)\s*)?Str/);
       const dexMatch = line.match(/(\d+)\s*(?:\([^)]*\)\s*)?Dex/);
@@ -309,8 +309,8 @@ export const parseItem = (item: string) => {
       continue;
     }
 
-    if (lines[i].includes("Enhancement ")) {
-      const increase = parseInt(lines[i].match(/(\d+)%/)?.[0] || "0", 10);
+    if (line.includes("Enhancement")) {
+      const increase = parseInt(line.match(/(\d+)%/)?.[0] || "0", 10);
 
       for (let j = 1; j <= 3; i++) {
         if (
@@ -335,8 +335,8 @@ export const parseItem = (item: string) => {
       continue;
     }
 
-    if (lines[i].includes("Implicit")) {
-      const increase = parseInt(lines[i].match(/(\d+)%/)?.[0] || "0", 10);
+    if (line.includes("Implicit")) {
+      const increase = parseInt(line.match(/(\d+)%/)?.[0] || "0", 10);
 
       for (let j = 1; j <= 3; i++) {
         if (
@@ -366,8 +366,8 @@ export const parseItem = (item: string) => {
       continue;
     }
 
-    if (lines[i].includes("Grants Skill")) {
-      const mod = parseModLine("skill", lines[i]);
+    if (line.includes("Grants Skill")) {
+      const mod = parseModLine("skill", line);
       if (mod.mod == "") continue;
 
       if (mod.min) mod.min = Math.floor(mod.min);
@@ -377,12 +377,12 @@ export const parseItem = (item: string) => {
 
     // Explicit
     if (
-      lines[i].includes("Prefix") ||
-      lines[i].includes("Suffix") ||
-      lines[i].includes("Unique")
+      line.includes("Prefix") ||
+      line.includes("Suffix") ||
+      line.includes("Unique")
     ) {
-      const increase = parseInt(lines[i].match(/(\d+)%/)?.[0] || "0", 10);
-      const fractured = lines[i].includes("Fractured");
+      const increase = parseInt(line.match(/(\d+)%/)?.[0] || "0", 10);
+      const fractured = line.includes("Fractured");
 
       for (let j = 1; j <= 3; i++) {
         if (
