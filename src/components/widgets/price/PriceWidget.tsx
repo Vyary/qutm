@@ -12,6 +12,7 @@ import { loadOverviews } from "@/lib/Overviews";
 import { error, info } from "@tauri-apps/plugin-log";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { UnlistenFn } from "@tauri-apps/api/event";
+import { store } from "@/lib/Store";
 
 export interface Prices {
   amount: number;
@@ -28,19 +29,18 @@ let interval: ReturnType<typeof setInterval> | undefined;
 function PriceWidget() {
   const [item, setItem] = createStore<Item>({
     category: "",
-    rarity: "",
+    rarity: { value: "", disabled: false },
     name: { value: "", disabled: false },
     type: { value: "", disabled: false },
     ilvl: { value: 0, disabled: false },
     quality: { value: 0, disabled: false },
     requires: { value: {}, disabled: false },
+    sockets: { value: 0, disabled: false },
     enhancement: [],
     implicit: [],
     explicit: [],
     skill: [],
-    corrupted: false,
   });
-  const query = () => JSON.stringify(createQuery(item));
   const [timeout, setTimeoutLeft] = createSignal(0);
 
   const [prices, setPrices] = createSignal<Prices[]>([]);
@@ -114,7 +114,7 @@ function PriceWidget() {
     setPrices([]);
 
     try {
-      const pcr = await PriceCheck(item, query());
+      const pcr = await PriceCheck(item, JSON.stringify(createQuery(item)));
       if (pcr.timeout) {
         startCountdown(pcr.timeout);
         return;
@@ -129,6 +129,9 @@ function PriceWidget() {
   const scanItem = async () => {
     const itemCopy: string = await invoke("os_copy");
     const itemStruct = parseItem(itemCopy);
+    setItem("corrupted", undefined);
+    setItem("mirrored", undefined);
+    setItem("sanctified", undefined);
     setItem(itemStruct);
     togglePassthrough();
     getPrice();
@@ -168,21 +171,81 @@ function PriceWidget() {
         transparencySlider={true}
       >
         <div class="space-y-1 p-4 text-sm">
-          <div
-            class="cursor-pointer"
-            onClick={() => setItem("name", "disabled", (d) => !d)}
-          >
-            <span classList={{ "opacity-40": item.name.disabled }}>
-              {item.name.value}
-            </span>
+          <div class="flex justify-between items-center">
+            <div class="flex flex-col gap-1">
+              <div
+                class="cursor-pointer"
+                onClick={() => setItem("name", "disabled", (d) => !d)}
+              >
+                <span classList={{ "opacity-40": item.name.disabled }}>
+                  {item.name.value}
+                </span>
+              </div>
+
+              <div
+                class="cursor-pointer"
+                onClick={() => setItem("type", "disabled", (d) => !d)}
+              >
+                <span classList={{ "opacity-40": item.type.disabled }}>
+                  {item.type.value}
+                </span>
+              </div>
+            </div>
+
+            <div class="flex flex-col gap-1">
+              <div
+                class="cursor-pointer"
+                classList={{
+                  "badge badge-sm badge-soft badge-error": item.corrupted
+                    ? true
+                    : false,
+                  "badge badge-sm badge-soft badge-warning": item.sanctified
+                    ? true
+                    : false,
+                  "badge badge-sm badge-soft badge-info": item.mirrored
+                    ? true
+                    : false,
+                }}
+                onClick={() => {
+                  setItem(
+                    item?.corrupted
+                      ? "corrupted"
+                      : item?.sanctified
+                        ? "sanctified"
+                        : item?.mirrored
+                          ? "mirrored"
+                          : "corrupted",
+                    "disabled",
+                    (d) => !d,
+                  );
+                }}
+              >
+                <span
+                  classList={{
+                    "opacity-40":
+                      item?.corrupted?.disabled ||
+                      item?.sanctified?.disabled ||
+                      item?.mirrored?.disabled,
+                  }}
+                >
+                  {item.corrupted
+                    ? "Corrupted"
+                    : item.sanctified
+                      ? "Sanctified"
+                      : item.mirrored
+                        ? "Mirrored"
+                        : ""}
+                </span>
+              </div>
+            </div>
           </div>
 
           <div
             class="cursor-pointer"
-            onClick={() => setItem("type", "disabled", (d) => !d)}
+            onClick={() => setItem("rarity", "disabled", (d) => !d)}
           >
-            <span classList={{ "opacity-40": item.type.disabled }}>
-              {item.type.value}
+            <span classList={{ "opacity-40": item.rarity.disabled }}>
+              Rarity: {item.rarity.value}
             </span>
           </div>
 
@@ -203,6 +266,17 @@ function PriceWidget() {
               Quality: {item.quality.value}
             </span>
           </div>
+
+          <div
+            class="cursor-pointer"
+            onClick={() => setItem("sockets", "disabled", (d) => !d)}
+          >
+            <span classList={{ "opacity-40": item.sockets.disabled }}>
+              Sockets: {item.sockets.value}
+            </span>
+          </div>
+
+          <div class="divider my-0 opacity-50"></div>
 
           <div classList={{ "opacity-40": item.requires.disabled }}>
             <span
@@ -373,7 +447,7 @@ function PriceWidget() {
             <For each={item.explicit}>
               {(mod, i) => (
                 <div classList={{ "opacity-40": mod.disabled }}>
-                  <span class="inline-flex gap-1">
+                  <span class="inline-flex items-center gap-1">
                     <input
                       type="text"
                       placeholder="min"
@@ -413,6 +487,26 @@ function PriceWidget() {
                     >
                       {mod.mod}
                     </div>
+                    <div
+                      class="cursor-pointer text-xs "
+                      classList={{
+                        "opacity-40": mod.fractured?.disabled,
+                        "badge badge-xs badge-soft badge-warning": mod.fractured
+                          ? true
+                          : false,
+                      }}
+                      onClick={() => {
+                        setItem(
+                          "explicit",
+                          i(),
+                          "fractured",
+                          "disabled",
+                          (d) => !d,
+                        );
+                      }}
+                    >
+                      {mod.fractured ? "Fractured" : ""}
+                    </div>
                   </span>
                 </div>
               )}
@@ -442,7 +536,7 @@ function PriceWidget() {
               onClick={async () => {
                 await openUrl(
                   "https://www.pathofexile.com/trade2/search/poe2/Forbidden%20Rites?q=" +
-                    query(),
+                    JSON.stringify(createQuery(item)),
                 );
 
                 togglePassthrough();
@@ -457,7 +551,7 @@ function PriceWidget() {
             {(p) => (
               <div class="flex justify-between px-1">
                 <span class="">
-                  {p.amount > 1 ? p.amount : p.amount.toFixed(4)} {p.currency}
+                  {p.amount >= 1 ? p.amount : p.amount.toFixed(4)} {p.currency}
                 </span>
                 <span>{p.listed}</span>
               </div>

@@ -3,7 +3,7 @@
 | Item Type | Supported |
 | :--- | :---: |
 | Amulets | &check; |
-| Belts | &cross; |
+| Belts | &check; |
 | Body Armours | &cross; |
 | Boots | &cross; |
 | Bows | &cross; |
