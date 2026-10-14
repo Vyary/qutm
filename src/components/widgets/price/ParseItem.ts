@@ -14,16 +14,17 @@ export interface Requirements {
 }
 
 export interface ItemMod {
+  id: string;
   mod: string;
+  disabled: boolean;
   min?: number;
   max?: number;
-  disabled: boolean;
-  id: string;
+  fractured?: Toggleable<boolean>;
 }
 
 export interface Item {
   category: string;
-  rarity: string;
+  rarity: Toggleable<string>;
   name: Toggleable<string>;
   type: Toggleable<string>;
   ilvl: Toggleable<number>;
@@ -34,7 +35,9 @@ export interface Item {
   implicit: ItemMod[];
   explicit: ItemMod[];
   skill: ItemMod[];
-  corrupted: boolean;
+  corrupted?: Toggleable<boolean>;
+  sanctified?: Toggleable<boolean>;
+  mirrored?: Toggleable<boolean>;
 }
 
 let multiLineMod = "";
@@ -44,7 +47,7 @@ const parseModLine = (
   line: string,
   multiLine?: boolean,
 ): ItemMod => {
-  line = line.trim().replace("+", "").replace(" — Unscalable Value", "");
+  line = line.trim().replace(" — Unscalable Value", "");
 
   if (line.includes("Charm Slots")) {
     line = line.replace("Slots", "Slot");
@@ -72,61 +75,6 @@ const parseModLine = (
     }
   }
 
-  // match 4(3-7)% increased Cold Damage
-  // const valueMod = line.match(
-  //   /(?<pre>.* )?(?<value>-?\d+(?:\.\d+)?)(?:\(.*?\))?(?<rest>.*)/,
-  // );
-  // if (valueMod) {
-  //   let { pre, value, rest } = valueMod.groups!;
-  //
-  //   if (
-  //     rest.includes("reduced Life") ||
-  //     rest.includes("Reload Speed") ||
-  //     rest.includes("Attribute Requirements")
-  //   ) {
-  //     rest = rest.replace("reduced", "increased");
-  //     const mod = `${pre ? pre : ""}#${rest}`;
-  //
-  //     if (findModId(modType, mod)) {
-  //       info(`matched ${pre}#${rest}, value: ${-Number(value)}`);
-  //       multiLineMod = "";
-  //       return {
-  //         mod: mod,
-  //         max: -Number(value),
-  //         disabled: false,
-  //       };
-  //     }
-  //   }
-  //
-  //   if (rest.includes("Unlucky")) {
-  //     rest = rest.replace("Unlucky", "Lucky");
-  //     const mod = `${pre ? pre : ""}#${rest}`;
-  //
-  //     if (findModId(modType, mod)) {
-  //       info(`matched ${pre}#${rest}, value: ${-Number(value)}`);
-  //       multiLineMod = "";
-  //       return {
-  //         mod: mod,
-  //         max: -Number(value),
-  //         disabled: false,
-  //       };
-  //     }
-  //   }
-  //
-  //   const mod = `${pre ? pre : ""}#${rest}`;
-  //
-  //   if (findModId(modType, mod)) {
-  //     info(`matched ${pre}#${rest}, value: ${Number(value)}`);
-  //     multiLineMod = "";
-  //     return {
-  //       mod: mod,
-  //       min: Number(value),
-  //       disabled: false,
-  //     };
-  //   }
-  // }
-
-  // Alternating every 5 seconds: Take 40% less Damage from Hits Take 40% less Damage over time
   line = line.replace(/\(.*?\)/, "");
   const modValues = [...line.matchAll(/-?\d+(?:\.\d+)?/g)].map(
     (match) => match[0],
@@ -146,6 +94,18 @@ const parseModLine = (
       if (id) {
         multiLineMod = "";
         return { id: id, mod: mod, min: value, disabled: false };
+      }
+
+      if (mod.includes("+")) {
+        const id = findModId(modType, mod.replace("+", ""));
+        if (id) {
+          return {
+            id: id,
+            mod: mod.replace("+", ""),
+            min: value,
+            disabled: false,
+          };
+        }
       }
 
       if (mod.includes("less")) {
@@ -177,7 +137,8 @@ const parseModLine = (
       if (
         mod.includes("reduced Life") ||
         mod.includes("Reload Speed") ||
-        mod.includes("Attribute Requirements")
+        mod.includes("Attribute Requirements") ||
+        mod.includes("Duration of Bleeding on You")
       ) {
         const id = findModId(modType, mod.replace("reduced", "increased"));
         if (id) {
@@ -240,10 +201,9 @@ export const parseItem = (item: string) => {
 
   const lines = item.split("\n");
 
-  // TODO: add quality, corruption, fracture
   const itemStruct: Item = {
     category: "",
-    rarity: "",
+    rarity: { value: "", disabled: false },
     name: { value: lines[2], disabled: true },
     type: { value: "", disabled: false },
     quality: { value: 0, disabled: true },
@@ -254,7 +214,6 @@ export const parseItem = (item: string) => {
     implicit: [],
     explicit: [],
     skill: [],
-    corrupted: false,
   };
 
   if (!lines[3].includes("---")) {
@@ -264,14 +223,24 @@ export const parseItem = (item: string) => {
   for (let i = 0; i < lines.length; i++) {
     if (lines[i].includes("---")) continue;
 
-    if (lines[i] === "Corrupted") {
-      itemStruct.corrupted = true;
+    if (lines[i] === "Corrupted" || lines[i] === "Twice Corrupted") {
+      itemStruct.corrupted = { value: true, disabled: false };
+      continue;
+    }
+
+    if (lines[i] === "Sanctified") {
+      itemStruct.sanctified = { value: true, disabled: false };
+      continue;
+    }
+
+    if (lines[i] === "Mirrored") {
+      itemStruct.mirrored = { value: true, disabled: false };
       continue;
     }
 
     debug("line: " + lines[i]);
 
-    if (lines[i].includes("Item Class")) {
+    if (lines[i].includes("Item Class: ")) {
       const c = lines[i].split("Item Class: ")[1];
 
       itemStruct.category = c;
@@ -279,15 +248,15 @@ export const parseItem = (item: string) => {
       continue;
     }
 
-    if (lines[i].includes("Rarity")) {
+    if (lines[i].includes("Rarity: ")) {
       const r = lines[i].split("Rarity: ")[1];
 
-      itemStruct.rarity = r;
+      itemStruct.rarity = { value: r, disabled: false };
       debug("added rarity: " + r);
       continue;
     }
 
-    if (lines[i].includes("Item Level")) {
+    if (lines[i].includes("Item Level: ")) {
       const ilvl = Number(lines[i].split("Item Level: ")[1]);
 
       itemStruct.ilvl = {
@@ -299,7 +268,7 @@ export const parseItem = (item: string) => {
       continue;
     }
 
-    if (lines[i].includes("Quality")) {
+    if (lines[i].includes("Quality: ")) {
       const match = lines[i].match(/\+(\d+)%/);
 
       if (match) {
@@ -310,7 +279,7 @@ export const parseItem = (item: string) => {
       continue;
     }
 
-    if (lines[i].includes("Sockets")) {
+    if (lines[i].includes("Sockets: ")) {
       const s = lines[i].split("Sockets: ")[1];
       const sockets = s.split("S").length - 1;
 
@@ -406,12 +375,14 @@ export const parseItem = (item: string) => {
       continue;
     }
 
+    // Explicit
     if (
       lines[i].includes("Prefix") ||
       lines[i].includes("Suffix") ||
       lines[i].includes("Unique")
     ) {
       const increase = parseInt(lines[i].match(/(\d+)%/)?.[0] || "0", 10);
+      const fractured = lines[i].includes("Fractured");
 
       for (let j = 1; j <= 3; i++) {
         if (
@@ -428,6 +399,7 @@ export const parseItem = (item: string) => {
         debug("---> 2nd loop ---> checking line: " + lines[i + j]);
         const mod = parseModLine("explicit", lines[i + j]);
         if (mod.mod == "") continue;
+        if (fractured) mod.fractured = { value: true, disabled: true };
 
         if (increase > 0 && mod.min) mod.min = mod.min * (1 + increase / 100);
         if (mod.min) mod.min = Math.floor(mod.min);
@@ -437,12 +409,16 @@ export const parseItem = (item: string) => {
         );
         if (modIndex === -1) {
           itemStruct.explicit.push(mod);
-          debug("added explicit: " + JSON.stringify(mod));
+          info("added explicit: " + JSON.stringify(mod));
+          continue;
         }
         if (modIndex > -1 && itemStruct.explicit[modIndex].min && mod.min) {
           itemStruct.explicit[modIndex].min += mod.min;
-          debug("increased explicit: " + JSON.stringify(mod));
+          info("increased explicit: " + JSON.stringify(mod));
+          continue;
         }
+        itemStruct.explicit.push(mod);
+        info("added 2nd explicit: " + JSON.stringify(mod));
       }
     }
   }
@@ -452,7 +428,7 @@ export const parseItem = (item: string) => {
     itemStruct.name.disabled = false;
   }
 
-  if (itemStruct.rarity === "Unique") {
+  if (itemStruct.rarity.value === "Unique") {
     itemStruct.name.disabled = false;
   }
 

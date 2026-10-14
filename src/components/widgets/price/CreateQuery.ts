@@ -1,4 +1,4 @@
-import { error } from "@tauri-apps/plugin-log";
+import { error, info } from "@tauri-apps/plugin-log";
 import { mods } from "./Mods";
 import { Item } from "./ParseItem";
 import { createStore } from "solid-js/store";
@@ -29,7 +29,7 @@ const convertToCategory = (itemClass: string) => {
   if (itemClass.includes("Helmet")) return "armour.helmet";
   if (itemClass.includes("Body Armour")) return "armour.chest";
   if (itemClass.includes("Gloves")) return "armour.gloves";
-  if (itemClass.includes("Belt")) return "accessory.belt";
+  if (itemClass.includes("Belts")) return "accessory.belt";
   if (itemClass.includes("Amulets")) return "accessory.amulet";
   if (itemClass.includes("Rings")) return "accessory.ring";
   if (itemClass.includes("Boots")) return "armour.boots";
@@ -69,7 +69,7 @@ export const findModId = (modType: string, modText: string) => {
   const id = mods?.[modType]?.[modText];
   if (id) return id;
 
-  error(`--> no mod id found for: ${modText} <--`);
+  info(`--> no mod id found for: ${modText} <--`);
 };
 
 const modIdExceptions = (id: string, category: string): string => {
@@ -118,7 +118,7 @@ const modIdExceptions = (id: string, category: string): string => {
   }
 
   // # to Armour / # to Armour (Local)
-  if (id == "explicit.stat_809229260" && category != "Belt") {
+  if (id == "explicit.stat_809229260" && category != "Belts") {
     return "explicit.stat_3484657501";
   }
 
@@ -176,7 +176,107 @@ const modIdExceptions = (id: string, category: string): string => {
   return id;
 };
 
+export interface PoeTradeQueryPayload {
+  query?: {
+    filters?: {
+      equipment_filters?: {
+        disabled: boolean;
+        filters: {
+          total_augment_sockets?: {
+            min?: number;
+            max?: number;
+          };
+        };
+      };
+      misc_filters?: {
+        disabled: boolean;
+        filters: {
+          corrupted?: { option: boolean };
+          sanctified?: { option: boolean };
+          mirrored?: { option: boolean };
+        };
+      };
+      req_filters?: {
+        disabled: boolean;
+        filters: {
+          lvl?: MinMaxFilter;
+          str?: MinMaxFilter;
+          dex?: MinMaxFilter;
+          int?: MinMaxFilter;
+        };
+      };
+      type_filters?: {
+        filters: {
+          category?: { option: string };
+          ilvl?: { min?: number; max?: number };
+          quality?: { min?: number; max?: number };
+          rarity?: { option: string };
+        };
+      };
+    };
+    name?: string;
+    stats?: PoeStatGroup[];
+    status: {
+      option: "any" | "online" | "onlineleague" | "securable";
+    };
+    term?: string;
+    type?: string;
+  };
+  sort?: {
+    [key: string]: "asc" | "desc";
+  };
+}
+
+// Supporting Helper Types
+interface MinMaxFilter {
+  min?: number;
+  max?: number;
+}
+
+interface PoeStatGroup {
+  type: "and" | "not" | "count" | "weight" | "if";
+  filters: PoeStatFilter[];
+  value?: { min?: number; max?: number };
+}
+
+interface PoeStatFilter {
+  id: string;
+  value?: {
+    min?: number;
+    max?: number;
+  };
+  disabled?: boolean;
+}
+
 export const createQuery = (item: Item) => {
+  const [query, setQuery] = createStore<PoeTradeQueryPayload>({
+    query: {
+      filters: {
+        equipment_filters: {
+          disabled: true,
+          filters: {},
+        },
+        misc_filters: {
+          disabled: true,
+          filters: {},
+        },
+        req_filters: {
+          disabled: true,
+          filters: {},
+        },
+        type_filters: {
+          filters: {},
+        },
+      },
+      status: {
+        option: "securable",
+      },
+    },
+
+    sort: {
+      price: "asc",
+    },
+  });
   const [stats, setStats] = createStore<StatGroup[]>([
     {
       filters: [],
@@ -244,6 +344,10 @@ export const createQuery = (item: Item) => {
 
       id = modIdExceptions(id, item.category);
 
+      if (item.explicit[i].fractured && !item.explicit[i].fractured?.disabled) {
+        id = findModId("fractured", item.explicit[i].mod) ?? id;
+      }
+
       setStats(1, "filters", (filters) => [
         ...filters,
         {
@@ -258,80 +362,261 @@ export const createQuery = (item: Item) => {
     }
   };
 
-  onMount(() => createFilters());
+  const createQuery = () => {
+    if (!item.name.disabled && item.rarity.value == "Unique") {
+      setQuery("query", "name", item.name.value);
+    }
 
-  return {
-    query: {
-      filters: {
-        equipment_filters: {
-          disabled: false,
-          filters: {
-            total_augment_sockets: {
-              min:
-                item.sockets.disabled || item.sockets.value == 0
-                  ? undefined
-                  : item.sockets.value,
-            },
-          },
-        },
-        misc_filters: {
-          disabled: false,
-          filters: {
-            corrupted: {
-              option: item.corrupted,
-            },
-          },
-        },
-        req_filters: {
-          disabled: item.requires.disabled,
-          filters: {
-            lvl: {
-              min: item.requires.value.level?.min,
-              max: item.requires.value.level?.max,
-            },
-            str: {
-              min: item.requires.value.str?.min,
-              max: item.requires.value.str?.max,
-            },
-            dex: {
-              min: item.requires.value.dex?.min,
-              max: item.requires.value.dex?.max,
-            },
-            int: {
-              min: item.requires.value.int?.min,
-              max: item.requires.value.int?.max,
-            },
-          },
-        },
-        type_filters: {
-          filters: {
-            category: {
-              option: convertToCategory(item.category),
-            },
-            ilvl: {
-              min: item.ilvl?.value,
-            },
-            quality: {
-              min: item.quality?.value,
-            },
-            rarity: {
-              option: item?.rarity?.toLowerCase() ?? undefined,
-            },
-          },
-        },
-      },
-      name:
-        !item.name.disabled && item.rarity == "Unique"
-          ? item.name.value
-          : undefined,
-      stats: stats,
-      status: {
-        option: "securable",
-      },
-      type:
-        !item.type.disabled && item.type.value != ""
-          ? item.type.value
-          : undefined,
-    },
+    if (!item.type.disabled && item.type.value != "") {
+      setQuery("query", "type", item.type.value);
+    }
+
+    if (
+      !item.name.disabled &&
+      item.rarity.value != "Unique" &&
+      item.rarity.value != "Rare"
+    ) {
+      setQuery("query", "term", item.name.value);
+    }
+
+    setQuery("query", "stats", stats);
+
+    // Type Filters
+    setQuery("query", "filters", "type_filters", "filters", "category", {});
+    setQuery(
+      "query",
+      "filters",
+      "type_filters",
+      "filters",
+      "category",
+      "option",
+      convertToCategory(item.category),
+    );
+
+    if (!item.rarity.disabled) {
+      setQuery("query", "filters", "type_filters", "filters", "rarity", {});
+      setQuery(
+        "query",
+        "filters",
+        "type_filters",
+        "filters",
+        "rarity",
+        "option",
+        item.rarity.value.toLowerCase(),
+      );
+    }
+
+    if (!item.ilvl.disabled) {
+      setQuery("query", "filters", "type_filters", "filters", "ilvl", {});
+      setQuery(
+        "query",
+        "filters",
+        "type_filters",
+        "filters",
+        "ilvl",
+        "min",
+        item.ilvl.value,
+      );
+    }
+
+    if (!item.quality.disabled) {
+      setQuery("query", "filters", "type_filters", "filters", "quality", {});
+      setQuery(
+        "query",
+        "filters",
+        "type_filters",
+        "filters",
+        "quality",
+        "min",
+        item.quality.value,
+      );
+    }
+
+    // Equipment Filters
+    if (!item.sockets.disabled) {
+      setQuery(
+        "query",
+        "filters",
+        "equipment_filters",
+        "disabled",
+        item.sockets.disabled,
+      );
+      setQuery(
+        "query",
+        "filters",
+        "equipment_filters",
+        "filters",
+        "total_augment_sockets",
+        {},
+      );
+      setQuery(
+        "query",
+        "filters",
+        "equipment_filters",
+        "filters",
+        "total_augment_sockets",
+        "min",
+        item.sockets.value,
+      );
+    }
+
+    // Requirements
+    if (!item.requires.disabled) {
+      setQuery(
+        "query",
+        "filters",
+        "req_filters",
+        "disabled",
+        item.requires.disabled,
+      );
+
+      setQuery("query", "filters", "req_filters", "filters", "lvl", {});
+      setQuery(
+        "query",
+        "filters",
+        "req_filters",
+        "filters",
+        "lvl",
+        "min",
+        item.requires.value.level?.min,
+      );
+      setQuery(
+        "query",
+        "filters",
+        "req_filters",
+        "filters",
+        "lvl",
+        "max",
+        item.requires.value.level?.max,
+      );
+
+      setQuery("query", "filters", "req_filters", "filters", "str", {});
+      setQuery(
+        "query",
+        "filters",
+        "req_filters",
+        "filters",
+        "str",
+        "min",
+        item.requires.value.str?.min,
+      );
+      setQuery(
+        "query",
+        "filters",
+        "req_filters",
+        "filters",
+        "str",
+        "max",
+        item.requires.value.str?.max,
+      );
+
+      setQuery("query", "filters", "req_filters", "filters", "dex", {});
+      setQuery(
+        "query",
+        "filters",
+        "req_filters",
+        "filters",
+        "dex",
+        "min",
+        item.requires.value.dex?.min,
+      );
+      setQuery(
+        "query",
+        "filters",
+        "req_filters",
+        "filters",
+        "dex",
+        "max",
+        item.requires.value.dex?.max,
+      );
+
+      setQuery("query", "filters", "req_filters", "filters", "int", {});
+      setQuery(
+        "query",
+        "filters",
+        "req_filters",
+        "filters",
+        "int",
+        "min",
+        item.requires.value.int?.min,
+      );
+      setQuery(
+        "query",
+        "filters",
+        "req_filters",
+        "filters",
+        "int",
+        "max",
+        item.requires.value.int?.max,
+      );
+    }
+
+    // Miscellaneous
+    if (item.corrupted != undefined && !item.corrupted.disabled) {
+      setQuery(
+        "query",
+        "filters",
+        "misc_filters",
+        "disabled",
+        item.corrupted?.disabled,
+      );
+      setQuery("query", "filters", "misc_filters", "filters", "corrupted", {});
+      setQuery(
+        "query",
+        "filters",
+        "misc_filters",
+        "filters",
+        "corrupted",
+        "option",
+        item.corrupted?.value,
+      );
+    }
+
+    if (item.sanctified != undefined && !item.sanctified.disabled) {
+      setQuery(
+        "query",
+        "filters",
+        "misc_filters",
+        "disabled",
+        item.sanctified?.disabled,
+      );
+      setQuery("query", "filters", "misc_filters", "filters", "sanctified", {});
+      setQuery(
+        "query",
+        "filters",
+        "misc_filters",
+        "filters",
+        "sanctified",
+        "option",
+        item.sanctified?.value,
+      );
+    }
+
+    if (item.mirrored != undefined && !item.mirrored.disabled) {
+      setQuery(
+        "query",
+        "filters",
+        "misc_filters",
+        "disabled",
+        item.mirrored?.disabled,
+      );
+      setQuery("query", "filters", "misc_filters", "filters", "mirrored", {});
+      setQuery(
+        "query",
+        "filters",
+        "misc_filters",
+        "filters",
+        "mirrored",
+        "option",
+        item.mirrored?.value,
+      );
+    }
   };
+
+  onMount(() => {
+    createFilters();
+    createQuery();
+  });
+
+  return query;
 };
