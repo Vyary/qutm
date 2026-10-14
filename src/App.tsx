@@ -17,6 +17,13 @@ import { UnlistenFn } from "@tauri-apps/api/event";
 function App() {
   let unlisten: UnlistenFn = () => info("app on close unlisten not updated");
 
+  const handleEsc = (e: KeyboardEvent) => {
+    if (e.key === "Escape") {
+      info("Escape triggered");
+      enablePassthrough();
+    }
+  };
+
   onMount(async () => {
     info(Date.now().toString());
 
@@ -29,6 +36,8 @@ function App() {
 
       loadFilePath();
 
+      window.addEventListener("keydown", handleEsc);
+
       info(
         `finished loading initial state in ${(performance.now() - s).toFixed(2)}ms`,
       );
@@ -37,11 +46,14 @@ function App() {
     initializeApp();
 
     unlisten = await getCurrentWindow().onCloseRequested(async () => {
+      window.removeEventListener("keydown", handleEsc);
       await unregisterAll();
     });
   });
 
   onCleanup(async () => {
+    window.removeEventListener("keydown", handleEsc);
+    await unregisterAll();
     unlisten();
   });
 

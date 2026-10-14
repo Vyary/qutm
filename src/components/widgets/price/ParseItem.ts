@@ -261,9 +261,14 @@ export const parseItem = (item: string) => {
     if (line.includes("Item Level: ")) {
       const ilvl = Number(line.split("Item Level: ")[1]);
 
+      if (ilvl > 75) {
+        itemStruct.ilvl = { value: ilvl, disabled: false };
+        continue;
+      }
+
       itemStruct.ilvl = {
         value: ilvl,
-        disabled: false,
+        disabled: true,
       };
 
       debug("added ilvl: " + ilvl);
@@ -274,7 +279,15 @@ export const parseItem = (item: string) => {
       const match = line.match(/\+(\d+)%/);
 
       if (match) {
-        itemStruct.quality.value = Number(match[1]);
+        const quality = Number(match[1]);
+
+        if (quality > 20) {
+          itemStruct.quality = { value: quality, disabled: false };
+          continue;
+        }
+
+        itemStruct.quality = { value: quality, disabled: true };
+
         debug("added quality: " + match[1]);
       }
 
@@ -285,7 +298,12 @@ export const parseItem = (item: string) => {
       const s = line.split("Sockets: ")[1];
       const sockets = s.split("S").length - 1;
 
-      itemStruct.sockets = { value: sockets, disabled: sockets <= 0 };
+      if (sockets > 1) {
+        itemStruct.sockets = { value: sockets, disabled: false };
+        continue;
+      }
+
+      itemStruct.sockets = { value: sockets, disabled: true };
       continue;
     }
 
@@ -383,6 +401,9 @@ export const parseItem = (item: string) => {
     ) {
       const increase = parseInt(line.match(/(\d+)%/)?.[0] || "0", 10);
       const fractured = line.includes("Fractured");
+      const tier = Number(
+        line.match(/Tier:\s*(?<tier>\d+)/)?.groups?.tier ?? 0,
+      );
 
       for (let j = 1; j <= 3; i++) {
         if (
@@ -400,6 +421,7 @@ export const parseItem = (item: string) => {
         const mod = parseModLine("explicit", lines[i + j]);
         if (mod.mod == "") continue;
         if (fractured) mod.fractured = { value: true, disabled: true };
+        if (tier > 2) mod.disabled = true;
 
         if (increase > 0 && mod.min) mod.min = mod.min * (1 + increase / 100);
         if (mod.min) mod.min = Math.floor(mod.min);
