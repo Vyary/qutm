@@ -1,6 +1,6 @@
 {
   "name": "qutm",
-  "version": "0.5.8",
+  "version": "0.5.9",
   "description": "",
   "type": "module",
   "scripts": {
@@ -31,7 +31,7 @@
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.12.2",
-    "daisyui": "^5.7.48",
+    "daisyui": "^5.7.50",
     "typescript": "~7.0.2",
     "vite": "^8.3.4",
     "vite-plugin-solid": "^2.11.14",
