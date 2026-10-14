@@ -44,10 +44,14 @@ fn os_copy(app: AppHandle) -> Result<String, String> {
     let mut enigo = Enigo::new(&Settings::default()).map_err(|e| e.to_string())?;
 
     #[cfg(target_os = "linux")]
-    let (pre, mid, post) = (100, 30, 40);
+    let (pre, mid, post) = (50, 30, 40);
     #[cfg(not(target_os = "linux"))]
-    let (pre, mid, post) = (100, 30, 40);
+    let (pre, mid, post) = (50, 30, 40);
 
+    enigo
+        .key(Key::Control, Direction::Press)
+        .map_err(|e| e.to_string())?;
+    thread::sleep(Duration::from_millis(pre));
     enigo
         .key(Key::Control, Direction::Press)
         .map_err(|e| e.to_string())?;

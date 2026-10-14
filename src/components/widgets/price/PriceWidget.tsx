@@ -6,7 +6,7 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import { loadMods, saveMods } from "./Mods";
 import { Item, parseItem, Requirements } from "./ParseItem";
 import { createQuery } from "./CreateQuery";
-import { togglePassthrough } from "@/lib/Passthrough";
+import { enablePassthrough, togglePassthrough } from "@/lib/Passthrough";
 import { PriceCheck } from "./PriceChecker";
 import { loadOverviews } from "@/lib/Overviews";
 import { error, info } from "@tauri-apps/plugin-log";
@@ -41,8 +41,9 @@ function PriceWidget() {
     skill: [],
   });
   const [timeout, setTimeoutLeft] = createSignal(0);
-
   const [prices, setPrices] = createSignal<Prices[]>([]);
+  let enterTime = 0;
+  const reqTime = 1000;
 
   const itemReq = (
     req: Requirements,
@@ -133,7 +134,7 @@ function PriceWidget() {
     setItem("sanctified", undefined);
     setItem(itemStruct);
     togglePassthrough();
-    info(JSON.stringify(item));
+    // info(JSON.stringify(item));
     getPrice();
   };
 
@@ -150,6 +151,7 @@ function PriceWidget() {
 
     unlisten = await getCurrentWindow().onCloseRequested(async () => {
       await saveMods();
+      clearInterval(interval);
     });
   });
 
@@ -163,402 +165,412 @@ function PriceWidget() {
 
   return (
     <Show when={item.category}>
-      <BaseWidget
-        name="price"
-        defaultPos={{ x: 50, y: 170 }}
-        defaultWidth={{ w: 550 }}
-        defaultTransparency={85}
-        transparencySlider={true}
+      <div
+        onMouseEnter={() => (enterTime = Date.now())}
+        onMouseLeave={() => {
+          if (Date.now() - enterTime >= reqTime) {
+            info("on mouse leave triggered");
+            enablePassthrough();
+          }
+        }}
       >
-        <div class="space-y-1 p-4 text-sm">
-          <div class="flex justify-between items-center">
-            <div class="flex flex-col gap-1">
-              <div
-                class="cursor-pointer"
-                onClick={() => setItem("name", "disabled", (d) => !d)}
-              >
-                <span classList={{ "opacity-40": item.name.disabled }}>
-                  {item.name.value}
-                </span>
+        <BaseWidget
+          name="price"
+          defaultPos={{ x: 50, y: 170 }}
+          defaultWidth={{ w: 550 }}
+          defaultTransparency={85}
+          transparencySlider={true}
+        >
+          <div class="space-y-1 p-4 text-sm">
+            <div class="flex justify-between items-center">
+              <div class="flex flex-col gap-1">
+                <div
+                  class="cursor-pointer"
+                  onClick={() => setItem("name", "disabled", (d) => !d)}
+                >
+                  <span classList={{ "opacity-40": item.name.disabled }}>
+                    {item.name.value}
+                  </span>
+                </div>
+
+                <div
+                  class="cursor-pointer"
+                  onClick={() => setItem("type", "disabled", (d) => !d)}
+                >
+                  <span classList={{ "opacity-40": item.type.disabled }}>
+                    {item.type.value}
+                  </span>
+                </div>
               </div>
 
-              <div
-                class="cursor-pointer"
-                onClick={() => setItem("type", "disabled", (d) => !d)}
-              >
-                <span classList={{ "opacity-40": item.type.disabled }}>
-                  {item.type.value}
-                </span>
-              </div>
-            </div>
-
-            <div class="flex flex-col gap-1">
-              <div
-                class="cursor-pointer"
-                classList={{
-                  "badge badge-sm badge-soft badge-error": item.corrupted
-                    ? true
-                    : false,
-                  "badge badge-sm badge-soft badge-warning": item.sanctified
-                    ? true
-                    : false,
-                  "badge badge-sm badge-soft badge-info": item.mirrored
-                    ? true
-                    : false,
-                }}
-                onClick={() => {
-                  setItem(
-                    item?.corrupted
-                      ? "corrupted"
-                      : item?.sanctified
-                        ? "sanctified"
-                        : item?.mirrored
-                          ? "mirrored"
-                          : "corrupted",
-                    "disabled",
-                    (d) => !d,
-                  );
-                }}
-              >
-                <span
+              <div class="flex flex-col gap-1">
+                <div
+                  class="cursor-pointer"
                   classList={{
-                    "opacity-40":
-                      item?.corrupted?.disabled ||
-                      item?.sanctified?.disabled ||
-                      item?.mirrored?.disabled,
+                    "badge badge-sm badge-soft badge-error": item.corrupted
+                      ? true
+                      : false,
+                    "badge badge-sm badge-soft badge-warning": item.sanctified
+                      ? true
+                      : false,
+                    "badge badge-sm badge-soft badge-info": item.mirrored
+                      ? true
+                      : false,
+                  }}
+                  onClick={() => {
+                    setItem(
+                      item?.corrupted
+                        ? "corrupted"
+                        : item?.sanctified
+                          ? "sanctified"
+                          : item?.mirrored
+                            ? "mirrored"
+                            : "corrupted",
+                      "disabled",
+                      (d) => !d,
+                    );
                   }}
                 >
-                  {item.corrupted
-                    ? "Corrupted"
-                    : item.sanctified
-                      ? "Sanctified"
-                      : item.mirrored
-                        ? "Mirrored"
-                        : ""}
-                </span>
+                  <span
+                    classList={{
+                      "opacity-40":
+                        item?.corrupted?.disabled ||
+                        item?.sanctified?.disabled ||
+                        item?.mirrored?.disabled,
+                    }}
+                  >
+                    {item.corrupted
+                      ? "Corrupted"
+                      : item.sanctified
+                        ? "Sanctified"
+                        : item.mirrored
+                          ? "Mirrored"
+                          : ""}
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div
-            class="cursor-pointer"
-            onClick={() => setItem("rarity", "disabled", (d) => !d)}
-          >
-            <span classList={{ "opacity-40": item.rarity.disabled }}>
-              Rarity: {item.rarity.value}
-            </span>
-          </div>
-
-          <div
-            class="cursor-pointer"
-            onClick={() => setItem("ilvl", "disabled", (d) => !d)}
-          >
-            <span classList={{ "opacity-40": item.ilvl.disabled }}>
-              Item Level: {item.ilvl.value}
-            </span>
-          </div>
-
-          <div
-            class="cursor-pointer"
-            onClick={() => setItem("quality", "disabled", (d) => !d)}
-          >
-            <span classList={{ "opacity-40": item.quality.disabled }}>
-              Quality: {item.quality.value}
-            </span>
-          </div>
-
-          <div
-            class="cursor-pointer"
-            onClick={() => setItem("sockets", "disabled", (d) => !d)}
-          >
-            <span classList={{ "opacity-40": item.sockets.disabled }}>
-              Sockets: {item.sockets.value}
-            </span>
-          </div>
-
-          <div class="divider my-0 opacity-50"></div>
-
-          <div classList={{ "opacity-40": item.requires.disabled }}>
-            <span
+            <div
               class="cursor-pointer"
-              onClick={() => setItem("requires", "disabled", (d) => !d)}
+              onClick={() => setItem("rarity", "disabled", (d) => !d)}
             >
-              Requires:
-            </span>
-            <div class="grid grid-cols-2 gap-1 pt-1">
-              {itemReq(item.requires.value, "level")}
-              {itemReq(item.requires.value, "str")}
-              {itemReq(item.requires.value, "dex")}
-              {itemReq(item.requires.value, "int")}
+              <span classList={{ "opacity-40": item.rarity.disabled }}>
+                Rarity: {item.rarity.value}
+              </span>
             </div>
-          </div>
 
-          <div class="divider my-0 opacity-50"></div>
+            <div
+              class="cursor-pointer"
+              onClick={() => setItem("ilvl", "disabled", (d) => !d)}
+            >
+              <span classList={{ "opacity-40": item.ilvl.disabled }}>
+                Item Level: {item.ilvl.value}
+              </span>
+            </div>
 
-          <div class="">
-            <For each={item.skill}>
-              {(mod, i) => (
-                <div classList={{ "opacity-40": mod.disabled }}>
-                  <span class="inline-flex gap-1">
-                    <input
-                      type="text"
-                      placeholder="min"
-                      value={mod.min || ""}
-                      onInput={(e) => {
-                        const val = e.currentTarget.value;
-                        setItem(
-                          "skill",
-                          i(),
-                          "min",
-                          val === "" ? undefined : Number(val),
-                        );
-                      }}
-                      class="input input-xs max-w-12"
-                    />
-                    <span class="opacity-40">-</span>
-                    <input
-                      type="text"
-                      placeholder="max"
-                      value={mod.max || ""}
-                      onInput={(e) => {
-                        const val = e.currentTarget.value;
-                        setItem(
-                          "skill",
-                          i(),
-                          "max",
-                          val === "" ? undefined : Number(val),
-                        );
-                      }}
-                      class="input input-xs max-w-12"
-                    />
-                    <div
-                      class="cursor-pointer"
-                      onClick={() =>
-                        setItem("skill", i(), "disabled", (d) => !d)
-                      }
-                    >
-                      {mod.mod}
-                    </div>
-                  </span>
-                </div>
-              )}
-            </For>
+            <div
+              class="cursor-pointer"
+              onClick={() => setItem("quality", "disabled", (d) => !d)}
+            >
+              <span classList={{ "opacity-40": item.quality.disabled }}>
+                Quality: {item.quality.value}
+              </span>
+            </div>
 
-            <For each={item.enhancement}>
-              {(mod, i) => (
-                <div classList={{ "opacity-40": mod.disabled }}>
-                  <span class="inline-flex gap-1">
-                    <input
-                      type="text"
-                      placeholder="min"
-                      value={mod.min || ""}
-                      onInput={(e) => {
-                        const val = e.currentTarget.value;
-                        setItem(
-                          "enhancement",
-                          i(),
-                          "min",
-                          val === "" ? undefined : Number(val),
-                        );
-                      }}
-                      class="input input-xs max-w-12"
-                    />
-                    <span class="opacity-40">-</span>
-                    <input
-                      type="text"
-                      placeholder="max"
-                      value={mod.max || ""}
-                      onInput={(e) => {
-                        const val = e.currentTarget.value;
-                        setItem(
-                          "enhancement",
-                          i(),
-                          "max",
-                          val === "" ? undefined : Number(val),
-                        );
-                      }}
-                      class="input input-xs max-w-12"
-                    />
-                    <div
-                      class="cursor-pointer"
-                      onClick={() =>
-                        setItem("enhancement", i(), "disabled", (d) => !d)
-                      }
-                    >
-                      {mod.mod}
-                    </div>
-                  </span>
-                </div>
-              )}
-            </For>
+            <div
+              class="cursor-pointer"
+              onClick={() => setItem("sockets", "disabled", (d) => !d)}
+            >
+              <span classList={{ "opacity-40": item.sockets.disabled }}>
+                Sockets: {item.sockets.value}
+              </span>
+            </div>
 
-            <For each={item.implicit}>
-              {(mod, i) => (
-                <div classList={{ "opacity-40": mod.disabled }}>
-                  <span class="inline-flex gap-1">
-                    <input
-                      type="text"
-                      placeholder="min"
-                      value={mod.min || ""}
-                      onInput={(e) => {
-                        const val = e.currentTarget.value;
-                        setItem(
-                          "implicit",
-                          i(),
-                          "min",
-                          val === "" ? undefined : Number(val),
-                        );
-                      }}
-                      class="input input-xs max-w-12"
-                    />
-                    <span class="opacity-40">-</span>
-                    <input
-                      type="text"
-                      placeholder="max"
-                      value={mod.max || ""}
-                      onInput={(e) => {
-                        const val = e.currentTarget.value;
-                        setItem(
-                          "implicit",
-                          i(),
-                          "max",
-                          val === "" ? undefined : Number(val),
-                        );
-                      }}
-                      class="input input-xs max-w-12"
-                    />
-                    <div
-                      class="cursor-pointer"
-                      onClick={() =>
-                        setItem("implicit", i(), "disabled", (d) => !d)
-                      }
-                    >
-                      {mod.mod}
-                    </div>
-                  </span>
-                </div>
-              )}
-            </For>
-          </div>
+            <div class="divider my-0 opacity-50"></div>
 
-          <div class="divider my-0 opacity-50"></div>
+            <div classList={{ "opacity-40": item.requires.disabled }}>
+              <span
+                class="cursor-pointer"
+                onClick={() => setItem("requires", "disabled", (d) => !d)}
+              >
+                Requires:
+              </span>
+              <div class="grid grid-cols-2 gap-1 pt-1">
+                {itemReq(item.requires.value, "level")}
+                {itemReq(item.requires.value, "str")}
+                {itemReq(item.requires.value, "dex")}
+                {itemReq(item.requires.value, "int")}
+              </div>
+            </div>
 
-          <div class="space-y-1">
-            <For each={item.explicit}>
-              {(mod, i) => (
-                <div classList={{ "opacity-40": mod.disabled }}>
-                  <span class="inline-flex items-center gap-1">
-                    <input
-                      type="text"
-                      placeholder="min"
-                      value={mod.min || ""}
-                      onInput={(e) => {
-                        const val = e.currentTarget.value;
-                        setItem(
-                          "explicit",
-                          i(),
-                          "min",
-                          val === "" ? undefined : Number(val),
-                        );
-                      }}
-                      class="input input-xs max-w-12"
-                    />
-                    <span class="opacity-40">-</span>
-                    <input
-                      type="text"
-                      placeholder="max"
-                      value={mod.max || ""}
-                      onInput={(e) => {
-                        const val = e.currentTarget.value;
-                        setItem(
-                          "explicit",
-                          i(),
-                          "max",
-                          val === "" ? undefined : Number(val),
-                        );
-                      }}
-                      class="input input-xs max-w-12"
-                    />
-                    <div
-                      class="cursor-pointer"
-                      onClick={() =>
-                        setItem("explicit", i(), "disabled", (d) => !d)
-                      }
-                    >
-                      {mod.mod}
-                    </div>
-                    <div
-                      class="cursor-pointer text-xs "
-                      classList={{
-                        "opacity-40": mod.fractured?.disabled,
-                        "badge badge-xs badge-soft badge-warning": mod.fractured
-                          ? true
-                          : false,
-                      }}
-                      onClick={() => {
-                        setItem(
-                          "explicit",
-                          i(),
-                          "fractured",
-                          "disabled",
-                          (d) => !d,
-                        );
-                      }}
-                    >
-                      {mod.fractured ? "Fractured" : ""}
-                    </div>
-                  </span>
-                </div>
-              )}
-            </For>
-          </div>
+            <div class="divider my-0 opacity-50"></div>
 
-          <div class="divider my-0 opacity-50"></div>
+            <div class="">
+              <For each={item.skill}>
+                {(mod, i) => (
+                  <div classList={{ "opacity-40": mod.disabled }}>
+                    <span class="inline-flex gap-1">
+                      <input
+                        type="text"
+                        placeholder="min"
+                        value={mod.min || ""}
+                        onInput={(e) => {
+                          const val = e.currentTarget.value;
+                          setItem(
+                            "skill",
+                            i(),
+                            "min",
+                            val === "" ? undefined : Number(val),
+                          );
+                        }}
+                        class="input input-xs max-w-12"
+                      />
+                      <span class="opacity-40">-</span>
+                      <input
+                        type="text"
+                        placeholder="max"
+                        value={mod.max || ""}
+                        onInput={(e) => {
+                          const val = e.currentTarget.value;
+                          setItem(
+                            "skill",
+                            i(),
+                            "max",
+                            val === "" ? undefined : Number(val),
+                          );
+                        }}
+                        class="input input-xs max-w-12"
+                      />
+                      <div
+                        class="cursor-pointer"
+                        onClick={() =>
+                          setItem("skill", i(), "disabled", (d) => !d)
+                        }
+                      >
+                        {mod.mod}
+                      </div>
+                    </span>
+                  </div>
+                )}
+              </For>
 
-          <div class="w-full inline-flex justify-between">
-            <div>
+              <For each={item.enhancement}>
+                {(mod, i) => (
+                  <div classList={{ "opacity-40": mod.disabled }}>
+                    <span class="inline-flex gap-1">
+                      <input
+                        type="text"
+                        placeholder="min"
+                        value={mod.min || ""}
+                        onInput={(e) => {
+                          const val = e.currentTarget.value;
+                          setItem(
+                            "enhancement",
+                            i(),
+                            "min",
+                            val === "" ? undefined : Number(val),
+                          );
+                        }}
+                        class="input input-xs max-w-12"
+                      />
+                      <span class="opacity-40">-</span>
+                      <input
+                        type="text"
+                        placeholder="max"
+                        value={mod.max || ""}
+                        onInput={(e) => {
+                          const val = e.currentTarget.value;
+                          setItem(
+                            "enhancement",
+                            i(),
+                            "max",
+                            val === "" ? undefined : Number(val),
+                          );
+                        }}
+                        class="input input-xs max-w-12"
+                      />
+                      <div
+                        class="cursor-pointer"
+                        onClick={() =>
+                          setItem("enhancement", i(), "disabled", (d) => !d)
+                        }
+                      >
+                        {mod.mod}
+                      </div>
+                    </span>
+                  </div>
+                )}
+              </For>
+
+              <For each={item.implicit}>
+                {(mod, i) => (
+                  <div classList={{ "opacity-40": mod.disabled }}>
+                    <span class="inline-flex gap-1">
+                      <input
+                        type="text"
+                        placeholder="min"
+                        value={mod.min || ""}
+                        onInput={(e) => {
+                          const val = e.currentTarget.value;
+                          setItem(
+                            "implicit",
+                            i(),
+                            "min",
+                            val === "" ? undefined : Number(val),
+                          );
+                        }}
+                        class="input input-xs max-w-12"
+                      />
+                      <span class="opacity-40">-</span>
+                      <input
+                        type="text"
+                        placeholder="max"
+                        value={mod.max || ""}
+                        onInput={(e) => {
+                          const val = e.currentTarget.value;
+                          setItem(
+                            "implicit",
+                            i(),
+                            "max",
+                            val === "" ? undefined : Number(val),
+                          );
+                        }}
+                        class="input input-xs max-w-12"
+                      />
+                      <div
+                        class="cursor-pointer"
+                        onClick={() =>
+                          setItem("implicit", i(), "disabled", (d) => !d)
+                        }
+                      >
+                        {mod.mod}
+                      </div>
+                    </span>
+                  </div>
+                )}
+              </For>
+            </div>
+
+            <div class="divider my-0 opacity-50"></div>
+
+            <div class="space-y-1">
+              <For each={item.explicit}>
+                {(mod, i) => (
+                  <div classList={{ "opacity-40": mod.disabled }}>
+                    <span class="inline-flex items-center gap-1">
+                      <input
+                        type="text"
+                        placeholder="min"
+                        value={mod.min || ""}
+                        onInput={(e) => {
+                          const val = e.currentTarget.value;
+                          setItem(
+                            "explicit",
+                            i(),
+                            "min",
+                            val === "" ? undefined : Number(val),
+                          );
+                        }}
+                        class="input input-xs max-w-12"
+                      />
+                      <span class="opacity-40">-</span>
+                      <input
+                        type="text"
+                        placeholder="max"
+                        value={mod.max || ""}
+                        onInput={(e) => {
+                          const val = e.currentTarget.value;
+                          setItem(
+                            "explicit",
+                            i(),
+                            "max",
+                            val === "" ? undefined : Number(val),
+                          );
+                        }}
+                        class="input input-xs max-w-12"
+                      />
+                      <div
+                        class="cursor-pointer"
+                        onClick={() =>
+                          setItem("explicit", i(), "disabled", (d) => !d)
+                        }
+                      >
+                        {mod.mod}
+                      </div>
+                      <div
+                        class="cursor-pointer text-xs "
+                        classList={{
+                          "opacity-40": mod.fractured?.disabled,
+                          "badge badge-xs badge-soft badge-warning":
+                            mod.fractured ? true : false,
+                        }}
+                        onClick={() => {
+                          setItem(
+                            "explicit",
+                            i(),
+                            "fractured",
+                            "disabled",
+                            (d) => !d,
+                          );
+                        }}
+                      >
+                        {mod.fractured ? "Fractured" : ""}
+                      </div>
+                    </span>
+                  </div>
+                )}
+              </For>
+            </div>
+
+            <div class="divider my-0 opacity-50"></div>
+
+            <div class="w-full inline-flex justify-between">
+              <div>
+                <button
+                  onClick={async () => {
+                    getPrice();
+                  }}
+                  class="btn btn-xs btn-soft"
+                  classList={{
+                    "btn-disabled": timeout() > 0,
+                    "font-mono": timeout() > 0,
+                  }}
+                >
+                  {timeout() > 0
+                    ? `${(timeout() / 1000).toFixed(1)}s`
+                    : "Recheck price"}
+                </button>
+              </div>
               <button
                 onClick={async () => {
-                  getPrice();
+                  await openUrl(
+                    "https://www.pathofexile.com/trade2/search/poe2/Forbidden%20Rites?q=" +
+                      JSON.stringify(createQuery(item)),
+                  );
+
+                  togglePassthrough();
                 }}
                 class="btn btn-xs btn-soft"
-                classList={{
-                  "btn-disabled": timeout() > 0,
-                  "font-mono": timeout() > 0,
-                }}
               >
-                {timeout() > 0
-                  ? `${(timeout() / 1000).toFixed(1)}s`
-                  : "Recheck price"}
+                Trade
               </button>
             </div>
-            <button
-              onClick={async () => {
-                await openUrl(
-                  "https://www.pathofexile.com/trade2/search/poe2/Forbidden%20Rites?q=" +
-                    JSON.stringify(createQuery(item)),
-                );
 
-                togglePassthrough();
-              }}
-              class="btn btn-xs btn-soft"
-            >
-              Trade
-            </button>
+            <For each={prices()}>
+              {(p) => (
+                <div class="flex justify-between px-1">
+                  <span class="">
+                    {p.amount >= 1 ? p.amount : p.amount.toFixed(4)}{" "}
+                    {p.currency}
+                  </span>
+                  <span>{p.listed}</span>
+                </div>
+              )}
+            </For>
           </div>
-
-          <For each={prices()}>
-            {(p) => (
-              <div class="flex justify-between px-1">
-                <span class="">
-                  {p.amount >= 1 ? p.amount : p.amount.toFixed(4)} {p.currency}
-                </span>
-                <span>{p.listed}</span>
-              </div>
-            )}
-          </For>
-        </div>
-      </BaseWidget>
+        </BaseWidget>
+      </div>
     </Show>
   );
 }
