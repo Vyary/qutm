@@ -12,7 +12,6 @@ import { loadOverviews } from "@/lib/Overviews";
 import { error, info } from "@tauri-apps/plugin-log";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { UnlistenFn } from "@tauri-apps/api/event";
-import { store } from "@/lib/Store";
 
 export interface Prices {
   amount: number;
@@ -134,6 +133,7 @@ function PriceWidget() {
     setItem("sanctified", undefined);
     setItem(itemStruct);
     togglePassthrough();
+    info(JSON.stringify(item));
     getPrice();
   };
 
