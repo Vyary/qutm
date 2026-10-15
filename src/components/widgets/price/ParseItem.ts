@@ -1,4 +1,4 @@
-import { debug, info, warn } from "@tauri-apps/plugin-log";
+import { info, warn } from "@tauri-apps/plugin-log";
 import { findModId } from "./CreateQuery";
 
 interface Toggleable<T> {
@@ -11,6 +11,16 @@ export interface Requirements {
   str?: { min?: number; max?: number };
   dex?: { min?: number; max?: number };
   int?: { min?: number; max?: number };
+}
+
+export interface Waystone {
+  tier?: { min?: number; max?: number };
+  monsterEff?: { min?: number; max?: number };
+  monsterRarity?: { min?: number; max?: number };
+  dropChance?: { min?: number; max?: number };
+  packsize?: { min?: number; max?: number };
+  itemRarity?: { min?: number; max?: number };
+  revives?: { min?: number; max?: number };
 }
 
 export interface ItemMod {
@@ -30,6 +40,7 @@ export interface Item {
   ilvl: Toggleable<number>;
   quality: Toggleable<number>;
   requires: Toggleable<Requirements>;
+  waystone: Toggleable<Waystone>;
   sockets: Toggleable<number>;
   enhancement: ItemMod[];
   implicit: ItemMod[];
@@ -217,6 +228,7 @@ export const parseItem = (item: string) => {
     type: { value: "", disabled: false },
     quality: { value: 0, disabled: true },
     requires: { value: {}, disabled: true },
+    waystone: { value: {}, disabled: true },
     ilvl: { value: 0, disabled: true },
     sockets: { value: 0, disabled: true },
     enhancement: [],
@@ -257,10 +269,9 @@ export const parseItem = (item: string) => {
       continue;
     }
 
-    if (line.includes("Rarity: ")) {
-      const r = line.split("Rarity: ")[1].trim();
-
-      itemStruct.rarity = { value: r, disabled: false };
+    const rarity = line.match(/^Rarity: (?<rarity>\w+)/)?.groups?.rarity;
+    if (rarity) {
+      itemStruct.rarity = { value: rarity, disabled: false };
       continue;
     }
 
@@ -276,123 +287,178 @@ export const parseItem = (item: string) => {
       continue;
     }
 
-    if (line.includes("Quality: ")) {
-      const match = line.match(/\+(\d+)%/);
+    if (itemStruct.category == "Waystones") {
+      info(line);
 
-      if (match) {
-        const quality = Number(match[1]);
-
-        if (quality > 20) {
-          itemStruct.quality = { value: quality, disabled: false };
-          continue;
-        }
-
-        itemStruct.quality = { value: quality, disabled: true };
-      }
-
-      continue;
-    }
-
-    if (line.includes("Sockets: ")) {
-      const s = line.split("Sockets: ")[1];
-      const sockets = s.split("S").length - 1;
-
-      if (sockets > 1) {
-        itemStruct.sockets = { value: sockets, disabled: false };
+      const waystoneTier = line.match(/Waystone \(Tier\s*(?<t>\d+)\)/)?.groups
+        ?.t;
+      if (waystoneTier) {
+        itemStruct.waystone.value.tier = { min: Number(waystoneTier) };
         continue;
       }
 
-      itemStruct.sockets = { value: sockets, disabled: true };
-      continue;
-    }
-
-    if (line.includes("Requires")) {
-      const levelMatch = line.match(/Level (\d+)/);
-      const strMatch = line.match(/(\d+)\s*(?:\([^)]*\)\s*)?Str/);
-      const dexMatch = line.match(/(\d+)\s*(?:\([^)]*\)\s*)?Dex/);
-      const intMatch = line.match(/(\d+)\s*(?:\([^)]*\)\s*)?Int/);
-
-      itemStruct.requires = {
-        value: {
-          level: { max: levelMatch ? Number(levelMatch[1]) : undefined },
-          str: { max: strMatch ? Number(strMatch[1]) : undefined },
-          dex: { max: dexMatch ? Number(dexMatch[1]) : undefined },
-          int: { max: intMatch ? Number(intMatch[1]) : undefined },
-        },
-        disabled: true,
-      };
-
-      continue;
-    }
-
-    if (line.includes("Enhancement")) {
-      const increase = parseInt(line.match(/(\d+)%/)?.[0] || "0", 10);
-
-      for (let j = 1; j <= 3; i++) {
-        if (
-          lines[i + j].includes("Enhancement") ||
-          lines[i + j].includes("---") ||
-          !lines[i + j].trim()
-        ) {
-          break;
-        }
-
-        const mod = parseModLine("enchant", lines[i + j]);
-        if (mod.mod == "") continue;
-
-        if (increase > 0 && mod.min) mod.min = mod.min * (1 + increase / 100);
-        if (mod.min) mod.min = Math.floor(mod.min);
-
-        itemStruct.enhancement.push(mod);
-        info(
-          `enhancement added: "${mod.mod}" id=${mod.id} min=${mod.min} max=${mod.max} disabled=${mod.disabled}\n`,
-        );
+      const waystoneME = line.match(/Monster Effectiveness:\s*\+(?<me>\d+)%/)
+        ?.groups?.me;
+      if (waystoneME) {
+        itemStruct.waystone.value.monsterEff = { min: Number(waystoneME) };
+        continue;
       }
 
-      continue;
-    }
-
-    if (line.includes("Implicit")) {
-      const increase = parseInt(line.match(/(\d+)%/)?.[0] || "0", 10);
-
-      for (let j = 1; j <= 3; i++) {
-        if (
-          (lines[i + j].includes("Prefix") &&
-            !lines[i + j].includes("allowed")) ||
-          (lines[i + j].includes("Suffix") &&
-            !lines[i + j].includes("allowed")) ||
-          lines[i + j].includes("Unique") ||
-          lines[i + j].includes("Implicit") ||
-          lines[i + j].includes("---") ||
-          !lines[i + j].trim()
-        ) {
-          break;
-        }
-
-        const mod = parseModLine("implicit", lines[i + j]);
-        if (mod.mod == "") continue;
-
-        if (increase > 0 && mod.min) mod.min = mod.min * (1 + increase / 100);
-        if (mod.min) mod.min = Math.floor(mod.min);
-
-        itemStruct.implicit.push(mod);
-        info(
-          `implicit added: "${mod.mod}" id=${mod.id} min=${mod.min} max=${mod.max} disabled=${mod.disabled}\n`,
-        );
+      const waystoneMR = line.match(/Monster Rarity:\s*\+(?<mr>\d+)%/)?.groups
+        ?.mr;
+      if (waystoneMR) {
+        itemStruct.waystone.value.monsterRarity = { min: Number(waystoneMR) };
+        continue;
       }
 
-      continue;
+      const waystoneDC = line.match(/Waystone Drop Chance:\s*\+(?<dc>\d+)%/)
+        ?.groups?.dc;
+      if (waystoneDC) {
+        itemStruct.waystone.value.dropChance = { min: Number(waystoneDC) };
+        continue;
+      }
+
+      const waystonePS = line.match(/Pack Size:\s*\+(?<ps>\d+)%/)?.groups?.ps;
+      if (waystonePS) {
+        itemStruct.waystone.value.packsize = { min: Number(waystonePS) };
+        continue;
+      }
+
+      const waystoneIR = line.match(/Item Rarity:\s*\+(?<ir>\d+)%/)?.groups?.ir;
+      if (waystoneIR) {
+        itemStruct.waystone.value.itemRarity = { min: Number(waystoneIR) };
+        continue;
+      }
+
+      const waystoneR = line.match(/Revives Available:\s*(?<r>\d+)\s/)?.groups
+        ?.r;
+      if (waystoneR) {
+        itemStruct.waystone.value.revives = { min: Number(waystoneR) };
+        continue;
+      }
+
+      itemStruct.waystone.disabled = false;
     }
 
-    if (line.includes("Grants Skill")) {
-      const mod = parseModLine("skill", line);
-      if (mod.mod == "") continue;
+    if (itemStruct.category != "Waystones") {
+      if (line.includes("Quality: ")) {
+        const match = line.match(/\+(\d+)%/);
 
-      itemStruct.skill.push(mod);
-      info(
-        `skill added: "${mod.mod}" id=${mod.id} min=${mod.min} max=${mod.max} disabled=${mod.disabled}\n`,
-      );
-      continue;
+        if (match) {
+          const quality = Number(match[1]);
+
+          if (quality > 20) {
+            itemStruct.quality = { value: quality, disabled: false };
+            continue;
+          }
+
+          itemStruct.quality = { value: quality, disabled: true };
+        }
+
+        continue;
+      }
+
+      if (line.includes("Sockets: ")) {
+        const s = line.split("Sockets: ")[1];
+        const sockets = s.split("S").length - 1;
+
+        if (sockets > 1) {
+          itemStruct.sockets = { value: sockets, disabled: false };
+          continue;
+        }
+
+        itemStruct.sockets = { value: sockets, disabled: true };
+        continue;
+      }
+
+      if (line.includes("Requires") && itemStruct.category != "Waystones") {
+        const levelMatch = line.match(/Level (\d+)/);
+        const strMatch = line.match(/(\d+)\s*(?:\([^)]*\)\s*)?Str/);
+        const dexMatch = line.match(/(\d+)\s*(?:\([^)]*\)\s*)?Dex/);
+        const intMatch = line.match(/(\d+)\s*(?:\([^)]*\)\s*)?Int/);
+
+        itemStruct.requires = {
+          value: {
+            level: { max: levelMatch ? Number(levelMatch[1]) : undefined },
+            str: { max: strMatch ? Number(strMatch[1]) : undefined },
+            dex: { max: dexMatch ? Number(dexMatch[1]) : undefined },
+            int: { max: intMatch ? Number(intMatch[1]) : undefined },
+          },
+          disabled: true,
+        };
+
+        continue;
+      }
+
+      if (line.includes("Enhancement")) {
+        const increase = parseInt(line.match(/(\d+)%/)?.[0] || "0", 10);
+
+        for (let j = 1; j <= 3; i++) {
+          if (
+            lines[i + j].includes("Enhancement") ||
+            lines[i + j].includes("---") ||
+            !lines[i + j].trim()
+          ) {
+            break;
+          }
+
+          const mod = parseModLine("enchant", lines[i + j]);
+          if (mod.mod == "") continue;
+
+          if (increase > 0 && mod.min) mod.min = mod.min * (1 + increase / 100);
+          if (mod.min) mod.min = Math.floor(mod.min);
+
+          itemStruct.enhancement.push(mod);
+          info(
+            `enhancement added: "${mod.mod}" id=${mod.id} min=${mod.min} max=${mod.max} disabled=${mod.disabled}\n`,
+          );
+        }
+
+        continue;
+      }
+
+      if (line.includes("Implicit")) {
+        const increase = parseInt(line.match(/(\d+)%/)?.[0] || "0", 10);
+
+        for (let j = 1; j <= 3; i++) {
+          if (
+            (lines[i + j].includes("Prefix") &&
+              !lines[i + j].includes("allowed")) ||
+            (lines[i + j].includes("Suffix") &&
+              !lines[i + j].includes("allowed")) ||
+            lines[i + j].includes("Unique") ||
+            lines[i + j].includes("Implicit") ||
+            lines[i + j].includes("---") ||
+            !lines[i + j].trim()
+          ) {
+            break;
+          }
+
+          const mod = parseModLine("implicit", lines[i + j]);
+          if (mod.mod == "") continue;
+
+          if (increase > 0 && mod.min) mod.min = mod.min * (1 + increase / 100);
+          if (mod.min) mod.min = Math.floor(mod.min);
+
+          itemStruct.implicit.push(mod);
+          info(
+            `implicit added: "${mod.mod}" id=${mod.id} min=${mod.min} max=${mod.max} disabled=${mod.disabled}\n`,
+          );
+        }
+
+        continue;
+      }
+
+      if (line.includes("Grants Skill")) {
+        const mod = parseModLine("skill", line);
+        if (mod.mod == "") continue;
+
+        itemStruct.skill.push(mod);
+        info(
+          `skill added: "${mod.mod}" id=${mod.id} min=${mod.min} max=${mod.max} disabled=${mod.disabled}\n`,
+        );
+        continue;
+      }
     }
 
     // Explicit
@@ -423,6 +489,7 @@ export const parseItem = (item: string) => {
 
         if (fractured) mod.fractured = { value: true, disabled: true };
         if (tier > 2) mod.disabled = true;
+        if (itemStruct.category == "Waystones") mod.disabled = true;
 
         if (increase > 0 && mod.min) mod.min = mod.min * (1 + increase / 100);
         if (mod.min) mod.min = Math.floor(mod.min);

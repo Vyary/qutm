@@ -215,6 +215,18 @@ export interface PoeTradeQueryPayload {
           rarity?: { option: string };
         };
       };
+      map_filters?: {
+        disabled: boolean;
+        filters: {
+          map_bonus?: MinMaxFilter;
+          map_iir?: MinMaxFilter;
+          map_magic_monsters?: MinMaxFilter;
+          map_packsize?: MinMaxFilter;
+          map_rare_monsters?: MinMaxFilter;
+          map_revives?: MinMaxFilter;
+          map_tier?: MinMaxFilter;
+        };
+      };
     };
     name?: string;
     stats?: PoeStatGroup[];
@@ -267,6 +279,10 @@ export const createQuery = (item: Item) => {
           filters: {},
         },
         type_filters: {
+          filters: {},
+        },
+        map_filters: {
+          disabled: false,
           filters: {},
         },
       },
@@ -550,6 +566,178 @@ export const createQuery = (item: Item) => {
         "int",
         "max",
         item.requires.value.int?.max,
+      );
+    }
+
+    // Map Filters
+    if (!item.waystone.disabled) {
+      setQuery(
+        "query",
+        "filters",
+        "map_filters",
+        "disabled",
+        item.waystone.disabled,
+      );
+
+      setQuery("query", "filters", "map_filters", "filters", "map_tier", {});
+      setQuery(
+        "query",
+        "filters",
+        "map_filters",
+        "filters",
+        "map_tier",
+        "min",
+        item.waystone.value.tier?.min,
+      );
+      setQuery(
+        "query",
+        "filters",
+        "map_filters",
+        "filters",
+        "map_tier",
+        "max",
+        item.waystone.value.tier?.max,
+      );
+
+      setQuery(
+        "query",
+        "filters",
+        "map_filters",
+        "filters",
+        "map_magic_monsters",
+        {},
+      );
+      setQuery(
+        "query",
+        "filters",
+        "map_filters",
+        "filters",
+        "map_magic_monsters",
+        "min",
+        item.waystone.value.monsterEff?.min,
+      );
+      setQuery(
+        "query",
+        "filters",
+        "map_filters",
+        "filters",
+        "map_magic_monsters",
+        "max",
+        item.waystone.value.monsterEff?.max,
+      );
+
+      setQuery(
+        "query",
+        "filters",
+        "map_filters",
+        "filters",
+        "map_rare_monsters",
+        {},
+      );
+      setQuery(
+        "query",
+        "filters",
+        "map_filters",
+        "filters",
+        "map_rare_monsters",
+        "min",
+        item.waystone.value.monsterRarity?.min,
+      );
+      setQuery(
+        "query",
+        "filters",
+        "map_filters",
+        "filters",
+        "map_rare_monsters",
+        "max",
+        item.waystone.value.monsterRarity?.max,
+      );
+
+      setQuery("query", "filters", "map_filters", "filters", "map_bonus", {});
+      setQuery(
+        "query",
+        "filters",
+        "map_filters",
+        "filters",
+        "map_bonus",
+        "min",
+        item.waystone.value.dropChance?.min,
+      );
+      setQuery(
+        "query",
+        "filters",
+        "map_filters",
+        "filters",
+        "map_bonus",
+        "max",
+        item.waystone.value.dropChance?.max,
+      );
+
+      setQuery(
+        "query",
+        "filters",
+        "map_filters",
+        "filters",
+        "map_packsize",
+        {},
+      );
+      setQuery(
+        "query",
+        "filters",
+        "map_filters",
+        "filters",
+        "map_packsize",
+        "min",
+        item.waystone.value.packsize?.min,
+      );
+      setQuery(
+        "query",
+        "filters",
+        "map_filters",
+        "filters",
+        "map_packsize",
+        "max",
+        item.waystone.value.packsize?.max,
+      );
+
+      setQuery("query", "filters", "map_filters", "filters", "map_iir", {});
+      setQuery(
+        "query",
+        "filters",
+        "map_filters",
+        "filters",
+        "map_iir",
+        "min",
+        item.waystone.value.itemRarity?.min,
+      );
+      setQuery(
+        "query",
+        "filters",
+        "map_filters",
+        "filters",
+        "map_iir",
+        "max",
+        item.waystone.value.itemRarity?.max,
+      );
+
+      setQuery("query", "filters", "map_filters", "filters", "map_revives", {});
+      setQuery(
+        "query",
+        "filters",
+        "map_filters",
+        "filters",
+        "map_revives",
+        "min",
+        item.waystone.value.revives?.min,
+      );
+      setQuery(
+        "query",
+        "filters",
+        "map_filters",
+        "filters",
+        "map_revives",
+        "max",
+        item.waystone.value.revives?.max,
       );
     }
 

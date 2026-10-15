@@ -4,7 +4,7 @@ import { createStore } from "solid-js/store";
 import { BaseWidget } from "../BaseWidget";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { loadMods, saveMods } from "./Mods";
-import { Item, parseItem, Requirements } from "./ParseItem";
+import { Item, parseItem, Requirements, Waystone } from "./ParseItem";
 import { createQuery } from "./CreateQuery";
 import { enablePassthrough, togglePassthrough } from "@/lib/Passthrough";
 import { PriceCheck } from "./PriceChecker";
@@ -34,6 +34,7 @@ function PriceWidget() {
     ilvl: { value: 0, disabled: false },
     quality: { value: 0, disabled: false },
     requires: { value: {}, disabled: false },
+    waystone: { value: {}, disabled: false },
     sockets: { value: 0, disabled: false },
     enhancement: [],
     implicit: [],
@@ -89,6 +90,51 @@ function PriceWidget() {
     );
   };
 
+  const waystoneStat = (
+    waystone: Waystone,
+    statType: keyof Waystone,
+    label: string,
+  ) => {
+    return (
+      <span class="col-span-1 inline-flex gap-1">
+        <input
+          type="text"
+          placeholder="min"
+          value={waystone[statType]?.min ?? ""}
+          onInput={(e) => {
+            const val = e.currentTarget.value;
+            setItem(
+              "waystone",
+              "value",
+              statType,
+              "min",
+              val === "" ? undefined : Number(val),
+            );
+          }}
+          class="input input-xs max-w-12"
+        />
+        <span class="opacity-40">-</span>
+        <input
+          type="text"
+          placeholder="max"
+          value={waystone[statType]?.max ?? ""}
+          onInput={(e) => {
+            const val = e.currentTarget.value;
+            setItem(
+              "waystone",
+              "value",
+              statType,
+              "max",
+              val === "" ? undefined : Number(val),
+            );
+          }}
+          class="input input-xs max-w-12"
+        />
+        {label}
+      </span>
+    );
+  };
+
   const startCountdown = (ms: number) => {
     clearInterval(interval);
     const deadline = Date.now() + ms;
@@ -135,6 +181,7 @@ function PriceWidget() {
     setItem("sanctified", undefined);
     setItem(itemStruct);
     togglePassthrough();
+    info(JSON.stringify(createQuery(item)));
     getPrice();
   };
 
@@ -293,20 +340,58 @@ function PriceWidget() {
 
             <div class="divider my-0 opacity-50"></div>
 
-            <div classList={{ "opacity-40": item.requires.disabled }}>
-              <span
-                class="cursor-pointer"
-                onClick={() => setItem("requires", "disabled", (d) => !d)}
-              >
-                Requires:
-              </span>
-              <div class="grid grid-cols-2 gap-1 pt-1">
-                {itemReq(item.requires.value, "level")}
-                {itemReq(item.requires.value, "str")}
-                {itemReq(item.requires.value, "dex")}
-                {itemReq(item.requires.value, "int")}
+            <Show when={item.category != "Waystones"}>
+              <div classList={{ "opacity-40": item.requires.disabled }}>
+                <span
+                  class="cursor-pointer"
+                  onClick={() => setItem("requires", "disabled", (d) => !d)}
+                >
+                  Requires:
+                </span>
+                <div class="grid grid-cols-2 gap-1 pt-1">
+                  {itemReq(item.requires.value, "level")}
+                  {itemReq(item.requires.value, "str")}
+                  {itemReq(item.requires.value, "dex")}
+                  {itemReq(item.requires.value, "int")}
+                </div>
               </div>
-            </div>
+            </Show>
+
+            <Show when={item.category == "Waystones"}>
+              <div classList={{ "opacity-40": item.waystone.disabled }}>
+                <span
+                  class="cursor-pointer"
+                  onClick={() => setItem("waystone", "disabled", (d) => !d)}
+                >
+                  Waystone Stats:
+                </span>
+                <div class="grid grid-cols-2 gap-1 pt-1">
+                  {waystoneStat(item.waystone.value, "tier", "Tier")}
+                  {waystoneStat(
+                    item.waystone.value,
+                    "monsterEff",
+                    "Monster Eff.",
+                  )}
+                  {waystoneStat(
+                    item.waystone.value,
+                    "monsterRarity",
+                    "Monster Rarity",
+                  )}
+                  {waystoneStat(
+                    item.waystone.value,
+                    "dropChance",
+                    "Drop Chance",
+                  )}
+                  {waystoneStat(item.waystone.value, "packsize", "Pack Size")}
+                  {waystoneStat(
+                    item.waystone.value,
+                    "itemRarity",
+                    "Item Rarity",
+                  )}
+                  {waystoneStat(item.waystone.value, "revives", "Revives")}
+                </div>
+              </div>
+            </Show>
 
             <div class="divider my-0 opacity-50"></div>
 
