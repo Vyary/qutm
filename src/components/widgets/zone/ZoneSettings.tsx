@@ -7,7 +7,7 @@ function ZoneSettings() {
   onMount(async () => setShowZone((await store.get("showZone")) ?? true));
 
   return (
-    <div class="flex items-center justify-between">
+    <div class="flex gap-4 items-center justify-between">
       <span
         class="cursor-pointer text-sm"
         onClick={async () => {

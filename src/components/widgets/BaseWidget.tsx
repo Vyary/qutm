@@ -104,7 +104,7 @@ function BaseWidget(props: {
       style={{
         left: `${pos().x}px`,
         top: `${pos().y}px`,
-        "background-color": `color-mix(in oklch, var(--color-base-300) ${transparency()}%, transparent)`,
+        "background-color": `color-mix(in oklch, var(--color-base-200) ${transparency()}%, transparent)`,
       }}
     >
       <Show when={!passthrough()}>

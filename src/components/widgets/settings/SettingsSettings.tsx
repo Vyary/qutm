@@ -1,5 +1,3 @@
 import { createSignal } from "solid-js";
 
-const [showSettings, setShowSettings] = createSignal(false);
-
-export { showSettings, setShowSettings };
+export const [showSettings, setShowSettings] = createSignal(false);
