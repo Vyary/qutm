@@ -8,6 +8,7 @@
     "opener:default",
     "core:window:default",
     "core:window:allow-close",
+    "core:window:allow-minimize",
     "core:window:allow-maximize",
     "core:window:allow-set-ignore-cursor-events",
     "global-shortcut:allow-register",

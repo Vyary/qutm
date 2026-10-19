@@ -13,6 +13,7 @@ import { Updater } from "./components/updater/Updater";
 import { Inventory } from "./components/widgets/inventory/Inventory";
 import { Price } from "./components/widgets/price/Price";
 import { UnlistenFn } from "@tauri-apps/api/event";
+import { SetupFlow } from "./components/SetupFlow";
 
 function App() {
   let unlisten: UnlistenFn = () => info("app on close unlisten not updated");
@@ -86,6 +87,8 @@ function App() {
         <Zone />
         <Layouts />
       </div>
+
+      <SetupFlow />
     </main>
   );
 }

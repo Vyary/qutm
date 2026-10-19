@@ -8,7 +8,7 @@ const enablePassthrough = () => {
   getCurrentWindow().setIgnoreCursorEvents(true);
 };
 
-const disblePassthrough = () => {
+const disablePassthrough = () => {
   setPassthrough(false);
   getCurrentWindow().setIgnoreCursorEvents(false);
 };
@@ -22,6 +22,6 @@ export {
   passthrough,
   setPassthrough,
   enablePassthrough,
-  disblePassthrough,
+  disablePassthrough,
   togglePassthrough,
 };

@@ -3,7 +3,7 @@ import { Menu, PredefinedMenuItem, Submenu } from "@tauri-apps/api/menu";
 import { exit, relaunch } from "@tauri-apps/plugin-process";
 import { defaultWindowIcon } from "@tauri-apps/api/app";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { disblePassthrough, togglePassthrough } from "./Passthrough";
+import { disablePassthrough, togglePassthrough } from "./Passthrough";
 import { store } from "./Store";
 import {
   exportGuide,
@@ -23,6 +23,15 @@ async function initTrayIcon() {
     const dataSubmenu = await Submenu.new({
       text: "Advanced Storage Options...",
       items: [
+        {
+          id: "reset_show_setup",
+          text: "Reset Setup Wizard",
+          action: async () => {
+            store.delete("showSetup");
+            await relaunch();
+          },
+        },
+        sep,
         {
           id: "reset_file_path",
           text: "Reset File Path",
@@ -81,7 +90,7 @@ async function initTrayIcon() {
           text: "Settings",
           action: async () => {
             setShowSettings(true);
-            disblePassthrough();
+            disablePassthrough();
           },
         },
         sep,
@@ -103,7 +112,8 @@ async function initTrayIcon() {
           text: "Quit Application",
           action: async () => {
             await getCurrentWindow().close();
-            await new Promise((r) => setTimeout(r, 1000));
+            await getCurrentWindow().minimize();
+            await new Promise((r) => setTimeout(r, 800));
             await exit(0);
           },
         },

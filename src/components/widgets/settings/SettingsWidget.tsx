@@ -201,7 +201,7 @@ function SettingsWidget() {
         <UpdaterSettings />
 
         <button
-          class="btn btn-soft btn-sm w-full mt-1"
+          class="btn btn-soft btn-primary btn-sm w-full mt-1"
           onClick={() => {
             if (filePath()) {
               if (!watching()) {
