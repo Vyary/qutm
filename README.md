@@ -1,34 +1,38 @@
 <div align="center">
 
-# Qutm - Quest Tracker Improved - PoE2 Overlay
+# Qutm
 
-A lightweight, transparent guide overlay that helps you move through the campaign without missing important items, quests, or rewards.
+**Quest Tracker Improved — a Path of Exile 2 overlay**
 
-[Download](https://github.com/Vyary/qutm/releases/latest/download/fyi-overlay_0.3.1_x64-setup.exe) · [Discord](https://discord.com/invite/TfpK2fnCmF) · [Issues](https://github.com/Vyary/qutm/issues)
+[Download](https://github.com/Vyary/qutm/releases/latest) · [Discord](https://discord.com/invite/TfpK2fnCmF) · [Issues](https://github.com/Vyary/qutm/issues)
 
 </div>
 
-<br>
+---
 
-## Overview
+A lightweight, transparent overlay that guides you through the campaign without missing quests, items, or rewards.
 
-qutm is a minimal overlay for Path of Exile 2 that tracks your progress through the campaign in real time. It stays out of the way, updates itself, and adheres fully to GGG's Terms of Service.
+## Features
 
-- **Guided progression** — zone-by-zone campaign checkpoints
-- **Reward tracking** — never miss a quest reward or key item
-- **Minimal footprint** — negligible performance impact
-- **Configurable hotkeys** — show or hide on your own terms
-- **Self-updating** — always on the latest version
+- **Zone guide** - step-by-step progression, updated as you change zones
+- **Layout widget** - points of interest for the current zone
+- **Inventory scan (Beta)** - record inventory scans step by step and replay them later
+- **Price check (Beta)** - check item price
+- **Auto-updates** and minimal performance impact
 
-<br>
+## Install
 
-## Download
+Download the latest version from the [Releases page](https://github.com/Vyary/qutm/releases/latest), run it, and follow the quick setup.
 
-**v0.3.1** is available for Windows, with pre-built binaries for macOS and Linux on the [Releases page](https://github.com/Vyary/qutm/releases).
+Windows is the primary platform. macOS and Linux builds are available too, and compatibility reports are welcome.
 
-Windows is the primary supported platform. If you try it on macOS or Linux, reports on compatibility are welcome.
+## Setup
 
-<br>
+1. Select your `Client.txt` (in the game's `logs` folder)
+2. Set the overlay shortcut
+3. Choose your widgets
+
+Qutm only reads `Client.txt` and follows GGG's Terms of Service.
 
 ## Development
 
@@ -37,47 +41,16 @@ Windows is the primary supported platform. If you try it on macOS or Linux, repo
 ```bash
 git clone https://github.com/Vyary/qutm.git
 cd qutm
-bun install
-bun run tauri dev
+npm install
+npm run tauri dev
 ```
 
 Build a release binary:
 
 ```bash
-bun run tauri build
+npm run tauri build
 ```
-
-**Stack**
-
-```
-Frontend    TypeScript · Solid.js · Tailwind CSS · daisyUI
-Backend     Rust · Tauri v2
-Tooling     Bun
-```
-
-**Structure**
-
-```
-src/               Frontend
-├── components/    Widgets — zones, settings, stopwatch
-├── state/         Campaign data & tracking
-└── assets/        Icons & images
-
-src-tauri/         Backend
-├── src/           Commands & file monitoring
-└── icons/         App icons
-```
-
-<br>
 
 ## License
 
 Apache License 2.0 — see [LICENSE](https://github.com/Vyary/qutm/blob/main/LICENSE).
-
-<br>
-
-<div align="center">
-
-Made for Path of Exile 2 players who don't want to miss a thing.
-
-</div>
