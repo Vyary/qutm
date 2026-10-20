@@ -275,17 +275,11 @@ function InventoryWidget(props: { shortcut: string }) {
 
         <tfoot>
           <tr>
-            <th class="text-primary-content">Total</th>
+            <th>Total</th>
             <th></th>
-            <th class="font-mono text-primary-content">
-              {currencyTotals()["divine"]}d
-            </th>
-            <th class="font-mono text-primary-content">
-              {currencyTotals()["chaos"]}c
-            </th>
-            <th class="font-mono text-primary-content">
-              {currencyTotals()["exalted"]}ex
-            </th>
+            <th class="font-mono">{currencyTotals()["divine"]}d</th>
+            <th class="font-mono">{currencyTotals()["chaos"]}c</th>
+            <th class="font-mono">{currencyTotals()["exalted"]}ex</th>
             <th></th>
           </tr>
         </tfoot>

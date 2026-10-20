@@ -9,7 +9,7 @@ function PriceSettings() {
   onMount(async () => setShowPrice((await store.get("showPrice")) ?? false));
 
   return (
-    <>
+    <div class="flex flex-col gap-2">
       <div class="flex items-center justify-between">
         <span
           class="cursor-pointer text-sm"
@@ -45,7 +45,7 @@ function PriceSettings() {
           defaultKey="D"
         />
       </Show>
-    </>
+    </div>
   );
 }
 

@@ -68,6 +68,7 @@ function App() {
       }}
     >
       <Updater />
+      <SetupFlow />
 
       <div
         classList={{
@@ -87,8 +88,6 @@ function App() {
         <Zone />
         <Layouts />
       </div>
-
-      <SetupFlow />
     </main>
   );
 }
