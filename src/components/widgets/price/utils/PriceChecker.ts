@@ -1,10 +1,10 @@
 import { overviews, ts } from "@/lib/Overviews";
-import { Item } from "./ParseItem";
-import { Prices } from "./PriceWidget";
 import { createSignal, onMount } from "solid-js";
 import { fetch } from "@tauri-apps/plugin-http";
 import { debug } from "@tauri-apps/plugin-log";
+import { Prices } from "../Price";
 import { RateLimiter, updateTimes } from "./RateLimiter";
+import { Item } from "./ParseItem";
 
 export interface Listing {
   indexed: string;

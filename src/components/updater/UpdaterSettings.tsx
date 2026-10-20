@@ -1,9 +1,9 @@
 import { store } from "@/lib/Store";
 import { createSignal, onMount } from "solid-js";
 
-const [autoUpdate, setAutoUpdate] = createSignal(true);
+export const [autoUpdate, setAutoUpdate] = createSignal(true);
 
-function UpdaterSettings() {
+export function UpdaterSettings() {
   onMount(async () =>
     setAutoUpdate((await store.get("autoUpdate")) ?? autoUpdate()),
   );
@@ -35,5 +35,3 @@ function UpdaterSettings() {
     </div>
   );
 }
-
-export { UpdaterSettings, autoUpdate };

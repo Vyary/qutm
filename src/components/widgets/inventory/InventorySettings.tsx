@@ -6,12 +6,12 @@ import {
   addStepAction,
   autoScanAction,
   setPlaces,
-} from "./InventoryWidget";
+} from "./Inventory";
 import { Shortcut } from "@/components/Shortcut";
 
-const [showInventory, setShowInventory] = createSignal(false);
+export const [showInventory, setShowInventory] = createSignal(false);
 
-function InventorySettings() {
+export function InventorySettings() {
   onMount(async () =>
     setShowInventory((await store.get("showInventory")) ?? showInventory()),
   );
@@ -48,7 +48,7 @@ function InventorySettings() {
         />
       </div>
       <Show when={showInventory()}>
-        <div class="inline-flex">
+        <div class="flex items-center justify-center gap-4">
           <button
             class="btn btn-soft btn-sm mt-1"
             onClick={() => clearInventory()}
@@ -83,5 +83,3 @@ function InventorySettings() {
     </div>
   );
 }
-
-export { InventorySettings, showInventory, setShowInventory };

@@ -1,9 +1,9 @@
 import { store } from "@/lib/Store";
 import { createSignal, onMount } from "solid-js";
 
-const [showLayout, setShowLayout] = createSignal(false);
+export const [showLayout, setShowLayout] = createSignal(false);
 
-function LayoutSettings() {
+export function LayoutSettings() {
   onMount(async () => setShowLayout((await store.get("showLayout")) ?? true));
 
   return (
@@ -38,5 +38,3 @@ function LayoutSettings() {
     </div>
   );
 }
-
-export { LayoutSettings, showLayout };

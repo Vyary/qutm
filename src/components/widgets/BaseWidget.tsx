@@ -4,7 +4,7 @@ import { info } from "@tauri-apps/plugin-log";
 import { store } from "@/lib/Store";
 import { passthrough } from "@/lib/Passthrough";
 
-function BaseWidget(props: {
+export function BaseWidget(props: {
   name: string;
   children?: JSX.Element;
   defaultPos: { x: number; y: number };
@@ -177,5 +177,3 @@ function BaseWidget(props: {
     </div>
   );
 }
-
-export { BaseWidget };

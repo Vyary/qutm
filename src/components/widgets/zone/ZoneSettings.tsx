@@ -1,9 +1,9 @@
 import { createSignal, onMount } from "solid-js";
 import { store } from "@/lib/Store";
 
-const [showZone, setShowZone] = createSignal(false);
+export const [showZone, setShowZone] = createSignal(false);
 
-function ZoneSettings() {
+export function ZoneSettings() {
   onMount(async () => setShowZone((await store.get("showZone")) ?? true));
 
   return (
@@ -38,5 +38,3 @@ function ZoneSettings() {
     </div>
   );
 }
-
-export { ZoneSettings, showZone };

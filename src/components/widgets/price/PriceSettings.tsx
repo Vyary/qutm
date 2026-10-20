@@ -1,11 +1,11 @@
 import { createSignal, onMount, Show } from "solid-js";
 import { store } from "@/lib/Store";
-import { scanItemAction } from "./PriceWidget";
 import { Shortcut } from "@/components/Shortcut";
+import { scanItemAction } from "./Price";
 
-const [showPrice, setShowPrice] = createSignal(false);
+export const [showPrice, setShowPrice] = createSignal(false);
 
-function PriceSettings() {
+export function PriceSettings() {
   onMount(async () => setShowPrice((await store.get("showPrice")) ?? false));
 
   return (
@@ -48,5 +48,3 @@ function PriceSettings() {
     </div>
   );
 }
-
-export { PriceSettings, showPrice, setShowPrice };
