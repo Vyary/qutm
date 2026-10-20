@@ -17,7 +17,7 @@ function InventorySettings() {
   );
 
   return (
-    <>
+    <div class="flex flex-col gap-2">
       <div class="flex gap-4 items-center justify-between">
         <span
           class="cursor-pointer text-sm"
@@ -80,7 +80,7 @@ function InventorySettings() {
           defaultKey="F6"
         />
       </Show>
-    </>
+    </div>
   );
 }
 
