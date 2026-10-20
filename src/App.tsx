@@ -5,7 +5,6 @@ import { enablePassthrough, passthrough } from "./lib/Passthrough";
 import { unregisterAll } from "@tauri-apps/plugin-global-shortcut";
 import { loadFilePath, showOverlay } from "./lib/File";
 import { info } from "@tauri-apps/plugin-log";
-import { Layouts } from "./components/widgets/layout/Layouts";
 import { Zone } from "./components/widgets/zone/Zone";
 import initTrayIcon from "./lib/TrayIcon";
 import { Settings } from "./components/widgets/settings/Settings";
@@ -14,6 +13,7 @@ import { Inventory } from "./components/widgets/inventory/Inventory";
 import { Price } from "./components/widgets/price/Price";
 import { UnlistenFn } from "@tauri-apps/api/event";
 import { SetupFlow } from "./components/SetupFlow";
+import { Layouts } from "./components/widgets/layout/Layouts";
 
 function App() {
   let unlisten: UnlistenFn = () => info("app on close unlisten not updated");

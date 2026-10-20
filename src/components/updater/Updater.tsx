@@ -1,25 +1,60 @@
-import { ErrorBoundary, Show, Suspense } from "solid-js";
+import { check } from "@tauri-apps/plugin-updater";
+import { relaunch } from "@tauri-apps/plugin-process";
+import { createSignal, onMount, Show } from "solid-js";
+import { info } from "@tauri-apps/plugin-log";
+import { Guard } from "../Guard";
 import { autoUpdate } from "./UpdaterSettings";
-import { ErrorMessage } from "../ErrorMessage";
-import { UpdaterCore } from "./UpdaterCore";
-import { passthrough } from "@/lib/Passthrough";
 
-function Updater() {
+export function Updater() {
+  const [isUpdating, setIsUpdating] = createSignal(false);
+  const [updateStatus, setUpdateStatus] = createSignal("");
+  const [downloaded, setDownloaded] = createSignal(0);
+  const [total, setTotal] = createSignal(0);
+
+  const updateCheck = async () => {
+    const update = await check();
+    info("update check");
+    if (update) {
+      setUpdateStatus(`New update available v${update.version}`);
+      setIsUpdating(true);
+
+      await update.downloadAndInstall((event) => {
+        switch (event.event) {
+          case "Started":
+            setTotal(event.data.contentLength || 0);
+            break;
+          case "Progress":
+            setDownloaded(downloaded() + event.data.chunkLength);
+            break;
+          case "Finished":
+            setUpdateStatus("Download finished. Installing...");
+            break;
+        }
+      });
+
+      setUpdateStatus("Update installed! Relaunching app...");
+      await relaunch();
+    }
+  };
+
+  onMount(() => updateCheck());
+
   return (
-    <Show when={autoUpdate()}>
-      <ErrorBoundary
-        fallback={(error, reset) => (
-          <Show when={!passthrough()}>
-            <ErrorMessage name="Updater " error={error} reset={reset} />
-          </Show>
-        )}
-      >
-        <Suspense>
-          <UpdaterCore />
-        </Suspense>
-      </ErrorBoundary>
-    </Show>
+    <Guard name="Update" show={autoUpdate()}>
+      <Show when={isUpdating()}>
+        <div class="fixed bottom-50 right-7 z-100 w-72 bg-base-200/30 backdrop-blur-md rounded-2xl ring-1 ring-base-content/5 px-5 py-3">
+          <div class="mb-3 flex items-center justify-between">
+            <p class="text-sm font-semibold text-base-content">
+              {updateStatus()}
+            </p>
+          </div>
+          <progress
+            class="progress progress-primary w-full"
+            value={downloaded()}
+            max={total()}
+          ></progress>
+        </div>
+      </Show>
+    </Guard>
   );
 }
-
-export { Updater };

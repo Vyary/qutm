@@ -1,8 +1,8 @@
 import { error, info, warn } from "@tauri-apps/plugin-log";
-import { mods } from "./Mods";
-import { Item } from "./ParseItem";
 import { createStore } from "solid-js/store";
 import { onMount } from "solid-js";
+import { mods } from "./Mods";
+import { Item } from "./ParseItem";
 
 interface RangeValue {
   min?: number;
