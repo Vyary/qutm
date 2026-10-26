@@ -25,8 +25,6 @@ import { loadGuide, saveGuide } from "./state/Guide";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { info } from "@tauri-apps/plugin-log";
 import { UnlistenFn } from "@tauri-apps/api/event";
-import { Guard } from "@/components/Guard";
-import { showZone } from "./ZoneSettings";
 
 export function Zone() {
   const [openEditor, setOpenEditor] = createSignal(false);
@@ -78,7 +76,7 @@ export function Zone() {
   });
 
   return (
-    <Guard name="Zone" show={showZone()}>
+    <>
       <Show when={towns[tracker.zone]}>
         <BaseWidget
           name="zone"
@@ -225,6 +223,6 @@ export function Zone() {
           <ZoneEditor />
         </div>
       </Show>
-    </Guard>
+    </>
   );
 }

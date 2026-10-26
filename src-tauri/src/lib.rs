@@ -3,14 +3,18 @@ use enigo::{
     Direction::{Press, Release},
     Enigo, Key, Keyboard, Mouse, Settings,
 };
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::thread;
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use tauri::AppHandle;
 use tauri::{Emitter, Window};
 use tauri_plugin_clipboard_manager::ClipboardExt;
-use tauri_plugin_log::log::info;
+use tauri_plugin_log::log::{info, warn};
 use tokio::fs::File;
 use tokio::io::{AsyncBufReadExt, AsyncSeekExt, BufReader, SeekFrom};
+
+const MAX_BATCH: usize = 200;
+const POLL_INTERVAL: Duration = Duration::from_millis(50);
 
 #[tauri::command]
 async fn tail_file(window: Window, file_path: String) -> Result<(), String> {
@@ -22,55 +26,184 @@ async fn tail_file(window: Window, file_path: String) -> Result<(), String> {
         .await
         .map_err(|e| e.to_string())?;
 
+    let mut batch: Vec<String> = Vec::with_capacity(MAX_BATCH);
+    let mut line = String::new();
+
     loop {
-        let mut line = String::new();
-        match reader.read_line(&mut line).await {
-            Ok(0) => {} // No new data
-            Ok(_) => {
-                let trimmed = line.trim();
-                if !trimmed.is_empty() {
-                    let _ = window.emit("tail-line", trimmed);
-                }
+        // Drain whatever is available right now, up to MAX_BATCH lines
+        while batch.len() < MAX_BATCH {
+            let n = reader
+                .read_line(&mut line)
+                .await
+                .map_err(|e| e.to_string())?;
+
+            if n == 0 {
+                break; // EOF: nothing new yet
             }
-            Err(e) => return Err(e.to_string()),
+            if !line.ends_with('\n') {
+                break; // partial line; keep it, read_line will append the rest next time
+            }
+
+            let trimmed = line.trim();
+            if !trimmed.is_empty() {
+                batch.push(trimmed.to_owned());
+            }
+            line.clear();
         }
 
-        tokio::time::sleep(Duration::from_millis(50)).await;
+        let was_full = batch.len() == MAX_BATCH;
+
+        if !batch.is_empty() {
+            let _ = window.emit("tail-lines", &batch);
+            batch.clear();
+        }
+
+        // Only sleep when we've caught up. If the batch was full, more is probably waiting.
+        if !was_full {
+            tokio::time::sleep(POLL_INTERVAL).await;
+        }
     }
 }
 
-#[tauri::command]
-fn os_copy(app: AppHandle) -> Result<String, String> {
-    let mut enigo = Enigo::new(&Settings::default()).map_err(|e| e.to_string())?;
+// ---------------------------------------------------------------------------
+// os_copy: auto-tuning copy
+// ---------------------------------------------------------------------------
 
-    #[cfg(target_os = "linux")]
-    let (pre, mid, post) = (50, 30, 40);
-    #[cfg(not(target_os = "linux"))]
-    let (pre, mid, post) = (50, 30, 40);
+/// Learned slowness factor in percent (100 = base timings). Persists across calls.
+static SCALE_PCT: AtomicU64 = AtomicU64::new(100);
 
-    enigo
-        .key(Key::Control, Direction::Press)
-        .map_err(|e| e.to_string())?;
-    thread::sleep(Duration::from_millis(pre));
-    enigo
-        .key(Key::Control, Direction::Press)
-        .map_err(|e| e.to_string())?;
-    thread::sleep(Duration::from_millis(pre));
-    enigo
-        .key(Key::Unicode('c'), Direction::Press)
-        .map_err(|e| e.to_string())?;
-    thread::sleep(Duration::from_millis(mid));
-    enigo
-        .key(Key::Unicode('c'), Direction::Release)
-        .map_err(|e| e.to_string())?;
-    enigo
-        .key(Key::Control, Direction::Release)
-        .map_err(|e| e.to_string())?;
+const MIN_SCALE: u64 = 50;
+const MAX_SCALE: u64 = 800;
+const MAX_ATTEMPTS: u32 = 3;
 
-    thread::sleep(Duration::from_millis(post));
+#[cfg(target_os = "macos")]
+const MODIFIER: Key = Key::Meta; // Cmd
+#[cfg(not(target_os = "macos"))]
+const MODIFIER: Key = Key::Control;
 
-    app.clipboard().read_text().map_err(|e| e.to_string())
+fn scaled(base_us: u64, scale: u64) -> Duration {
+    Duration::from_micros(base_us * scale / 100)
 }
+
+fn ms(d: Duration) -> f64 {
+    d.as_secs_f64() * 1000.0
+}
+
+fn send_copy(enigo: &mut Enigo, scale: u64) -> Result<(), String> {
+    let pre = scaled(5_000, scale);
+    let mid = scaled(5_000, scale);
+
+    info!(
+        "os_copy: sending copy (scale {scale}%, pre {:.1}ms, mid {:.1}ms)",
+        ms(pre),
+        ms(mid)
+    );
+
+    enigo
+        .key(MODIFIER, Direction::Press)
+        .map_err(|e| e.to_string())?;
+    thread::sleep(pre);
+
+    let pressed_c = (|| {
+        enigo.key(Key::Unicode('c'), Direction::Press)?;
+        thread::sleep(mid);
+        enigo.key(Key::Unicode('c'), Direction::Release)
+    })();
+
+    // Always release the modifier, even if the 'c' press failed,
+    // otherwise Ctrl/Cmd can get stuck down.
+    let released = enigo.key(MODIFIER, Direction::Release);
+
+    pressed_c.map_err(|e| e.to_string())?;
+    released.map_err(|e| e.to_string())
+}
+
+/// Polls until the clipboard holds something other than the sentinel.
+/// Returns the copied text and how long the clipboard took to change.
+fn wait_for_copy(app: &AppHandle, sentinel: &str, timeout: Duration) -> Option<(String, Duration)> {
+    let start = Instant::now();
+    let mut poll = Duration::from_millis(5);
+
+    while start.elapsed() < timeout {
+        if let Ok(text) = app.clipboard().read_text() {
+            if !text.is_empty() && text != sentinel {
+                return Some((text, start.elapsed()));
+            }
+        }
+        thread::sleep(poll);
+        poll = (poll * 2).min(Duration::from_millis(40));
+    }
+    None
+}
+
+#[tauri::command(async)]
+fn os_copy(app: AppHandle) -> Result<String, String> {
+    let total_start = Instant::now();
+    let mut enigo = Enigo::new(&Settings::default()).map_err(|e| e.to_string())?;
+    let clipboard = app.clipboard();
+
+    let original = clipboard.read_text().ok();
+    let nanos = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_nanos())
+        .unwrap_or(0);
+    let sentinel = format!("__os_copy_sentinel_{nanos}__");
+
+    let mut scale = SCALE_PCT.load(Ordering::Relaxed);
+    info!("os_copy: start, learned scale {scale}%");
+
+    for attempt in 0..MAX_ATTEMPTS {
+        clipboard
+            .write_text(sentinel.clone())
+            .map_err(|e| e.to_string())?;
+
+        send_copy(&mut enigo, scale)?;
+
+        let timeout = scaled(200_000, scale);
+        match wait_for_copy(&app, &sentinel, timeout) {
+            Some((text, waited)) => {
+                // First-try success: slowly speed up.
+                // Needed a retry: keep the slower value.
+                let learned = if attempt == 0 {
+                    (scale * 98 / 100).max(MIN_SCALE)
+                } else {
+                    scale
+                };
+                SCALE_PCT.store(learned, Ordering::Relaxed);
+
+                info!(
+                    "os_copy: ok on attempt {} | clipboard changed after {:.1}ms | total {:.1}ms | scale {scale}% -> {learned}%",
+                    attempt + 1,
+                    ms(waited),
+                    ms(total_start.elapsed())
+                );
+                return Ok(text);
+            }
+            None => {
+                let next = (scale * 2).min(MAX_SCALE);
+                warn!(
+                    "os_copy: attempt {} timed out after {:.1}ms | scale {scale}% -> {next}%",
+                    attempt + 1,
+                    ms(timeout)
+                );
+                scale = next;
+            }
+        }
+    }
+
+    // Nothing arrived. Restore the clipboard, and don't persist the slower
+    // scale, since "nothing selected" isn't necessarily a timing problem.
+    if let Some(orig) = original {
+        let _ = clipboard.write_text(orig);
+    }
+    warn!(
+        "os_copy: gave up after {MAX_ATTEMPTS} attempts, total {:.1}ms",
+        ms(total_start.elapsed())
+    );
+    Err("Copy didn't register (nothing selected, or the app is too slow)".into())
+}
+
+// ---------------------------------------------------------------------------
 
 #[tauri::command]
 async fn mouse_move(x: i32, y: i32) -> Result<(), String> {

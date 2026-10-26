@@ -1,25 +1,18 @@
 import { invoke } from "@tauri-apps/api/core";
-import { createSignal, For, onCleanup, onMount, Show } from "solid-js";
-import { createStore } from "solid-js/store";
+import { createSignal, onCleanup, onMount, Show } from "solid-js";
+import { createStore, reconcile } from "solid-js/store";
 import { BaseWidget } from "../BaseWidget";
-import { openUrl } from "@tauri-apps/plugin-opener";
 import { loadMods, saveMods } from "./utils/Mods";
-import { enablePassthrough, togglePassthrough } from "@/lib/Passthrough";
+import { disablePassthrough, enablePassthrough } from "@/lib/Passthrough";
 import { loadOverviews } from "@/lib/Overviews";
 import { error, info } from "@tauri-apps/plugin-log";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { UnlistenFn } from "@tauri-apps/api/event";
-import { Guard } from "@/components/Guard";
-import { showPrice } from "./PriceSettings";
-import { Item, parseItem, Requirements, Waystone } from "./utils/ParseItem";
 import { PriceCheck } from "./utils/PriceChecker";
 import { createQuery } from "./utils/CreateQuery";
-
-export interface Prices {
-  amount: number;
-  currency: string;
-  listed: string;
-}
+import { Item, Prices } from "./utils/Types";
+import { parseItem } from "./utils/ParseItem";
+import { ItemRenderer } from "./ItemRenderer";
 
 export const [scanItemAction, setScanItemAction] = createSignal<
   () => Promise<void>
@@ -29,15 +22,12 @@ let interval: ReturnType<typeof setInterval> | undefined;
 
 export function Price() {
   const [item, setItem] = createStore<Item>({
-    category: "",
-    rarity: { value: "", disabled: false },
-    name: { value: "", disabled: false },
-    type: { value: "", disabled: false },
-    ilvl: { value: 0, disabled: false },
-    quality: { value: 0, disabled: false },
-    requires: { value: {}, disabled: false },
-    waystone: { value: {}, disabled: false },
-    sockets: { value: 0, disabled: false },
+    name: { value: "", disabled: true },
+    TypeFilters: { filters: { category: { value: "", disabled: true } } },
+    EquipmentFilters: { filters: {}, disabled: true },
+    ReqFilters: { filters: {}, disabled: true },
+    MapFilters: { filters: {}, disabled: true },
+    MiscFilters: { filters: {}, disabled: true },
     enhancement: [],
     implicit: [],
     explicit: [],
@@ -45,96 +35,30 @@ export function Price() {
   });
   const [timeout, setTimeoutLeft] = createSignal(0);
   const [prices, setPrices] = createSignal<Prices[]>([]);
-  let enterTime = 0;
   const reqTime = 1000;
+  let enterTime = 0;
+  let requestId = 0;
+  let disposed = false;
+  let unlisten: UnlistenFn = () =>
+    info("price widget on close unlisten not updated");
 
-  const itemReq = (
-    req: Requirements,
-    reqType: "level" | "str" | "dex" | "int",
-  ) => {
-    return (
-      <span class="col-span-1 inline-flex gap-1">
-        <input
-          type="text"
-          placeholder="min"
-          value={req[reqType]?.min || ""}
-          onInput={(e) => {
-            const val = e.currentTarget.value;
-            setItem(
-              "requires",
-              "value",
-              reqType,
-              "min",
-              val === "" ? undefined : Number(val),
-            );
-          }}
-          class="input input-xs max-w-12"
-        />
-        <span class="opacity-40">-</span>
-        <input
-          type="text"
-          placeholder="max"
-          value={req[reqType]?.max || ""}
-          onInput={(e) => {
-            const val = e.currentTarget.value;
-            setItem(
-              "requires",
-              "value",
-              reqType,
-              "max",
-              val === "" ? undefined : Number(val),
-            );
-          }}
-          class="input input-xs max-w-12"
-        />
-        {reqType}
-      </span>
-    );
-  };
+  const round2 = (num: number) => Math.round(num * 100) / 100;
 
-  const waystoneStat = (
-    waystone: Waystone,
-    statType: keyof Waystone,
-    label: string,
-  ) => {
-    return (
-      <span class="col-span-1 inline-flex gap-1">
-        <input
-          type="text"
-          placeholder="min"
-          value={waystone[statType]?.min ?? ""}
-          onInput={(e) => {
-            const val = e.currentTarget.value;
-            setItem(
-              "waystone",
-              "value",
-              statType,
-              "min",
-              val === "" ? undefined : Number(val),
-            );
-          }}
-          class="input input-xs max-w-12"
-        />
-        <span class="opacity-40">-</span>
-        <input
-          type="text"
-          placeholder="max"
-          value={waystone[statType]?.max ?? ""}
-          onInput={(e) => {
-            const val = e.currentTarget.value;
-            setItem(
-              "waystone",
-              "value",
-              statType,
-              "max",
-              val === "" ? undefined : Number(val),
-            );
-          }}
-          class="input input-xs max-w-12"
-        />
-        {label}
-      </span>
-    );
+  const applyDps = (item: Item): Item => {
+    const ef = item.EquipmentFilters.filters;
+    if (!ef.pdps && !ef.edps) return item;
+
+    const aps = ef.aps?.value.min ?? 0;
+    const pdps = ef.pdps?.value.min ?? 0;
+    const edps = ef.edps?.value.min ?? 0;
+
+    if (ef.pdps) ef.pdps.value.min = round2(pdps * aps);
+    if (ef.edps) ef.edps.value.min = round2(edps * aps);
+
+    const totalDps = (ef.pdps?.value.min ?? 0) + (ef.edps?.value.min ?? 0);
+    ef.dps = { value: { min: totalDps }, disabled: true };
+
+    return item;
   };
 
   const startCountdown = (ms: number) => {
@@ -155,515 +79,87 @@ export function Price() {
   };
 
   const getPrice = async () => {
-    if (timeout()) {
-      return;
-    }
-
+    if (timeout()) return;
+    const id = ++requestId;
     setPrices([]);
-
     try {
-      const pcr = await PriceCheck(item, JSON.stringify(createQuery(item)));
-      if (pcr.timeout) {
-        startCountdown(pcr.timeout);
-        return;
-      }
-      setPrices(pcr.prices);
+      const p = await PriceCheck(item, JSON.stringify(createQuery(item)));
+      if (id !== requestId) return;
+      if (p.timeout) return startCountdown(p.timeout);
+      setPrices(p.prices);
     } catch (e) {
-      setPrices([]);
+      if (id === requestId) setPrices([]);
       error("getting price: " + e);
     }
   };
 
   const scanItem = async () => {
-    const itemCopy: string = await invoke("os_copy");
-    info(`copied item: \n${itemCopy}`);
-    const itemStruct = parseItem(itemCopy);
-    setItem("corrupted", undefined);
-    setItem("mirrored", undefined);
-    setItem("sanctified", undefined);
-    setItem(itemStruct);
-    togglePassthrough();
-    info(JSON.stringify(createQuery(item)));
-    getPrice();
+    try {
+      const s = performance.now();
+      const itemCopy: string = await invoke("os_copy");
+      info(`--------> copied item: \n${itemCopy}`);
+      info(`copy took: ${(performance.now() - s).toFixed(2)}ms`);
+      const itemStruct = parseItem(itemCopy);
+      info(`parsed item: \n${JSON.stringify(itemStruct)}`);
+      info(`parse took: ${(performance.now() - s).toFixed(2)}ms`);
+      setItem(reconcile(applyDps(itemStruct)));
+      disablePassthrough();
+      info(`copy, parse and set took: ${(performance.now() - s).toFixed(2)}ms`);
+      getPrice();
+    } catch (e) {
+      error(`scanning item: ${e}`);
+    }
   };
-
-  let unlisten: UnlistenFn = () =>
-    info("price widget on close unlisten not updated");
 
   onMount(async () => {
     loadMods();
     loadOverviews();
     setScanItemAction(() => scanItem);
 
-    // const i = await store.get<Item>("item");
-    // if (i) setItem(i);
-
-    unlisten = await getCurrentWindow().onCloseRequested(async () => {
+    const un = await getCurrentWindow().onCloseRequested(async () => {
       await saveMods();
       clearInterval(interval);
     });
+    if (disposed) un();
+    else unlisten = un;
   });
 
   onCleanup(async () => {
-    // await store.set("item", item);
-    // await store.save();
-    await saveMods();
+    disposed = true;
+    requestId++;
     clearInterval(interval);
     unlisten();
+    setScanItemAction(() => () => Promise.resolve());
+    await saveMods().catch((e) => error(`saving mods: ${e}`));
   });
 
   return (
-    <Guard name="Price" show={showPrice()}>
-      <Show when={item.category}>
-        <div
-          onMouseEnter={() => (enterTime = Date.now())}
-          onMouseLeave={() => {
-            if (Date.now() - enterTime >= reqTime) {
-              info("on mouse leave triggered");
-              enablePassthrough();
-            }
-          }}
+    <Show when={item.TypeFilters.filters.category.value}>
+      <div
+        onMouseEnter={() => (enterTime = Date.now())}
+        onMouseLeave={() => {
+          if (Date.now() - enterTime >= reqTime) {
+            info("on mouse leave triggered");
+            enablePassthrough();
+          }
+        }}
+      >
+        <BaseWidget
+          name="price"
+          defaultPos={{ x: 50, y: 170 }}
+          defaultWidth={{ w: 550 }}
+          defaultTransparency={85}
+          transparencySlider={true}
         >
-          <BaseWidget
-            name="price"
-            defaultPos={{ x: 50, y: 170 }}
-            defaultWidth={{ w: 550 }}
-            defaultTransparency={85}
-            transparencySlider={true}
-          >
-            <div class="space-y-1 p-4 text-sm">
-              <div class="flex justify-between items-center">
-                <div class="flex flex-col gap-1">
-                  <div
-                    class="cursor-pointer"
-                    onClick={() => setItem("name", "disabled", (d) => !d)}
-                  >
-                    <span classList={{ "opacity-40": item.name.disabled }}>
-                      {item.name.value}
-                    </span>
-                  </div>
-
-                  <div
-                    class="cursor-pointer"
-                    onClick={() => setItem("type", "disabled", (d) => !d)}
-                  >
-                    <span classList={{ "opacity-40": item.type.disabled }}>
-                      {item.type.value}
-                    </span>
-                  </div>
-                </div>
-
-                <div class="flex flex-col gap-1">
-                  <div
-                    class="cursor-pointer"
-                    classList={{
-                      "badge badge-sm badge-soft badge-error": item.corrupted
-                        ? true
-                        : false,
-                      "badge badge-sm badge-soft badge-warning": item.sanctified
-                        ? true
-                        : false,
-                      "badge badge-sm badge-soft badge-info": item.mirrored
-                        ? true
-                        : false,
-                    }}
-                    onClick={() => {
-                      setItem(
-                        item?.corrupted
-                          ? "corrupted"
-                          : item?.sanctified
-                            ? "sanctified"
-                            : item?.mirrored
-                              ? "mirrored"
-                              : "corrupted",
-                        "disabled",
-                        (d) => !d,
-                      );
-                    }}
-                  >
-                    <span
-                      classList={{
-                        "opacity-40":
-                          item?.corrupted?.disabled ||
-                          item?.sanctified?.disabled ||
-                          item?.mirrored?.disabled,
-                      }}
-                    >
-                      {item.corrupted
-                        ? "Corrupted"
-                        : item.sanctified
-                          ? "Sanctified"
-                          : item.mirrored
-                            ? "Mirrored"
-                            : ""}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <span
-                  class="cursor-pointer"
-                  onClick={() => setItem("rarity", "disabled", (d) => !d)}
-                  classList={{ "opacity-40": item.rarity.disabled }}
-                >
-                  Rarity: {item.rarity.value}
-                </span>
-              </div>
-
-              <div>
-                <span
-                  class="cursor-pointer"
-                  onClick={() => setItem("ilvl", "disabled", (d) => !d)}
-                  classList={{ "opacity-40": item.ilvl.disabled }}
-                >
-                  Item Level: {item.ilvl.value}
-                </span>
-              </div>
-
-              <div>
-                <span
-                  class="cursor-pointer"
-                  onClick={() => setItem("quality", "disabled", (d) => !d)}
-                  classList={{ "opacity-40": item.quality.disabled }}
-                >
-                  Quality: {item.quality.value}
-                </span>
-              </div>
-
-              <div>
-                <span
-                  class="cursor-pointer"
-                  onClick={() => setItem("sockets", "disabled", (d) => !d)}
-                  classList={{ "opacity-40": item.sockets.disabled }}
-                >
-                  Sockets: {item.sockets.value}
-                </span>
-              </div>
-
-              <div class="divider my-0 opacity-50"></div>
-
-              <Show when={item.category != "Waystones"}>
-                <div classList={{ "opacity-40": item.requires.disabled }}>
-                  <span
-                    class="cursor-pointer"
-                    onClick={() => setItem("requires", "disabled", (d) => !d)}
-                  >
-                    Requires:
-                  </span>
-                  <div class="grid grid-cols-2 gap-1 pt-1">
-                    {itemReq(item.requires.value, "level")}
-                    {itemReq(item.requires.value, "str")}
-                    {itemReq(item.requires.value, "dex")}
-                    {itemReq(item.requires.value, "int")}
-                  </div>
-                </div>
-              </Show>
-
-              <Show when={item.category == "Waystones"}>
-                <div classList={{ "opacity-40": item.waystone.disabled }}>
-                  <span
-                    class="cursor-pointer"
-                    onClick={() => setItem("waystone", "disabled", (d) => !d)}
-                  >
-                    Waystone Stats:
-                  </span>
-                  <div class="grid grid-cols-2 gap-1 pt-1">
-                    {waystoneStat(item.waystone.value, "tier", "Tier")}
-                    {waystoneStat(
-                      item.waystone.value,
-                      "monsterEff",
-                      "Monster Eff.",
-                    )}
-                    {waystoneStat(
-                      item.waystone.value,
-                      "monsterRarity",
-                      "Monster Rarity",
-                    )}
-                    {waystoneStat(
-                      item.waystone.value,
-                      "dropChance",
-                      "Drop Chance",
-                    )}
-                    {waystoneStat(item.waystone.value, "packsize", "Pack Size")}
-                    {waystoneStat(
-                      item.waystone.value,
-                      "itemRarity",
-                      "Item Rarity",
-                    )}
-                    {waystoneStat(item.waystone.value, "revives", "Revives")}
-                  </div>
-                </div>
-              </Show>
-
-              <div class="divider my-0 opacity-50"></div>
-
-              <div class="">
-                <For each={item.skill}>
-                  {(mod, i) => (
-                    <div classList={{ "opacity-40": mod.disabled }}>
-                      <span class="inline-flex gap-1">
-                        <input
-                          type="text"
-                          placeholder="min"
-                          value={mod.min || ""}
-                          onInput={(e) => {
-                            const val = e.currentTarget.value;
-                            setItem(
-                              "skill",
-                              i(),
-                              "min",
-                              val === "" ? undefined : Number(val),
-                            );
-                          }}
-                          class="input input-xs max-w-12"
-                        />
-                        <span class="opacity-40">-</span>
-                        <input
-                          type="text"
-                          placeholder="max"
-                          value={mod.max || ""}
-                          onInput={(e) => {
-                            const val = e.currentTarget.value;
-                            setItem(
-                              "skill",
-                              i(),
-                              "max",
-                              val === "" ? undefined : Number(val),
-                            );
-                          }}
-                          class="input input-xs max-w-12"
-                        />
-                        <div
-                          class="cursor-pointer"
-                          onClick={() =>
-                            setItem("skill", i(), "disabled", (d) => !d)
-                          }
-                        >
-                          {mod.mod}
-                        </div>
-                      </span>
-                    </div>
-                  )}
-                </For>
-
-                <For each={item.enhancement}>
-                  {(mod, i) => (
-                    <div classList={{ "opacity-40": mod.disabled }}>
-                      <span class="inline-flex gap-1">
-                        <input
-                          type="text"
-                          placeholder="min"
-                          value={mod.min || ""}
-                          onInput={(e) => {
-                            const val = e.currentTarget.value;
-                            setItem(
-                              "enhancement",
-                              i(),
-                              "min",
-                              val === "" ? undefined : Number(val),
-                            );
-                          }}
-                          class="input input-xs max-w-12"
-                        />
-                        <span class="opacity-40">-</span>
-                        <input
-                          type="text"
-                          placeholder="max"
-                          value={mod.max || ""}
-                          onInput={(e) => {
-                            const val = e.currentTarget.value;
-                            setItem(
-                              "enhancement",
-                              i(),
-                              "max",
-                              val === "" ? undefined : Number(val),
-                            );
-                          }}
-                          class="input input-xs max-w-12"
-                        />
-                        <div
-                          class="cursor-pointer"
-                          onClick={() =>
-                            setItem("enhancement", i(), "disabled", (d) => !d)
-                          }
-                        >
-                          {mod.mod}
-                        </div>
-                      </span>
-                    </div>
-                  )}
-                </For>
-
-                <For each={item.implicit}>
-                  {(mod, i) => (
-                    <div classList={{ "opacity-40": mod.disabled }}>
-                      <span class="inline-flex gap-1">
-                        <input
-                          type="text"
-                          placeholder="min"
-                          value={mod.min || ""}
-                          onInput={(e) => {
-                            const val = e.currentTarget.value;
-                            setItem(
-                              "implicit",
-                              i(),
-                              "min",
-                              val === "" ? undefined : Number(val),
-                            );
-                          }}
-                          class="input input-xs max-w-12"
-                        />
-                        <span class="opacity-40">-</span>
-                        <input
-                          type="text"
-                          placeholder="max"
-                          value={mod.max || ""}
-                          onInput={(e) => {
-                            const val = e.currentTarget.value;
-                            setItem(
-                              "implicit",
-                              i(),
-                              "max",
-                              val === "" ? undefined : Number(val),
-                            );
-                          }}
-                          class="input input-xs max-w-12"
-                        />
-                        <div
-                          class="cursor-pointer"
-                          onClick={() =>
-                            setItem("implicit", i(), "disabled", (d) => !d)
-                          }
-                        >
-                          {mod.mod}
-                        </div>
-                      </span>
-                    </div>
-                  )}
-                </For>
-              </div>
-
-              <div class="divider my-0 opacity-50"></div>
-
-              <div class="space-y-1">
-                <For each={item.explicit}>
-                  {(mod, i) => (
-                    <div classList={{ "opacity-40": mod.disabled }}>
-                      <span class="inline-flex items-center gap-1">
-                        <input
-                          type="text"
-                          placeholder="min"
-                          value={mod.min || ""}
-                          onInput={(e) => {
-                            const val = e.currentTarget.value;
-                            setItem(
-                              "explicit",
-                              i(),
-                              "min",
-                              val === "" ? undefined : Number(val),
-                            );
-                          }}
-                          class="input input-xs max-w-12"
-                        />
-                        <span class="opacity-40">-</span>
-                        <input
-                          type="text"
-                          placeholder="max"
-                          value={mod.max || ""}
-                          onInput={(e) => {
-                            const val = e.currentTarget.value;
-                            setItem(
-                              "explicit",
-                              i(),
-                              "max",
-                              val === "" ? undefined : Number(val),
-                            );
-                          }}
-                          class="input input-xs max-w-12"
-                        />
-                        <div
-                          class="cursor-pointer"
-                          onClick={() =>
-                            setItem("explicit", i(), "disabled", (d) => !d)
-                          }
-                        >
-                          {mod.mod}
-                        </div>
-                        <div
-                          class="cursor-pointer text-xs "
-                          classList={{
-                            "opacity-40": mod.fractured?.disabled,
-                            "badge badge-xs badge-soft badge-warning":
-                              mod.fractured ? true : false,
-                          }}
-                          onClick={() => {
-                            setItem(
-                              "explicit",
-                              i(),
-                              "fractured",
-                              "disabled",
-                              (d) => !d,
-                            );
-                          }}
-                        >
-                          {mod.fractured ? "Fractured" : ""}
-                        </div>
-                      </span>
-                    </div>
-                  )}
-                </For>
-              </div>
-
-              <div class="divider my-0 opacity-50"></div>
-
-              <div class="w-full inline-flex justify-between">
-                <div>
-                  <button
-                    onClick={async () => {
-                      getPrice();
-                    }}
-                    class="btn btn-xs btn-soft"
-                    classList={{
-                      "btn-disabled": timeout() > 0,
-                      "font-mono": timeout() > 0,
-                    }}
-                  >
-                    {timeout() > 0
-                      ? `${(timeout() / 1000).toFixed(1)}s`
-                      : "Recheck price"}
-                  </button>
-                </div>
-                <button
-                  onClick={async () => {
-                    await openUrl(
-                      "https://www.pathofexile.com/trade2/search/poe2/Forbidden%20Rites?q=" +
-                        JSON.stringify(createQuery(item)),
-                    );
-
-                    togglePassthrough();
-                  }}
-                  class="btn btn-xs btn-soft"
-                >
-                  Trade
-                </button>
-              </div>
-
-              <For each={prices()}>
-                {(p) => (
-                  <div class="flex justify-between px-1">
-                    <span class="">
-                      {p.amount >= 1 ? p.amount : p.amount.toFixed(4)}{" "}
-                      {p.currency}
-                    </span>
-                    <span>{p.listed}</span>
-                  </div>
-                )}
-              </For>
-            </div>
-          </BaseWidget>
-        </div>
-      </Show>
-    </Guard>
+          <ItemRenderer
+            item={item}
+            setItem={setItem}
+            prices={prices}
+            timeout={timeout}
+            getPrice={getPrice}
+          />
+        </BaseWidget>
+      </div>
+    </Show>
   );
 }

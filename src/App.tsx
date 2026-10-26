@@ -12,8 +12,14 @@ import { Updater } from "./components/updater/Updater";
 import { Inventory } from "./components/widgets/inventory/Inventory";
 import { Price } from "./components/widgets/price/Price";
 import { UnlistenFn } from "@tauri-apps/api/event";
-import { SetupFlow } from "./components/SetupFlow";
+import { SetupFlow, showSetup } from "./components/SetupFlow";
 import { Layouts } from "./components/widgets/layout/Layouts";
+import { Guard } from "./components/Guard";
+import { autoUpdate } from "./components/updater/UpdaterSettings";
+import { showInventory } from "./components/widgets/inventory/InventorySettings";
+import { showPrice } from "./components/widgets/price/PriceSettings";
+import { showZone } from "./components/widgets/zone/ZoneSettings";
+import { showLayout } from "./components/widgets/layout/LayoutSettings";
 
 function App() {
   let unlisten: UnlistenFn = () => info("app on close unlisten not updated");
@@ -67,17 +73,30 @@ function App() {
           !passthrough(),
       }}
     >
-      <Updater />
-      <SetupFlow />
+      <Guard name="Update" show={autoUpdate()}>
+        <Updater />
+      </Guard>
+
+      <Guard name="SetupFlow" show={showSetup()}>
+        <SetupFlow />
+      </Guard>
 
       <div
         classList={{
           hidden: passthrough(),
         }}
       >
-        <Settings />
-        <Inventory />
-        <Price />
+        <Guard name="Settings" show={true}>
+          <Settings />
+        </Guard>
+
+        <Guard name="inventory" show={showInventory()}>
+          <Inventory />
+        </Guard>
+
+        <Guard name="Price" show={showPrice()}>
+          <Price />
+        </Guard>
       </div>
 
       <div
@@ -85,8 +104,13 @@ function App() {
           hidden: !showOverlay() && passthrough(),
         }}
       >
-        <Zone />
-        <Layouts />
+        <Guard name="Zone" show={showZone()}>
+          <Zone />
+        </Guard>
+
+        <Guard name="Layout" show={showLayout()}>
+          <Layouts />
+        </Guard>
       </div>
     </main>
   );

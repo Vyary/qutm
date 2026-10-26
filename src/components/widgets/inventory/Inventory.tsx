@@ -12,18 +12,21 @@ import { info } from "@tauri-apps/plugin-log";
 import { BaseWidget } from "../BaseWidget";
 import {
   addToInventory,
+  clearInventory,
   inventory,
   loadInventory,
   removeItem,
   saveInventory,
 } from "./InventoryState";
-import { togglePassthrough } from "@/lib/Passthrough";
+import {
+  disablePassthrough,
+  enablePassthrough,
+  togglePassthrough,
+} from "@/lib/Passthrough";
 import { loadOverviews, overviews } from "@/lib/Overviews";
 import { store } from "@/lib/Store";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { UnlistenFn } from "@tauri-apps/api/event";
-import { Guard } from "@/components/Guard";
-import { showInventory } from "./InventorySettings";
 
 const parseItem = async (itemString: string) => {
   const lines = itemString
@@ -133,7 +136,7 @@ export function Inventory() {
       if (p.click) {
         await invoke("mouse_move", { x: p.x, y: p.y });
         await invoke("mouse_click");
-        await new Promise((r) => setTimeout(r, 50));
+        await new Promise((r) => setTimeout(r, 60));
         continue;
       }
 
@@ -142,6 +145,7 @@ export function Inventory() {
     }
 
     setScanning(false);
+    disablePassthrough();
   };
 
   const addStep = async () => {
@@ -187,108 +191,115 @@ export function Inventory() {
   });
 
   return (
-    <Guard name="inventory" show={showInventory()}>
-      <BaseWidget
-        name="inventory"
-        defaultPos={{ x: 545, y: 15 }}
-        defaultWidth={{ w: 430 }}
-        defaultTransparency={90}
-      >
-        <table class="table py-3 px-5">
-          <thead>
-            <tr>
-              <th></th>
-              <th>Name</th>
-              <th>Quantity</th>
-              <th>Category</th>
-              <th>Price</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            <For each={sliced()}>
-              {(item, i) => {
-                const itemz = overviews[item[0]];
+    <BaseWidget
+      name="inventory"
+      defaultPos={{ x: 545, y: 15 }}
+      defaultWidth={{ w: 430 }}
+      defaultTransparency={90}
+    >
+      <table class="table py-3 px-5">
+        <thead>
+          <tr>
+            <th></th>
+            <th>Name</th>
+            <th>Quantity</th>
+            <th>Category</th>
+            <th>Price</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <For each={sliced()}>
+            {(item, i) => {
+              const itemz = overviews[item[0]];
 
-                return (
-                  <tr>
-                    <th>{i() + 1}</th>
-                    <td>
-                      <div class="inline-flex gap-1 items-center justufy-center">
-                        <img
-                          src={`https://web.poecdn.com/${overviews[item[0]]?.image}`}
-                          class="w-6 h-6 object-contain"
-                        />
-                        <span onClick={() => copyName(overviews[item[0]].name)}>
-                          {overviews[item[0]].name}
-                        </span>
-                      </div>
-                    </td>
-                    <td>{item[1]}</td>
-                    <td>{overviews[item[0]]?.category}</td>
-                    <td class="font-bold">
-                      {(
-                        item[1] *
-                        itemz.prices[
-                          itemz.maxVolumeCurrency == "exalted"
-                            ? "exalted"
-                            : itemz.maxVolumeCurrency == "chaos"
-                              ? "chaos"
-                              : "divine"
-                        ]
-                      ).toFixed(2)}{" "}
-                      {itemz.maxVolumeCurrency}
-                    </td>
-                    <td>
-                      <button
-                        onClick={() => removeItem(item[0])}
-                        class="btn btn-circle btn-ghost btn-sm text-base-content/40 hover:text-error hover:bg-error/10"
+              return (
+                <tr>
+                  <th>{i() + 1}</th>
+                  <td>
+                    <div class="inline-flex gap-1 items-center justufy-center">
+                      <img
+                        src={`https://web.poecdn.com/${overviews[item[0]]?.image}`}
+                        class="w-6 h-6 object-contain"
+                      />
+                      <span onClick={() => copyName(overviews[item[0]].name)}>
+                        {overviews[item[0]].name}
+                      </span>
+                    </div>
+                  </td>
+                  <td>{item[1]}</td>
+                  <td>{overviews[item[0]]?.category}</td>
+                  <td class="font-bold">
+                    {(
+                      item[1] *
+                      itemz.prices[
+                        itemz.maxVolumeCurrency == "exalted"
+                          ? "exalted"
+                          : itemz.maxVolumeCurrency == "chaos"
+                            ? "chaos"
+                            : "divine"
+                      ]
+                    ).toFixed(2)}{" "}
+                    {itemz.maxVolumeCurrency}
+                  </td>
+                  <td>
+                    <button
+                      onClick={() => removeItem(item[0])}
+                      class="btn btn-circle btn-ghost btn-sm text-base-content/40 hover:text-error hover:bg-error/10"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        class="lucide lucide-trash preview-icon"
                       >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="16"
-                          height="16"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          stroke-width="2"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          class="lucide lucide-trash preview-icon"
-                        >
-                          <path d="M10 11v6" />
-                          <path d="M14 11v6" />
-                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
-                          <path d="M3 6h18" />
-                          <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                        </svg>
-                      </button>
-                    </td>
-                  </tr>
-                );
-              }}
-            </For>
-            <Show when={!sliced().length}>
-              <tr>
-                <td colspan="5" class="text-center py-4">
-                  No data found. Scan an in-game item.
-                </td>
-              </tr>
-            </Show>
-          </tbody>
-
-          <tfoot>
+                        <path d="M10 11v6" />
+                        <path d="M14 11v6" />
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+                        <path d="M3 6h18" />
+                        <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                      </svg>
+                    </button>
+                  </td>
+                </tr>
+              );
+            }}
+          </For>
+          <Show when={!sliced().length}>
             <tr>
-              <th>Total</th>
-              <th></th>
-              <th class="font-mono">{currencyTotals()["divine"]}d</th>
-              <th class="font-mono">{currencyTotals()["chaos"]}c</th>
-              <th class="font-mono">{currencyTotals()["exalted"]}ex</th>
-              <th></th>
+              <td colspan="5" class="text-center py-4">
+                No data found. Scan an in-game item.
+              </td>
             </tr>
-          </tfoot>
-        </table>
-      </BaseWidget>
-    </Guard>
+          </Show>
+        </tbody>
+
+        <tfoot>
+          <tr>
+            <th>Total</th>
+            <th></th>
+            <th class="font-mono">{currencyTotals()["divine"]}d</th>
+            <th class="font-mono">{currencyTotals()["chaos"]}c</th>
+            <th class="font-mono">{currencyTotals()["exalted"]}ex</th>
+            <th></th>
+          </tr>
+        </tfoot>
+      </table>
+      <button
+        class="btn btn-soft btn-sm mt-1"
+        onClick={() => {
+          clearInventory();
+          enablePassthrough();
+        }}
+      >
+        Clear Inventory
+      </button>
+    </BaseWidget>
   );
 }
