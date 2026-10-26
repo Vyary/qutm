@@ -46,8 +46,8 @@ type ExchangePrices = Record<
 
 const TWELVE_HOURS = 12 * 60 * 60 * 1000;
 
-const [overviews, setOverviews] = createStore<ExchangePrices>();
-const [ts, setTs] = createSignal<string>("");
+export const [overviews, setOverviews] = createStore<ExchangePrices>();
+export const [ts, setTs] = createSignal<string>("");
 
 const fetchOverviews = async () => {
   const currencyCategories = [
@@ -114,7 +114,14 @@ const refreshOverview = async () => {
   saveOverviews();
 };
 
-const loadOverviews = async () => {
+export const checkOverviews = async () => {
+  const ts = await store.get<number>("timestamp");
+  if (Date.now() - (ts ?? TWELVE_HOURS) >= TWELVE_HOURS) {
+    refreshOverview();
+  }
+};
+
+export const loadOverviews = async () => {
   const ts = await store.get<number>("timestamp");
   if (ts) {
     const nd = new Date(ts);
@@ -139,5 +146,3 @@ const saveOverviews = async () => {
   setTs(new Date(Date.now()).toISOString());
   store.save();
 };
-
-export { overviews, loadOverviews, ts };

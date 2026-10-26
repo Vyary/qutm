@@ -10,7 +10,6 @@ import { InventorySettings } from "../inventory/InventorySettings";
 import { LayoutSettings } from "../layout/LayoutSettings";
 import { PriceSettings } from "../price/PriceSettings";
 import { Shortcut } from "@/components/Shortcut";
-import { Guard } from "@/components/Guard";
 
 function createPersistedSignal<T>(key: string, initial: T) {
   const [value, setValue] = createSignal<T>(initial);
@@ -167,89 +166,85 @@ export function Settings() {
   };
 
   return (
-    <Guard name="Settings" show={true}>
-      <div
-        class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 select-none bg-base-200 px-5 pt-4 z-20"
-        classList={{ hidden: !showSettings() }}
-      >
-        <h2 class="mb-4 border-b border-base-content/10 pb-3 text-sm font-semibold uppercase tracking-widest opacity-80">
-          <div class="flex items-center justify-between">
-            Settings
-            <span class="text-xs text-base-content/50">v0.6.2</span>
-          </div>
-        </h2>
+    <div
+      class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 select-none bg-base-200 px-5 pt-4 z-20"
+      classList={{ hidden: !showSettings() }}
+    >
+      <h2 class="mb-4 border-b border-base-content/10 pb-3 text-sm font-semibold uppercase tracking-widest opacity-80">
+        <div class="flex items-center justify-between">
+          Settings
+          <span class="text-xs text-base-content/50">v0.6.2</span>
+        </div>
+      </h2>
 
-        <div class="flex flex-col gap-4">
-          <div class="grid grid-cols-2 items-start gap-4">
-            <Card title="Shortcut">
-              <Shortcut
-                name="Overlay Toggle"
-                action={async () => togglePassthrough()}
-                defaultKey="F"
-                ctrl
-                shift
-                global
+      <div class="flex flex-col gap-4">
+        <div class="grid grid-cols-2 items-start gap-4">
+          <Card title="Shortcut">
+            <Shortcut
+              name="Overlay Toggle"
+              action={async () => togglePassthrough()}
+              defaultKey="F"
+              ctrl
+              shift
+              global
+            />
+          </Card>
+          <Card title="Character">
+            <label class="flex flex-col gap-1.5">
+              <span class="text-xs opacity-60">Character name</span>
+              <input
+                type="text"
+                placeholder="Enter character name"
+                class="input input-sm w-full"
+                value={character.name}
+                onInput={(e) => setCharacterName(e.currentTarget.value.trim())}
               />
-            </Card>
-            <Card title="Character">
-              <label class="flex flex-col gap-1.5">
-                <span class="text-xs opacity-60">Character name</span>
-                <input
-                  type="text"
-                  placeholder="Enter character name"
-                  class="input input-sm w-full"
-                  value={character.name}
-                  onInput={(e) =>
-                    setCharacterName(e.currentTarget.value.trim())
-                  }
-                />
-              </label>
-            </Card>
-          </div>
-
-          <ClientFileField />
-
-          <div class="grid grid-cols-2 items-start gap-4">
-            <div class="flex flex-col gap-4">
-              <Card title="Features">
-                <ZoneSettings />
-                <LayoutSettings />
-              </Card>
-              <AppearanceCard />
-              <Card title="Advanced">
-                <ToggleRow
-                  label="Developer options"
-                  description="Enable additional debugging options"
-                  checked={dev()}
-                  onChange={setDev}
-                />
-                <UpdaterSettings />
-              </Card>
-            </div>
-
-            <Card title="Beta features" badge="Beta">
-              <InventorySettings />
-              <div class="border-t border-base-content/10" />
-              <PriceSettings />
-            </Card>
-          </div>
+            </label>
+          </Card>
         </div>
 
-        <footer class="mt-4 flex items-center justify-end gap-3 border-t border-base-content/10 bg-base-200/90 px-5 py-3 backdrop-blur">
-          <Show when={!filePath()}>
-            <span class="text-xs text-base-content/50">
-              Select your Client.txt to continue
-            </span>
-          </Show>
-          <button
-            class="btn btn-primary btn-sm px-6"
-            disabled={!filePath()}
-            onClick={saveAndClose}
-          >
-            Save
-          </button>
-        </footer>
+        <ClientFileField />
+
+        <div class="grid grid-cols-2 items-start gap-4">
+          <div class="flex flex-col gap-4">
+            <Card title="Features">
+              <ZoneSettings />
+              <LayoutSettings />
+            </Card>
+            <AppearanceCard />
+            <Card title="Advanced">
+              <ToggleRow
+                label="Developer options"
+                description="Enable additional debugging options"
+                checked={dev()}
+                onChange={setDev}
+              />
+              <UpdaterSettings />
+            </Card>
+          </div>
+
+          <Card title="Beta features" badge="Beta">
+            <InventorySettings />
+            <div class="border-t border-base-content/10" />
+            <PriceSettings />
+          </Card>
+        </div>
       </div>
-    </Guard>
+
+      <footer class="mt-4 flex items-center justify-end gap-3 border-t border-base-content/10 bg-base-200/90 px-5 py-3 backdrop-blur">
+        <Show when={!filePath()}>
+          <span class="text-xs text-base-content/50">
+            Select your Client.txt to continue
+          </span>
+        </Show>
+        <button
+          class="btn btn-primary btn-sm px-6"
+          disabled={!filePath()}
+          onClick={saveAndClose}
+        >
+          Save
+        </button>
+      </footer>
+    </div>
   );
 }

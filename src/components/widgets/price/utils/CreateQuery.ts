@@ -1,65 +1,20 @@
 import { error, info, warn } from "@tauri-apps/plugin-log";
-import { createStore } from "solid-js/store";
+import { createStore, produce } from "solid-js/store";
 import { onMount } from "solid-js";
 import { mods } from "./Mods";
-import { Item } from "./ParseItem";
-
-interface RangeValue {
-  min?: number;
-  max?: number;
-}
-
-interface CountValue {
-  min: number;
-}
-
-interface StatFilter {
-  disabled?: boolean;
-  id: string;
-  value: RangeValue;
-}
-
-interface StatGroup {
-  filters: StatFilter[];
-  type: "and" | "count";
-  value?: CountValue;
-}
+import {
+  CLASSES,
+  Item,
+  ItemMod,
+  MinMax,
+  PoeStatGroup,
+  PoeTradeQueryPayload,
+  Toggleable,
+} from "./Types";
 
 const convertToCategory = (itemClass: string) => {
-  if (itemClass.includes("Helmet")) return "armour.helmet";
-  if (itemClass.includes("Body Armour")) return "armour.chest";
-  if (itemClass.includes("Gloves")) return "armour.gloves";
-  if (itemClass.includes("Belts")) return "accessory.belt";
-  if (itemClass.includes("Amulets")) return "accessory.amulet";
-  if (itemClass.includes("Rings")) return "accessory.ring";
-  if (itemClass.includes("Boots")) return "armour.boots";
-
-  if (itemClass.includes("Wand")) return "weapon.wand";
-  if (itemClass.includes("Sceptre")) return "weapon.sceptre";
-  if (itemClass.includes("Talisman")) return "weapon.talisman";
-
-  if (itemClass.includes("Foci")) return "armour.focus";
-  if (itemClass.includes("Shield")) return "armour.shield";
-  if (itemClass.includes("Bucklers")) return "armour.buckler";
-  if (itemClass.includes("Quiver")) return "armour.quiver";
-
-  if (itemClass.includes("Staves")) return "weapon.staff";
-  if (itemClass.includes("Quarterstaff")) return "weapon.warstaff";
-  if (itemClass.includes("Spear")) return "weapon.spear";
-  if (itemClass.includes("Two Hand Mace")) return "weapon.twomace";
-  if (itemClass.includes("Two Hand Axe")) return "weapon.twoaxe";
-  if (itemClass.includes("Two Hand Sword")) return "weapon.twosword";
-
-  if (itemClass.includes("Bow")) return "weapon.bow";
-  if (itemClass.includes("Crossbow")) return "weapon.crossbow";
-
-  if (itemClass.includes("Waystone")) return "map.waystone";
-  if (itemClass.includes("Tablet")) return "map.tablet";
-  if (itemClass.includes("Ultimatum")) return "map.ultimatum";
-  if (itemClass.includes("Barya")) return "map.barya";
-  if (itemClass.includes("Relic")) return "sanctum.relic";
-  if (itemClass.includes("Charm")) return "flask.charm";
-  if (itemClass.includes("Jewel")) return "jewel";
+  const c = CLASSES[itemClass];
+  if (c) return c.id;
 
   error(`--> no category found for: ${itemClass} <--`);
   return "";
@@ -178,634 +133,213 @@ const modIdExceptions = (id: string, category: string): string => {
   return id;
 };
 
-export interface PoeTradeQueryPayload {
-  query?: {
-    filters?: {
-      equipment_filters?: {
-        disabled: boolean;
-        filters: {
-          total_augment_sockets?: {
-            min?: number;
-            max?: number;
-          };
-        };
-      };
-      misc_filters?: {
-        disabled: boolean;
-        filters: {
-          corrupted?: { option: boolean };
-          sanctified?: { option: boolean };
-          mirrored?: { option: boolean };
-        };
-      };
-      req_filters?: {
-        disabled: boolean;
-        filters: {
-          lvl?: MinMaxFilter;
-          str?: MinMaxFilter;
-          dex?: MinMaxFilter;
-          int?: MinMaxFilter;
-        };
-      };
-      type_filters?: {
-        filters: {
-          category?: { option: string };
-          ilvl?: { min?: number; max?: number };
-          quality?: { min?: number; max?: number };
-          rarity?: { option: string };
-        };
-      };
-      map_filters?: {
-        disabled: boolean;
-        filters: {
-          map_bonus?: MinMaxFilter;
-          map_iir?: MinMaxFilter;
-          map_magic_monsters?: MinMaxFilter;
-          map_packsize?: MinMaxFilter;
-          map_rare_monsters?: MinMaxFilter;
-          map_revives?: MinMaxFilter;
-          map_tier?: MinMaxFilter;
-        };
-      };
-    };
-    name?: string;
-    stats?: PoeStatGroup[];
-    status: {
-      option: "any" | "online" | "onlineleague" | "securable";
-    };
-    term?: string;
-    type?: string;
-  };
-  sort?: {
-    [key: string]: "asc" | "desc";
-  };
-}
+// Item key -> trade API key, for filter groups whose names differ.
+const MAP_KEYS: Record<string, string> = {
+  bonus: "map_bonus",
+  iir: "map_iir",
+  magicMonsters: "map_magic_monsters",
+  packsize: "map_packsize",
+  rareMonsters: "map_rare_monsters",
+  revives: "map_revives",
+  tier: "map_tier",
+};
 
-// Supporting Helper Types
-interface MinMaxFilter {
-  min?: number;
-  max?: number;
-}
+const MISC_KEYS: Record<string, string> = {
+  areaLevel: "area_level",
+  corrupted: "corrupted",
+  crafted: "crafted",
+  desecrated: "desecrated",
+  foreseeing: "foreseeing",
+  fractured: "fractured_item",
+  gemLevel: "gem_level",
+  gemSockets: "gem_sockets",
+  identified: "identified",
+  mirrored: "mirrored",
+  mutated: "mutated",
+  sanctified: "sanctified",
+  sanctumGold: "sanctum_gold",
+  stackSize: "stack_size",
+  twiceCorrupted: "twice_corrupted",
+  unidentifiedTier: "unidentified_tier",
+  veiled: "veiled",
+};
 
-interface PoeStatGroup {
-  type: "and" | "not" | "count" | "weight" | "if";
-  filters: PoeStatFilter[];
-  value?: { min?: number; max?: number };
-}
+const EQ_KEYS: Record<string, string> = {
+  reloadTime: "reload_time",
+  sockets: "total_augment_sockets",
+};
 
-interface PoeStatFilter {
-  id: string;
-  value?: {
-    min?: number;
-    max?: number;
-  };
-  disabled?: boolean;
-}
+const isEnabled = <T>(t?: Toggleable<T>): t is Toggleable<T> =>
+  t !== undefined && !t.disabled;
+
+const toRange = (v: MinMax): MinMax => ({ min: v.min, max: v.max });
+
+const applyFilters = (
+  target: { filters: Record<string, unknown> },
+  source: Record<string, Toggleable<MinMax | boolean | string> | undefined>,
+  keyMap: Record<string, string> = {},
+): boolean => {
+  let any = false;
+
+  for (const [key, t] of Object.entries(source)) {
+    if (!isEnabled(t)) continue;
+
+    const apiKey = keyMap[key] ?? key;
+    const value = t.value;
+
+    target.filters[apiKey] =
+      typeof value === "object" ? toRange(value) : { option: value };
+    any = true;
+  }
+
+  return any;
+};
+
+const toStatFilter = (mod: ItemMod, id: string) => ({
+  disabled: mod.disabled,
+  id,
+  value: { min: mod.min, max: mod.max },
+});
 
 export const createQuery = (item: Item) => {
   const [query, setQuery] = createStore<PoeTradeQueryPayload>({
     query: {
       filters: {
-        equipment_filters: {
-          disabled: true,
-          filters: {},
-        },
-        misc_filters: {
-          disabled: true,
-          filters: {},
-        },
-        req_filters: {
-          disabled: true,
-          filters: {},
-        },
-        type_filters: {
-          filters: {},
-        },
-        map_filters: {
-          disabled: false,
-          filters: {},
-        },
+        equipment_filters: { disabled: true, filters: {} },
+        misc_filters: { disabled: true, filters: {} },
+        req_filters: { disabled: true, filters: {} },
+        type_filters: { filters: {} },
+        map_filters: { disabled: true, filters: {} },
       },
-      status: {
-        option: "securable",
-      },
+      status: { option: "securable" },
     },
-
-    sort: {
-      price: "asc",
-    },
+    sort: { price: "asc" },
   });
-  const [stats, setStats] = createStore<StatGroup[]>([
-    {
-      filters: [],
-      type: "and",
-    },
-    {
-      filters: [],
-      type: "and",
-    },
+
+  const [stats, setStats] = createStore<PoeStatGroup[]>([
+    { filters: [], type: "and" },
+    { filters: [], type: "and" },
   ]);
 
+  const category = item.TypeFilters.filters.category.value;
+
   const createFilters = () => {
-    for (let i = 0; i < item.skill.length; i++) {
-      let id = item.skill[i].id;
+    const pushStats = (
+      group: number,
+      filters: ReturnType<typeof toStatFilter>[],
+    ) => setStats(group, "filters", (prev) => [...prev, ...filters]);
 
-      id = modIdExceptions(id, item.category);
-
-      setStats(0, "filters", (filters) => [
-        ...filters,
-        {
-          disabled: item.skill[i].disabled,
-          id: id,
-          value: {
-            min: item.skill[i]?.min,
-            max: item.skill[i]?.max,
-          },
-        },
-      ]);
-    }
-
-    for (let i = 0; i < item.enhancement.length; i++) {
-      let id = item.enhancement[i].id;
-
-      setStats(0, "filters", (filters) => [
-        ...filters,
-        {
-          disabled: item.enhancement[i].disabled,
-          id: id,
-          value: {
-            min: item.enhancement[i]?.min,
-            max: item.enhancement[i]?.max,
-          },
-        },
-      ]);
-    }
-
-    for (let i = 0; i < item.implicit.length; i++) {
-      let id = item.implicit[i].id;
-
-      setStats(0, "filters", (filters) => [
-        ...filters,
-        {
-          disabled: item.implicit[i].disabled,
-          id: id,
-          value: {
-            min: item.implicit[i]?.min,
-            max: item.implicit[i]?.max,
-          },
-        },
-      ]);
-    }
-
-    for (let i = 0; i < item.explicit.length; i++) {
-      let id = item.explicit[i].id;
-
-      id = modIdExceptions(id, item.category);
-
-      if (item.explicit[i].fractured && !item.explicit[i].fractured?.disabled) {
-        id = findModId("fractured", item.explicit[i].mod) ?? id;
-      }
-
-      setStats(1, "filters", (filters) => [
-        ...filters,
-        {
-          disabled: item.explicit[i].disabled,
-          id: id,
-          value: {
-            min: item.explicit[i]?.min,
-            max: item.explicit[i]?.max,
-          },
-        },
-      ]);
-    }
-  };
-
-  const createQuery = () => {
-    if (!item.name.disabled && item.rarity.value == "Unique") {
-      setQuery("query", "name", item.name.value);
-    }
-
-    if (!item.type.disabled && item.type.value != "") {
-      setQuery("query", "type", item.type.value);
-    }
-
-    if (
-      !item.name.disabled &&
-      item.rarity.value != "Unique" &&
-      item.rarity.value != "Rare"
-    ) {
-      setQuery("query", "term", item.name.value);
-    }
-
-    setQuery("query", "stats", stats);
-
-    // Type Filters
-    setQuery("query", "filters", "type_filters", "filters", "category", {});
-    setQuery(
-      "query",
-      "filters",
-      "type_filters",
-      "filters",
-      "category",
-      "option",
-      convertToCategory(item.category),
+    pushStats(
+      0,
+      item.skill.map((m) => toStatFilter(m, modIdExceptions(m.id, category))),
     );
 
-    if (!item.rarity.disabled) {
-      setQuery("query", "filters", "type_filters", "filters", "rarity", {});
-      setQuery(
-        "query",
-        "filters",
-        "type_filters",
-        "filters",
-        "rarity",
-        "option",
-        item.rarity.value.toLowerCase(),
-      );
-    }
+    pushStats(
+      0,
+      item.enhancement.map((m) => toStatFilter(m, m.id)),
+    );
 
-    if (!item.ilvl.disabled) {
-      setQuery("query", "filters", "type_filters", "filters", "ilvl", {});
-      setQuery(
-        "query",
-        "filters",
-        "type_filters",
-        "filters",
-        "ilvl",
-        "min",
-        item.ilvl.value,
-      );
-    }
+    pushStats(
+      0,
+      item.implicit.map((m) => toStatFilter(m, m.id)),
+    );
 
-    if (!item.quality.disabled) {
-      setQuery("query", "filters", "type_filters", "filters", "quality", {});
-      setQuery(
-        "query",
-        "filters",
-        "type_filters",
-        "filters",
-        "quality",
-        "min",
-        item.quality.value,
-      );
-    }
+    pushStats(
+      1,
+      item.explicit.map((m) => {
+        let id = modIdExceptions(m.id, category);
 
-    // Equipment Filters
-    if (!item.sockets.disabled) {
-      setQuery(
-        "query",
-        "filters",
-        "equipment_filters",
-        "disabled",
-        item.sockets.disabled,
-      );
-      setQuery(
-        "query",
-        "filters",
-        "equipment_filters",
-        "filters",
-        "total_augment_sockets",
-        {},
-      );
-      setQuery(
-        "query",
-        "filters",
-        "equipment_filters",
-        "filters",
-        "total_augment_sockets",
-        "min",
-        item.sockets.value,
-      );
-    }
+        if (m.fractured && !m.fractured.disabled) {
+          id = findModId("fractured", m.mod) ?? id;
+        }
 
-    // Requirements
-    if (!item.requires.disabled) {
-      setQuery(
-        "query",
-        "filters",
-        "req_filters",
-        "disabled",
-        item.requires.disabled,
-      );
+        return toStatFilter(m, id);
+      }),
+    );
+  };
 
-      setQuery("query", "filters", "req_filters", "filters", "lvl", {});
-      setQuery(
-        "query",
-        "filters",
-        "req_filters",
-        "filters",
-        "lvl",
-        "min",
-        item.requires.value.level?.min,
-      );
-      setQuery(
-        "query",
-        "filters",
-        "req_filters",
-        "filters",
-        "lvl",
-        "max",
-        item.requires.value.level?.max,
-      );
+  const buildQuery = () => {
+    setQuery(
+      produce((q) => {
+        const query = q.query!;
+        const filters = query.filters!;
 
-      setQuery("query", "filters", "req_filters", "filters", "str", {});
-      setQuery(
-        "query",
-        "filters",
-        "req_filters",
-        "filters",
-        "str",
-        "min",
-        item.requires.value.str?.min,
-      );
-      setQuery(
-        "query",
-        "filters",
-        "req_filters",
-        "filters",
-        "str",
-        "max",
-        item.requires.value.str?.max,
-      );
+        // Name / type / term
+        const rarity = item.TypeFilters.filters.rarity;
+        const rarityValue = rarity?.value;
 
-      setQuery("query", "filters", "req_filters", "filters", "dex", {});
-      setQuery(
-        "query",
-        "filters",
-        "req_filters",
-        "filters",
-        "dex",
-        "min",
-        item.requires.value.dex?.min,
-      );
-      setQuery(
-        "query",
-        "filters",
-        "req_filters",
-        "filters",
-        "dex",
-        "max",
-        item.requires.value.dex?.max,
-      );
+        if (isEnabled(item.name)) {
+          if (rarityValue == "Unique") {
+            query.name = item.name.value;
+          } else if (rarityValue != "Rare") {
+            query.term = item.name.value;
+          }
+        }
 
-      setQuery("query", "filters", "req_filters", "filters", "int", {});
-      setQuery(
-        "query",
-        "filters",
-        "req_filters",
-        "filters",
-        "int",
-        "min",
-        item.requires.value.int?.min,
-      );
-      setQuery(
-        "query",
-        "filters",
-        "req_filters",
-        "filters",
-        "int",
-        "max",
-        item.requires.value.int?.max,
-      );
-    }
+        if (isEnabled(item.type) && item.type.value != "") {
+          query.type = item.type.value;
+        }
 
-    // Map Filters
-    if (!item.waystone.disabled) {
-      setQuery(
-        "query",
-        "filters",
-        "map_filters",
-        "disabled",
-        item.waystone.disabled,
-      );
+        query.stats = stats;
 
-      setQuery("query", "filters", "map_filters", "filters", "map_tier", {});
-      setQuery(
-        "query",
-        "filters",
-        "map_filters",
-        "filters",
-        "map_tier",
-        "min",
-        item.waystone.value.tier?.min,
-      );
-      setQuery(
-        "query",
-        "filters",
-        "map_filters",
-        "filters",
-        "map_tier",
-        "max",
-        item.waystone.value.tier?.max,
-      );
+        // Type filters
+        const typeFilters = filters.type_filters!.filters;
+        const { ilvl, quality } = item.TypeFilters.filters;
 
-      setQuery(
-        "query",
-        "filters",
-        "map_filters",
-        "filters",
-        "map_magic_monsters",
-        {},
-      );
-      setQuery(
-        "query",
-        "filters",
-        "map_filters",
-        "filters",
-        "map_magic_monsters",
-        "min",
-        item.waystone.value.monsterEff?.min,
-      );
-      setQuery(
-        "query",
-        "filters",
-        "map_filters",
-        "filters",
-        "map_magic_monsters",
-        "max",
-        item.waystone.value.monsterEff?.max,
-      );
+        typeFilters.category = { option: convertToCategory(category) };
 
-      setQuery(
-        "query",
-        "filters",
-        "map_filters",
-        "filters",
-        "map_rare_monsters",
-        {},
-      );
-      setQuery(
-        "query",
-        "filters",
-        "map_filters",
-        "filters",
-        "map_rare_monsters",
-        "min",
-        item.waystone.value.monsterRarity?.min,
-      );
-      setQuery(
-        "query",
-        "filters",
-        "map_filters",
-        "filters",
-        "map_rare_monsters",
-        "max",
-        item.waystone.value.monsterRarity?.max,
-      );
+        if (isEnabled(rarity)) {
+          typeFilters.rarity = { option: rarity.value.toLowerCase() };
+        }
+        if (isEnabled(ilvl)) typeFilters.ilvl = toRange(ilvl.value);
+        if (isEnabled(quality)) typeFilters.quality = toRange(quality.value);
 
-      setQuery("query", "filters", "map_filters", "filters", "map_bonus", {});
-      setQuery(
-        "query",
-        "filters",
-        "map_filters",
-        "filters",
-        "map_bonus",
-        "min",
-        item.waystone.value.dropChance?.min,
-      );
-      setQuery(
-        "query",
-        "filters",
-        "map_filters",
-        "filters",
-        "map_bonus",
-        "max",
-        item.waystone.value.dropChance?.max,
-      );
+        // Equipment filters
+        if (
+          !item.EquipmentFilters.disabled &&
+          applyFilters(
+            filters.equipment_filters!,
+            item.EquipmentFilters.filters,
+            EQ_KEYS,
+          )
+        ) {
+          filters.equipment_filters!.disabled = false;
+        }
 
-      setQuery(
-        "query",
-        "filters",
-        "map_filters",
-        "filters",
-        "map_packsize",
-        {},
-      );
-      setQuery(
-        "query",
-        "filters",
-        "map_filters",
-        "filters",
-        "map_packsize",
-        "min",
-        item.waystone.value.packsize?.min,
-      );
-      setQuery(
-        "query",
-        "filters",
-        "map_filters",
-        "filters",
-        "map_packsize",
-        "max",
-        item.waystone.value.packsize?.max,
-      );
+        // Requirements
+        if (
+          !item.ReqFilters.disabled &&
+          applyFilters(filters.req_filters!, item.ReqFilters.filters)
+        ) {
+          filters.req_filters!.disabled = false;
+        }
 
-      setQuery("query", "filters", "map_filters", "filters", "map_iir", {});
-      setQuery(
-        "query",
-        "filters",
-        "map_filters",
-        "filters",
-        "map_iir",
-        "min",
-        item.waystone.value.itemRarity?.min,
-      );
-      setQuery(
-        "query",
-        "filters",
-        "map_filters",
-        "filters",
-        "map_iir",
-        "max",
-        item.waystone.value.itemRarity?.max,
-      );
+        // Map filters (waystones etc.)
+        if (
+          !item.MapFilters.disabled &&
+          applyFilters(filters.map_filters!, item.MapFilters.filters, MAP_KEYS)
+        ) {
+          filters.map_filters!.disabled = false;
+        }
 
-      setQuery("query", "filters", "map_filters", "filters", "map_revives", {});
-      setQuery(
-        "query",
-        "filters",
-        "map_filters",
-        "filters",
-        "map_revives",
-        "min",
-        item.waystone.value.revives?.min,
-      );
-      setQuery(
-        "query",
-        "filters",
-        "map_filters",
-        "filters",
-        "map_revives",
-        "max",
-        item.waystone.value.revives?.max,
-      );
-    }
-
-    // Miscellaneous
-    if (item.corrupted != undefined && !item.corrupted.disabled) {
-      setQuery(
-        "query",
-        "filters",
-        "misc_filters",
-        "disabled",
-        item.corrupted?.disabled,
-      );
-      setQuery("query", "filters", "misc_filters", "filters", "corrupted", {});
-      setQuery(
-        "query",
-        "filters",
-        "misc_filters",
-        "filters",
-        "corrupted",
-        "option",
-        item.corrupted?.value,
-      );
-    }
-
-    if (item.sanctified != undefined && !item.sanctified.disabled) {
-      setQuery(
-        "query",
-        "filters",
-        "misc_filters",
-        "disabled",
-        item.sanctified?.disabled,
-      );
-      setQuery("query", "filters", "misc_filters", "filters", "sanctified", {});
-      setQuery(
-        "query",
-        "filters",
-        "misc_filters",
-        "filters",
-        "sanctified",
-        "option",
-        item.sanctified?.value,
-      );
-    }
-
-    if (item.mirrored != undefined && !item.mirrored.disabled) {
-      setQuery(
-        "query",
-        "filters",
-        "misc_filters",
-        "disabled",
-        item.mirrored?.disabled,
-      );
-      setQuery("query", "filters", "misc_filters", "filters", "mirrored", {});
-      setQuery(
-        "query",
-        "filters",
-        "misc_filters",
-        "filters",
-        "mirrored",
-        "option",
-        item.mirrored?.value,
-      );
-    }
+        // Miscellaneous
+        if (
+          !item.MiscFilters.disabled &&
+          applyFilters(
+            filters.misc_filters!,
+            item.MiscFilters.filters,
+            MISC_KEYS,
+          )
+        ) {
+          filters.misc_filters!.disabled = false;
+        }
+      }),
+    );
   };
 
   onMount(() => {
     createFilters();
-    createQuery();
+    buildQuery();
   });
 
   return query;

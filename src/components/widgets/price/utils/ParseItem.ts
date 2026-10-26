@@ -1,55 +1,6 @@
 import { info, warn } from "@tauri-apps/plugin-log";
 import { findModId } from "./CreateQuery";
-
-interface Toggleable<T> {
-  value: T;
-  disabled: boolean;
-}
-
-export interface Requirements {
-  level?: { min?: number; max?: number };
-  str?: { min?: number; max?: number };
-  dex?: { min?: number; max?: number };
-  int?: { min?: number; max?: number };
-}
-
-export interface Waystone {
-  tier?: { min?: number; max?: number };
-  monsterEff?: { min?: number; max?: number };
-  monsterRarity?: { min?: number; max?: number };
-  dropChance?: { min?: number; max?: number };
-  packsize?: { min?: number; max?: number };
-  itemRarity?: { min?: number; max?: number };
-  revives?: { min?: number; max?: number };
-}
-
-export interface ItemMod {
-  id: string;
-  mod: string;
-  disabled: boolean;
-  min?: number;
-  max?: number;
-  fractured?: Toggleable<boolean>;
-}
-
-export interface Item {
-  category: string;
-  rarity: Toggleable<string>;
-  name: Toggleable<string>;
-  type: Toggleable<string>;
-  ilvl: Toggleable<number>;
-  quality: Toggleable<number>;
-  requires: Toggleable<Requirements>;
-  waystone: Toggleable<Waystone>;
-  sockets: Toggleable<number>;
-  enhancement: ItemMod[];
-  implicit: ItemMod[];
-  explicit: ItemMod[];
-  skill: ItemMod[];
-  corrupted?: Toggleable<boolean>;
-  sanctified?: Toggleable<boolean>;
-  mirrored?: Toggleable<boolean>;
-}
+import { Item, ItemMod } from "./Types";
 
 let multiLineMod = "";
 
@@ -71,7 +22,7 @@ const parseModLine = (
   if (XtoX) {
     const { pre, low, high, rest } = XtoX.groups!;
     const mod = `${pre ? pre : ""}# to #${rest}`;
-    const value = (Number(low) + Number(high)) / 2;
+    const value = Math.floor((Number(low) + Number(high)) / 2);
 
     const id = findModId(modType, mod);
     if (id) {
@@ -222,15 +173,12 @@ export const parseItem = (item: string) => {
   const lines = item.split("\n");
 
   const itemStruct: Item = {
-    category: "",
-    rarity: { value: "", disabled: false },
     name: { value: "", disabled: true },
-    type: { value: "", disabled: false },
-    quality: { value: 0, disabled: true },
-    requires: { value: {}, disabled: true },
-    waystone: { value: {}, disabled: true },
-    ilvl: { value: 0, disabled: true },
-    sockets: { value: 0, disabled: true },
+    TypeFilters: { filters: { category: { value: "", disabled: true } } },
+    EquipmentFilters: { filters: {}, disabled: true },
+    ReqFilters: { filters: {}, disabled: true },
+    MapFilters: { filters: {}, disabled: true },
+    MiscFilters: { filters: {}, disabled: true },
     enhancement: [],
     implicit: [],
     explicit: [],
@@ -247,31 +195,11 @@ export const parseItem = (item: string) => {
     const line = lines[i].trim();
     if (line.includes("---")) continue;
 
-    if (line === "Corrupted" || line === "Twice Corrupted") {
-      itemStruct.corrupted = { value: true, disabled: false };
-      continue;
-    }
-
-    if (line === "Sanctified") {
-      itemStruct.sanctified = { value: true, disabled: false };
-      continue;
-    }
-
-    if (line === "Mirrored") {
-      itemStruct.mirrored = { value: true, disabled: false };
-      continue;
-    }
-
+    // Type Filters
     if (line.includes("Item Class: ")) {
       const c = line.split("Item Class: ")[1].trim();
 
-      itemStruct.category = c;
-      continue;
-    }
-
-    const rarity = line.match(/^Rarity: (?<rarity>\w+)/)?.groups?.rarity;
-    if (rarity) {
-      itemStruct.rarity = { value: rarity, disabled: false };
+      itemStruct.TypeFilters.filters.category = { value: c, disabled: false };
       continue;
     }
 
@@ -279,117 +207,437 @@ export const parseItem = (item: string) => {
       const ilvl = Number(line.split("Item Level: ")[1]);
 
       if (ilvl >= 75) {
-        itemStruct.ilvl = { value: ilvl, disabled: false };
+        itemStruct.TypeFilters.filters.ilvl = {
+          value: { min: ilvl },
+          disabled: false,
+        };
         continue;
       }
 
-      itemStruct.ilvl = { value: ilvl, disabled: true };
+      itemStruct.TypeFilters.filters.ilvl = {
+        value: { min: ilvl },
+        disabled: true,
+      };
       continue;
     }
 
-    if (itemStruct.category == "Waystones") {
+    if (line.includes("Quality")) {
+      const match = line.match(/\+(\d+)%/);
+
+      if (match) {
+        const quality = Number(match[1]);
+
+        if (quality > 20) {
+          itemStruct.TypeFilters.filters.quality = {
+            value: { min: quality },
+            disabled: false,
+          };
+          continue;
+        }
+
+        itemStruct.TypeFilters.filters.quality = {
+          value: { min: quality },
+          disabled: true,
+        };
+      }
+
+      continue;
+    }
+
+    const rarity = line.match(/^Rarity: (?<rarity>\w+)/)?.groups?.rarity;
+    if (rarity) {
+      itemStruct.TypeFilters.filters.rarity = {
+        value: rarity,
+        disabled: false,
+      };
+      continue;
+    }
+
+    // Equipment Filters
+
+    if (line.includes("Armour: ")) {
+      const match = line.match(/(\d+)/);
+
+      if (match) {
+        const value = Number(match[1]);
+
+        itemStruct.EquipmentFilters.filters.ar = {
+          value: { min: value },
+          disabled: false,
+        };
+
+        itemStruct.EquipmentFilters.disabled = false;
+        continue;
+      }
+    }
+
+    if (line.includes("Critical Hit Chance: ")) {
+      const match = line.match(/(\d+?.\d+)%/);
+
+      if (match) {
+        const value = Number(match[1]);
+
+        itemStruct.EquipmentFilters.filters.crit = {
+          value: { min: value },
+          disabled: false,
+        };
+
+        itemStruct.EquipmentFilters.disabled = false;
+        continue;
+      }
+    }
+
+    if (line.includes("Block chance: ")) {
+      const match = line.match(/(\d+)%/);
+
+      if (match) {
+        const value = Number(match[1]);
+
+        itemStruct.EquipmentFilters.filters.block = {
+          value: { min: value },
+          disabled: false,
+        };
+
+        itemStruct.EquipmentFilters.disabled = false;
+        continue;
+      }
+    }
+
+    if (line.includes("Attacks per Second: ")) {
+      const match = line.match(/(\d+?.\d+)/);
+
+      if (match) {
+        const value = Number(match[1]);
+
+        itemStruct.EquipmentFilters.filters.aps = {
+          value: { min: value },
+          disabled: false,
+        };
+
+        itemStruct.EquipmentFilters.disabled = false;
+        continue;
+      }
+    }
+
+    const match = line.match(/Physical Damage: (\d[\d,]*)-(\d[\d,]*)/);
+    if (match) {
+      const min = Number(match[1].replace(/,/g, ""));
+      const max = Number(match[2].replace(/,/g, ""));
+      const value = (min + max) / 2;
+
+      itemStruct.EquipmentFilters.filters.pdps = {
+        value: { min: value },
+        disabled: false,
+      };
+
+      itemStruct.EquipmentFilters.disabled = false;
+      continue;
+    }
+
+    const edpsMatch = line.match(/Elemental Damage:\s*(.+)/);
+    if (edpsMatch) {
+      const damageRanges = edpsMatch[1].split(",");
+      let totalAverageDamage = 0;
+
+      for (const range of damageRanges) {
+        const rangeMatch = range.trim().match(/(\d[\d,]*)-(\d[\d,]*)/);
+        if (rangeMatch) {
+          const min = Number(rangeMatch[1].replace(/,/g, ""));
+          const max = Number(rangeMatch[2].replace(/,/g, ""));
+          totalAverageDamage += (min + max) / 2;
+        }
+      }
+
+      itemStruct.EquipmentFilters.filters.edps = {
+        value: { min: totalAverageDamage },
+        disabled: false,
+      };
+
+      itemStruct.EquipmentFilters.disabled = false;
+      continue;
+    }
+
+    if (line.includes("Energy Shield: ")) {
+      const match = line.match(/(\d+)/);
+
+      if (match) {
+        const value = Number(match[1]);
+
+        itemStruct.EquipmentFilters.filters.es = {
+          value: { min: value },
+          disabled: false,
+        };
+
+        itemStruct.EquipmentFilters.disabled = false;
+        continue;
+      }
+    }
+
+    if (line.includes("Evasion Rating: ")) {
+      const match = line.match(/(\d+)/);
+
+      if (match) {
+        const value = Number(match[1]);
+
+        itemStruct.EquipmentFilters.filters.ev = {
+          value: { min: value },
+          disabled: false,
+        };
+
+        itemStruct.EquipmentFilters.disabled = false;
+        continue;
+      }
+    }
+
+    if (line.includes("Reload Time: ")) {
+      const match = line.match(/(\d+?.\d+)/);
+
+      if (match) {
+        const value = Number(match[1]);
+
+        itemStruct.EquipmentFilters.filters.reloadTime = {
+          value: { min: value },
+          disabled: false,
+        };
+
+        itemStruct.EquipmentFilters.disabled = false;
+        continue;
+      }
+    }
+
+    if (line.includes("Spirit: ")) {
+      const match = line.match(/(\d+)/);
+
+      if (match) {
+        const value = Number(match[1]);
+
+        itemStruct.EquipmentFilters.filters.spirit = {
+          value: { min: value },
+          disabled: false,
+        };
+
+        itemStruct.EquipmentFilters.disabled = false;
+        continue;
+      }
+    }
+
+    if (line.includes("Sockets: ")) {
+      const s = line.split("Sockets: ")[1];
+      const sockets = s.split("S").length - 1;
+
+      if (sockets > 1) {
+        itemStruct.EquipmentFilters.filters.sockets = {
+          value: { min: sockets },
+          disabled: false,
+        };
+
+        itemStruct.EquipmentFilters.disabled = false;
+        continue;
+      }
+
+      itemStruct.EquipmentFilters.filters.sockets = {
+        value: { min: sockets },
+        disabled: true,
+      };
+      continue;
+    }
+
+    if (line.includes("Runic Ward: ")) {
+      const match = line.match(/(\d+)/);
+
+      if (match) {
+        const value = Number(match[1]);
+
+        itemStruct.EquipmentFilters.filters.ward = {
+          value: { min: value },
+          disabled: false,
+        };
+        continue;
+      }
+    }
+
+    // Requirements Filters
+    if (line.includes("Requires")) {
+      const levelMatch = line.match(/Level (\d+)/);
+      const strMatch = line.match(/(\d+)\s*(?:\([^)]*\)\s*)?Str/);
+      const dexMatch = line.match(/(\d+)\s*(?:\([^)]*\)\s*)?Dex/);
+      const intMatch = line.match(/(\d+)\s*(?:\([^)]*\)\s*)?Int/);
+
+      itemStruct.ReqFilters = {
+        filters: {
+          lvl: {
+            value: { max: levelMatch ? Number(levelMatch[1]) : undefined },
+            disabled: true,
+          },
+          str: {
+            value: { max: strMatch ? Number(strMatch[1]) : undefined },
+            disabled: true,
+          },
+          dex: {
+            value: { max: dexMatch ? Number(dexMatch[1]) : undefined },
+            disabled: true,
+          },
+          int: {
+            value: { max: intMatch ? Number(intMatch[1]) : undefined },
+            disabled: true,
+          },
+        },
+        disabled: true,
+      };
+
+      continue;
+    }
+
+    // Map Filters
+    if (itemStruct.TypeFilters.filters.category?.value == "Waystones") {
       info(line);
 
       const waystoneTier = line.match(/Waystone \(Tier\s*(?<t>\d+)\)/)?.groups
         ?.t;
       if (waystoneTier) {
-        itemStruct.waystone.value.tier = { min: Number(waystoneTier) };
+        itemStruct.MapFilters.filters.tier = {
+          value: { min: Number(waystoneTier) },
+          disabled: false,
+        };
         continue;
       }
 
       const waystoneME = line.match(/Monster Effectiveness:\s*\+(?<me>\d+)%/)
         ?.groups?.me;
       if (waystoneME) {
-        itemStruct.waystone.value.monsterEff = { min: Number(waystoneME) };
+        itemStruct.MapFilters.filters.magicMonsters = {
+          value: { min: Number(waystoneME) },
+          disabled: false,
+        };
         continue;
       }
 
       const waystoneMR = line.match(/Monster Rarity:\s*\+(?<mr>\d+)%/)?.groups
         ?.mr;
       if (waystoneMR) {
-        itemStruct.waystone.value.monsterRarity = { min: Number(waystoneMR) };
+        itemStruct.MapFilters.filters.rareMonsters = {
+          value: { min: Number(waystoneMR) },
+          disabled: false,
+        };
         continue;
       }
 
       const waystoneDC = line.match(/Waystone Drop Chance:\s*\+(?<dc>\d+)%/)
         ?.groups?.dc;
       if (waystoneDC) {
-        itemStruct.waystone.value.dropChance = { min: Number(waystoneDC) };
+        itemStruct.MapFilters.filters.bonus = {
+          value: { min: Number(waystoneDC) },
+          disabled: false,
+        };
         continue;
       }
 
       const waystonePS = line.match(/Pack Size:\s*\+(?<ps>\d+)%/)?.groups?.ps;
       if (waystonePS) {
-        itemStruct.waystone.value.packsize = { min: Number(waystonePS) };
+        itemStruct.MapFilters.filters.packsize = {
+          value: { min: Number(waystonePS) },
+          disabled: false,
+        };
         continue;
       }
 
       const waystoneIR = line.match(/Item Rarity:\s*\+(?<ir>\d+)%/)?.groups?.ir;
       if (waystoneIR) {
-        itemStruct.waystone.value.itemRarity = { min: Number(waystoneIR) };
+        itemStruct.MapFilters.filters.iir = {
+          value: { min: Number(waystoneIR) },
+          disabled: false,
+        };
         continue;
       }
 
       const waystoneR = line.match(/Revives Available:\s*(?<r>\d+)\s/)?.groups
         ?.r;
       if (waystoneR) {
-        itemStruct.waystone.value.revives = { min: Number(waystoneR) };
+        itemStruct.MapFilters.filters.revives = {
+          value: { min: Number(waystoneR) },
+          disabled: false,
+        };
         continue;
       }
 
-      itemStruct.waystone.disabled = false;
+      itemStruct.MapFilters.disabled = false;
     }
 
-    if (itemStruct.category != "Waystones") {
-      if (line.includes("Quality: ")) {
-        const match = line.match(/\+(\d+)%/);
+    // Misc Filters
+    // no use for crafted, desecrated
 
-        if (match) {
-          const quality = Number(match[1]);
+    if (
+      itemStruct.TypeFilters.filters.category.value == "Skill Gems" &&
+      line.includes("Level: ")
+    ) {
+      const match = line.match(/(\d+)/);
 
-          if (quality > 20) {
-            itemStruct.quality = { value: quality, disabled: false };
-            continue;
-          }
+      if (match) {
+        const value = Number(match[1]);
 
-          itemStruct.quality = { value: quality, disabled: true };
-        }
-
-        continue;
-      }
-
-      if (line.includes("Sockets: ")) {
-        const s = line.split("Sockets: ")[1];
-        const sockets = s.split("S").length - 1;
-
-        if (sockets > 1) {
-          itemStruct.sockets = { value: sockets, disabled: false };
-          continue;
-        }
-
-        itemStruct.sockets = { value: sockets, disabled: true };
-        continue;
-      }
-
-      if (line.includes("Requires") && itemStruct.category != "Waystones") {
-        const levelMatch = line.match(/Level (\d+)/);
-        const strMatch = line.match(/(\d+)\s*(?:\([^)]*\)\s*)?Str/);
-        const dexMatch = line.match(/(\d+)\s*(?:\([^)]*\)\s*)?Dex/);
-        const intMatch = line.match(/(\d+)\s*(?:\([^)]*\)\s*)?Int/);
-
-        itemStruct.requires = {
-          value: {
-            level: { max: levelMatch ? Number(levelMatch[1]) : undefined },
-            str: { max: strMatch ? Number(strMatch[1]) : undefined },
-            dex: { max: dexMatch ? Number(dexMatch[1]) : undefined },
-            int: { max: intMatch ? Number(intMatch[1]) : undefined },
-          },
-          disabled: true,
+        itemStruct.MiscFilters.filters.gemLevel = {
+          value: { min: value },
+          disabled: false,
         };
-
         continue;
       }
+    }
 
+    if (
+      itemStruct.TypeFilters.filters.category.value == "Skill Gems" &&
+      line.includes("Sockets: ")
+    ) {
+      const s = line.split("Sockets: ")[1];
+      const sockets = s.split("G").length - 1;
+
+      itemStruct.MiscFilters.filters.gemSockets = {
+        value: { min: sockets },
+        disabled: false,
+      };
+      continue;
+    }
+
+    if (line === "Unidentified") {
+      itemStruct.MiscFilters.filters.identified = {
+        value: false,
+        disabled: false,
+      };
+      continue;
+    }
+
+    if (line === "Corrupted") {
+      itemStruct.MiscFilters.filters.corrupted = {
+        value: true,
+        disabled: false,
+      };
+      continue;
+    }
+
+    if (line === "Twice Corrupted") {
+      itemStruct.MiscFilters.filters.twiceCorrupted = {
+        value: true,
+        disabled: false,
+      };
+      continue;
+    }
+
+    if (line === "Sanctified") {
+      itemStruct.MiscFilters.filters.sanctified = {
+        value: true,
+        disabled: false,
+      };
+      continue;
+    }
+
+    if (line === "Mirrored") {
+      itemStruct.MiscFilters.filters.mirrored = {
+        value: true,
+        disabled: false,
+      };
+      continue;
+    }
+
+    if (itemStruct.TypeFilters.filters.category?.value != "Waystones") {
       if (line.includes("Enhancement")) {
         const increase = parseInt(line.match(/(\d+)%/)?.[0] || "0", 10);
 
@@ -489,7 +737,8 @@ export const parseItem = (item: string) => {
 
         if (fractured) mod.fractured = { value: true, disabled: true };
         if (tier > 2) mod.disabled = true;
-        if (itemStruct.category == "Waystones") mod.disabled = true;
+        if (itemStruct.TypeFilters.filters.category?.value == "Waystones")
+          mod.disabled = true;
 
         if (increase > 0 && mod.min) mod.min = mod.min * (1 + increase / 100);
         if (mod.min) mod.min = Math.floor(mod.min);
@@ -520,12 +769,12 @@ export const parseItem = (item: string) => {
     }
   }
 
-  if (itemStruct.type.value === "") {
+  if (itemStruct.type?.value === "") {
     itemStruct.type.disabled = true;
     itemStruct.name.disabled = false;
   }
 
-  if (itemStruct.rarity.value === "Unique") {
+  if (itemStruct.TypeFilters.filters.rarity?.value === "Unique") {
     itemStruct.name.disabled = false;
   }
 

@@ -1,12 +1,10 @@
 import { store } from "@/lib/Store";
 import { createSignal, onMount } from "solid-js";
 
-export const [autoUpdate, setAutoUpdate] = createSignal(true);
+export const [autoUpdate, setAutoUpdate] = createSignal(false);
 
 export function UpdaterSettings() {
-  onMount(async () =>
-    setAutoUpdate((await store.get("autoUpdate")) ?? autoUpdate()),
-  );
+  onMount(async () => setAutoUpdate((await store.get("autoUpdate")) ?? true));
 
   return (
     <div class="flex items-center justify-between">

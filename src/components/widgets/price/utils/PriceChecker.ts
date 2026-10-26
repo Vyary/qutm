@@ -1,10 +1,9 @@
-import { overviews, ts } from "@/lib/Overviews";
+import { checkOverviews, overviews, ts } from "@/lib/Overviews";
 import { createSignal, onMount } from "solid-js";
 import { fetch } from "@tauri-apps/plugin-http";
-import { debug } from "@tauri-apps/plugin-log";
-import { Prices } from "../Price";
+import { debug, info } from "@tauri-apps/plugin-log";
 import { RateLimiter, updateTimes } from "./RateLimiter";
-import { Item } from "./ParseItem";
+import { Item, Prices } from "./Types";
 
 export interface Listing {
   indexed: string;
@@ -67,6 +66,7 @@ const PriceCheck = async (
   item: Item,
   query: string,
 ): Promise<PriceCheckResult> => {
+  await checkOverviews();
   const itemO = overviews[item.name.value];
   if (itemO) {
     const maxCurr = itemO.maxVolumeCurrency;
