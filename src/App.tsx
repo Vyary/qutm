@@ -12,7 +12,7 @@ import { Updater } from "./components/updater/Updater";
 import { Inventory } from "./components/widgets/inventory/Inventory";
 import { Price } from "./components/widgets/price/Price";
 import { UnlistenFn } from "@tauri-apps/api/event";
-import { SetupFlow, showSetup } from "./components/SetupFlow";
+import { SetupFlow } from "./components/SetupFlow";
 import { Layouts } from "./components/widgets/layout/Layouts";
 import { Guard } from "./components/Guard";
 import { autoUpdate } from "./components/updater/UpdaterSettings";
@@ -77,7 +77,7 @@ function App() {
         <Updater />
       </Guard>
 
-      <Guard name="SetupFlow" show={showSetup()}>
+      <Guard name="SetupFlow" show={true}>
         <SetupFlow />
       </Guard>
 

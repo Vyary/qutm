@@ -1,6 +1,6 @@
 [package]
 name = "qutm"
-version = "0.6.2"
+version = "0.7.0"
 description = "Path of Exile 2 leveling overlay"
 authors = ["Vyary"]
 edition = "2021"

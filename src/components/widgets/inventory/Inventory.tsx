@@ -291,15 +291,6 @@ export function Inventory() {
           </tr>
         </tfoot>
       </table>
-      <button
-        class="btn btn-soft btn-sm mt-1"
-        onClick={() => {
-          clearInventory();
-          enablePassthrough();
-        }}
-      >
-        Clear Inventory
-      </button>
     </BaseWidget>
   );
 }
