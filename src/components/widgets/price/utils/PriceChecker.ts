@@ -66,7 +66,9 @@ const PriceCheck = async (
   item: Item,
   query: string,
 ): Promise<PriceCheckResult> => {
+  let s = performance.now();
   await checkOverviews();
+  info(`checking overviews took: ${(performance.now() - s).toFixed(2)}ms`);
   const itemO = overviews[item.name.value];
   if (itemO) {
     const maxCurr = itemO.maxVolumeCurrency;
@@ -89,11 +91,14 @@ const PriceCheck = async (
     };
   }
 
+  s = performance.now();
   const rateLimit = RateLimiter();
   if (rateLimit) {
     return { prices: [], timeout: rateLimit };
   }
+  info(`ratelimiter took: ${(performance.now() - s).toFixed(2)}ms`);
 
+  s = performance.now();
   const searchReq = await fetch(
     "https://www.pathofexile.com/api/trade2/search/poe2/Forbidden%20Rites",
     {
@@ -105,12 +110,16 @@ const PriceCheck = async (
     },
   );
 
+  info(`search req took: ${(performance.now() - s).toFixed(2)}ms`);
+
   const ipLimits = searchReq.headers.get("x-rate-limit-ip");
   const ipState = searchReq.headers.get("x-rate-limit-ip-state");
 
   debug(`rate limits: ${ipLimits} -> ${ipState}`);
 
+  s = performance.now();
   updateTimes(ipState ?? "0:10:0,0:60:0,0:300:0,0:21600:0");
+  info(`updateTimes took: ${(performance.now() - s).toFixed(2)}ms`);
 
   const sqData: SearchResult = await searchReq.json();
 
@@ -118,6 +127,7 @@ const PriceCheck = async (
     return { prices: [], timeout: 0 };
   }
 
+  s = performance.now();
   const searchRes = await fetch(
     "https://www.pathofexile.com/api/trade2/fetch/" +
       sqData?.result?.slice(0, 10).join(","),
@@ -128,9 +138,11 @@ const PriceCheck = async (
       },
     },
   );
+  info(`searchRes took: ${(performance.now() - s).toFixed(2)}ms`);
 
   const srData: SearchResponse = await searchRes.json();
 
+  s = performance.now();
   const prices = srData?.result?.map((r) => {
     return {
       amount: r.listing.price.amount,
@@ -138,6 +150,7 @@ const PriceCheck = async (
       listed: StaticTimeAgo(r.listing.indexed),
     };
   });
+  info(`price conversion took: ${(performance.now() - s).toFixed(2)}ms`);
 
   if (prices?.length) {
     return { prices: prices, timeout: 0 };

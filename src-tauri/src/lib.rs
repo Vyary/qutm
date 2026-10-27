@@ -72,7 +72,7 @@ async fn tail_file(window: Window, file_path: String) -> Result<(), String> {
 /// Learned slowness factor in percent (100 = base timings). Persists across calls.
 static SCALE_PCT: AtomicU64 = AtomicU64::new(100);
 
-const MIN_SCALE: u64 = 50;
+const MIN_SCALE: u64 = 10;
 const MAX_SCALE: u64 = 800;
 const MAX_ATTEMPTS: u32 = 3;
 
@@ -90,8 +90,8 @@ fn ms(d: Duration) -> f64 {
 }
 
 fn send_copy(enigo: &mut Enigo, scale: u64) -> Result<(), String> {
-    let pre = scaled(5_000, scale);
-    let mid = scaled(5_000, scale);
+    let pre = scaled(10_000, scale);
+    let mid = scaled(10_000, scale);
 
     info!(
         "os_copy: sending copy (scale {scale}%, pre {:.1}ms, mid {:.1}ms)",
@@ -165,7 +165,7 @@ fn os_copy(app: AppHandle) -> Result<String, String> {
                 // First-try success: slowly speed up.
                 // Needed a retry: keep the slower value.
                 let learned = if attempt == 0 {
-                    (scale * 98 / 100).max(MIN_SCALE)
+                    (scale * 90 / 100).max(MIN_SCALE)
                 } else {
                     scale
                 };

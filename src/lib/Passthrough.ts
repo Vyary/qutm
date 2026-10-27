@@ -3,19 +3,19 @@ import { createSignal } from "solid-js";
 
 const [passthrough, setPassthrough] = createSignal(false);
 
-const enablePassthrough = () => {
+const enablePassthrough = async () => {
   setPassthrough(true);
-  getCurrentWindow().setIgnoreCursorEvents(true);
+  await getCurrentWindow().setIgnoreCursorEvents(true);
 };
 
-const disablePassthrough = () => {
+const disablePassthrough = async () => {
   setPassthrough(false);
-  getCurrentWindow().setIgnoreCursorEvents(false);
+  await getCurrentWindow().setIgnoreCursorEvents(false);
 };
 
-const togglePassthrough = () => {
-  setPassthrough(!passthrough());
-  getCurrentWindow().setIgnoreCursorEvents(passthrough());
+const togglePassthrough = async () => {
+  if (passthrough()) disablePassthrough();
+  else enablePassthrough();
 };
 
 export {
