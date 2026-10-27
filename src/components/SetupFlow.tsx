@@ -25,8 +25,6 @@ const steps = [
   { title: "Widgets", description: "Enable/Disable overlay widgets" },
 ] as const;
 
-export const [showSetup, setShowSetup] = createSignal(false);
-
 function Card(props: { title: string; badge?: string; children: JSX.Element }) {
   return (
     <section class="flex flex-col gap-4 rounded-box border border-base-content/10 bg-base-100/40 p-4">
@@ -64,6 +62,8 @@ function ProgressBar(props: { current: number }) {
     </div>
   );
 }
+
+export const [showSetup, setShowSetup] = createSignal(false);
 
 export function SetupFlow() {
   const [step, setStep] = createSignal(0);

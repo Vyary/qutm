@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Qutm - PoE2 Overlay",
-  "version": "0.6.2",
-  "identifier": "com.vyary.qutm",
+  "version": "0.7.0",
+  "identifier": "qutm",
   "build": {
     "beforeDevCommand": "bun run dev",
     "devUrl": "http://localhost:1420",
