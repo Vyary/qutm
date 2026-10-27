@@ -261,6 +261,8 @@ export function ItemRenderer(props: ItemRendererProps) {
     CLASSES[props.item.TypeFilters.filters.category.value].type === "weapon";
   const isCurrency = () =>
     CLASSES[props.item.TypeFilters.filters.category.value].type === "currency";
+  const isSceptre = () =>
+    props.item.TypeFilters.filters.category.value === "Sceptres";
 
   const isWaystone = () =>
     props.item.MapFilters.filters.bonus?.value.min ||
@@ -337,7 +339,16 @@ export function ItemRenderer(props: ItemRendererProps) {
             item={props.item}
             setItem={props.setItem}
           />
-          <Show when={isWeapon()}>
+          <Show when={isSceptre()}>
+            <FilterRow
+              label="Spirit: "
+              group="EquipmentFilters"
+              key="spirit"
+              item={props.item}
+              setItem={props.setItem}
+            />
+          </Show>
+          <Show when={isWeapon() && !isSceptre()}>
             <FilterRow
               label="Attack Speed: "
               group="EquipmentFilters"
@@ -370,13 +381,6 @@ export function ItemRenderer(props: ItemRendererProps) {
               label="Elemental DPS: "
               group="EquipmentFilters"
               key="edps"
-              item={props.item}
-              setItem={props.setItem}
-            />
-            <FilterRow
-              label="Spirit: "
-              group="EquipmentFilters"
-              key="spirit"
               item={props.item}
               setItem={props.setItem}
             />

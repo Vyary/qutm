@@ -13,7 +13,7 @@ export const CLASSES: Record<string, { id: string; type: string }> = {
   Quarterstaves: { id: "weapon.warstaff", type: "weapon" },
   Bows: { id: "weapon.bow", type: "weapon" },
   Crossbows: { id: "weapon.crossbow", type: "weapon" },
-  Staves: { id: "weapon.staff", type: "weapon" },
+  Staves: { id: "weapon.staff", type: "" },
 
   Belts: { id: "accessory.belt", type: "accessory" },
   Amulets: { id: "accessory.amulet", type: "accessory" },

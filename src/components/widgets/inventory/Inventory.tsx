@@ -8,21 +8,16 @@ import {
   onMount,
   Show,
 } from "solid-js";
-import { info } from "@tauri-apps/plugin-log";
+import { error, info } from "@tauri-apps/plugin-log";
 import { BaseWidget } from "../BaseWidget";
 import {
   addToInventory,
-  clearInventory,
   inventory,
   loadInventory,
   removeItem,
   saveInventory,
 } from "./InventoryState";
-import {
-  disablePassthrough,
-  enablePassthrough,
-  togglePassthrough,
-} from "@/lib/Passthrough";
+import { disablePassthrough, togglePassthrough } from "@/lib/Passthrough";
 import { loadOverviews, overviews } from "@/lib/Overviews";
 import { store } from "@/lib/Store";
 import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -120,9 +115,13 @@ export function Inventory() {
   };
 
   const addItem = async () => {
-    const itemString: string = await invoke("os_copy");
-    const item = await parseItem(itemString);
-    addToInventory(item);
+    try {
+      const itemString: string = await invoke("os_copy");
+      const item = await parseItem(itemString);
+      addToInventory(item);
+    } catch (e) {
+      error(`while adding item: ${e}`);
+    }
   };
 
   const autoScan = async () => {

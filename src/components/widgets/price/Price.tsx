@@ -79,14 +79,18 @@ export function Price() {
   };
 
   const getPrice = async () => {
+    const s = performance.now();
     if (timeout()) return;
     const id = ++requestId;
     setPrices([]);
     try {
-      const p = await PriceCheck(item, JSON.stringify(createQuery(item)));
+      const q = JSON.stringify(createQuery(item));
+      info(`query creating took: ${(performance.now() - s).toFixed(2)}ms`);
+      const p = await PriceCheck(item, q);
       if (id !== requestId) return;
       if (p.timeout) return startCountdown(p.timeout);
       setPrices(p.prices);
+      info(`pricing took: ${(performance.now() - s).toFixed(2)}ms`);
     } catch (e) {
       if (id === requestId) setPrices([]);
       error("getting price: " + e);
@@ -95,16 +99,18 @@ export function Price() {
 
   const scanItem = async () => {
     try {
-      const s = performance.now();
+      let s = performance.now();
       const itemCopy: string = await invoke("os_copy");
-      info(`--------> copied item: \n${itemCopy}`);
+      info(`copied item: \n${itemCopy}`);
       info(`copy took: ${(performance.now() - s).toFixed(2)}ms`);
+      s = performance.now();
       const itemStruct = parseItem(itemCopy);
       info(`parsed item: \n${JSON.stringify(itemStruct)}`);
       info(`parse took: ${(performance.now() - s).toFixed(2)}ms`);
+      s = performance.now();
       setItem(reconcile(applyDps(itemStruct)));
       disablePassthrough();
-      info(`copy, parse and set took: ${(performance.now() - s).toFixed(2)}ms`);
+      info(`set took: ${(performance.now() - s).toFixed(2)}ms`);
       getPrice();
     } catch (e) {
       error(`scanning item: ${e}`);
