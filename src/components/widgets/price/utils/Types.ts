@@ -34,6 +34,7 @@ export const CLASSES: Record<string, { id: string; type: string }> = {
   Relics: { id: "sanctum.relic", type: "" },
   Jewels: { id: "jewel", type: "" },
   "Stackable Currency": { id: "", type: "currency" },
+  "Pinnacle Keys": { id: "map.bosskey", type: "" },
 };
 
 export interface PoeTradeQueryPayload {

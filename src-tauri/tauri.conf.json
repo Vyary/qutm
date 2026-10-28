@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Qutm - PoE2 Overlay",
-  "version": "0.7.1",
+  "version": "0.7.2",
   "identifier": "qutm",
   "build": {
     "beforeDevCommand": "bun run dev",
@@ -19,7 +19,7 @@
         "alwaysOnTop": true,
         "skipTaskbar": true,
         "decorations": false,
-        "focusable": false,
+        "focusable": true,
         "shadow": false,
         "width": 0,
         "height": 0
