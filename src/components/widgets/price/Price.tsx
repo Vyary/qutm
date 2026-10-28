@@ -35,8 +35,7 @@ export function Price() {
   });
   const [timeout, setTimeoutLeft] = createSignal(0);
   const [prices, setPrices] = createSignal<Prices[]>([]);
-  const reqTime = 1000;
-  let enterTime = 0;
+  const [closeOverlay, setCloseOverlay] = createSignal(false);
   let requestId = 0;
   let disposed = false;
   let unlisten: UnlistenFn = () =>
@@ -112,6 +111,7 @@ export function Price() {
       disablePassthrough();
       info(`set took: ${(performance.now() - s).toFixed(2)}ms`);
       getPrice();
+      setCloseOverlay(true);
     } catch (e) {
       error(`scanning item: ${e}`);
     }
@@ -140,16 +140,17 @@ export function Price() {
   });
 
   return (
-    <Show when={item.TypeFilters.filters.category.value}>
+    <>
       <div
-        onMouseEnter={() => (enterTime = Date.now())}
-        onMouseLeave={() => {
-          if (Date.now() - enterTime >= reqTime) {
-            info("on mouse leave triggered");
-            enablePassthrough();
-          }
+        class="min-h-dvh min-w-dvw"
+        onClick={() => {
+          if (closeOverlay()) enablePassthrough();
+          setCloseOverlay(false);
         }}
       >
+        hi
+      </div>
+      <Show when={item.TypeFilters.filters.category.value}>
         <BaseWidget
           name="price"
           defaultPos={{ x: 50, y: 170 }}
@@ -165,7 +166,7 @@ export function Price() {
             getPrice={getPrice}
           />
         </BaseWidget>
-      </div>
-    </Show>
+      </Show>
+    </>
   );
 }

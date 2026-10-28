@@ -256,11 +256,11 @@ function FlagBadge(props: { item: Item; setItem: SetStoreFunction<Item> }) {
 
 export function ItemRenderer(props: ItemRendererProps) {
   const isArmour = () =>
-    CLASSES[props.item.TypeFilters.filters.category.value].type === "armour";
+    CLASSES[props.item.TypeFilters.filters.category.value]?.type === "armour";
   const isWeapon = () =>
-    CLASSES[props.item.TypeFilters.filters.category.value].type === "weapon";
+    CLASSES[props.item.TypeFilters.filters.category.value]?.type === "weapon";
   const isCurrency = () =>
-    CLASSES[props.item.TypeFilters.filters.category.value].type === "currency";
+    CLASSES[props.item.TypeFilters.filters.category.value]?.type === "currency";
   const isSceptre = () =>
     props.item.TypeFilters.filters.category.value === "Sceptres";
 
