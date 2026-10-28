@@ -126,7 +126,6 @@ export function Layouts() {
 
   onMount(async () => {
     loadLayouts();
-    getCurrentWindow().show();
 
     unlisten = await getCurrentWindow().onCloseRequested(async () => {
       await saveLayouts();
