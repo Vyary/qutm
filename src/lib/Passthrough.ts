@@ -10,9 +10,11 @@ const enablePassthrough = () => {
   info(`overlay enabled setIgnoreCursorEvents: ${passthrough()}`);
 };
 
-const disablePassthrough = () => {
+const disablePassthrough = async () => {
   setPassthrough(false);
-  getCurrentWindow().setIgnoreCursorEvents(false);
+  await getCurrentWindow().show();
+  await getCurrentWindow().setFocus();
+  await getCurrentWindow().setIgnoreCursorEvents(false);
   info(`overlay disabled setIgnoreCursorEvents: ${passthrough()}`);
 };
 
