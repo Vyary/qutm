@@ -53,6 +53,7 @@ export function Zone() {
     loadTowns();
     loadTracker();
     loadCharacter();
+    getCurrentWindow().show();
 
     unlisten = await getCurrentWindow().onCloseRequested(async () => {
       await Promise.all([
