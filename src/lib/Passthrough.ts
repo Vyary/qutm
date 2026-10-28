@@ -1,3 +1,4 @@
+import { setCloseOverlay } from "@/App";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { info } from "@tauri-apps/plugin-log";
 import { createSignal } from "solid-js";
@@ -7,6 +8,7 @@ const [passthrough, setPassthrough] = createSignal(false);
 const enablePassthrough = () => {
   setPassthrough(true);
   getCurrentWindow().setIgnoreCursorEvents(true);
+  setCloseOverlay(false);
   info(`overlay enabled setIgnoreCursorEvents: ${passthrough()}`);
 };
 

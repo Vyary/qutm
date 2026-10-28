@@ -1,4 +1,4 @@
-import { onCleanup, onMount } from "solid-js";
+import { createSignal, onCleanup, onMount, Show } from "solid-js";
 import "./App.css";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { enablePassthrough, passthrough } from "./lib/Passthrough";
@@ -20,6 +20,8 @@ import { showInventory } from "./components/widgets/inventory/InventorySettings"
 import { showPrice } from "./components/widgets/price/PriceSettings";
 import { showZone } from "./components/widgets/zone/ZoneSettings";
 import { showLayout } from "./components/widgets/layout/LayoutSettings";
+
+export const [closeOverlay, setCloseOverlay] = createSignal(false);
 
 function App() {
   let unlisten: UnlistenFn = () => info("app on close unlisten not updated");
@@ -73,6 +75,15 @@ function App() {
           !passthrough(),
       }}
     >
+      <Show when={closeOverlay() && !passthrough()}>
+        <div
+          class="min-h-dvh min-w-dvw"
+          onClick={() => {
+            if (closeOverlay()) enablePassthrough();
+          }}
+        ></div>
+      </Show>
+
       <Guard name="Update" show={autoUpdate()}>
         <Updater />
       </Guard>
@@ -80,6 +91,20 @@ function App() {
       <Guard name="SetupFlow" show={true}>
         <SetupFlow />
       </Guard>
+
+      <div
+        classList={{
+          hidden: !showOverlay() && passthrough(),
+        }}
+      >
+        <Guard name="Zone" show={showZone()}>
+          <Zone />
+        </Guard>
+
+        <Guard name="Layout" show={showLayout()}>
+          <Layouts />
+        </Guard>
+      </div>
 
       <div
         classList={{
@@ -96,20 +121,6 @@ function App() {
 
         <Guard name="Price" show={showPrice()}>
           <Price />
-        </Guard>
-      </div>
-
-      <div
-        classList={{
-          hidden: !showOverlay() && passthrough(),
-        }}
-      >
-        <Guard name="Zone" show={showZone()}>
-          <Zone />
-        </Guard>
-
-        <Guard name="Layout" show={showLayout()}>
-          <Layouts />
         </Guard>
       </div>
     </main>
