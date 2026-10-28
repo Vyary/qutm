@@ -13,6 +13,7 @@ import { createQuery } from "./utils/CreateQuery";
 import { Item, Prices } from "./utils/Types";
 import { parseItem } from "./utils/ParseItem";
 import { ItemRenderer } from "./ItemRenderer";
+import { setCloseOverlay } from "@/App";
 
 export const [scanItemAction, setScanItemAction] = createSignal<
   () => Promise<void>
@@ -35,7 +36,6 @@ export function Price() {
   });
   const [timeout, setTimeoutLeft] = createSignal(0);
   const [prices, setPrices] = createSignal<Prices[]>([]);
-  const [closeOverlay, setCloseOverlay] = createSignal(false);
   let requestId = 0;
   let disposed = false;
   let unlisten: UnlistenFn = () =>
@@ -141,15 +141,6 @@ export function Price() {
 
   return (
     <>
-      <div
-        class="min-h-dvh min-w-dvw"
-        onClick={() => {
-          if (closeOverlay()) enablePassthrough();
-          setCloseOverlay(false);
-        }}
-      >
-        hi
-      </div>
       <Show when={item.TypeFilters.filters.category.value}>
         <BaseWidget
           name="price"
