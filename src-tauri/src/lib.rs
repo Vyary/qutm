@@ -232,6 +232,31 @@ fn get_global_mouse_position() -> Option<(i32, i32)> {
     None
 }
 
+#[tauri::command]
+async fn alt_tab() -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(|| -> Result<(), String> {
+        let mut enigo = Enigo::new(&Settings::default()).map_err(|e| e.to_string())?;
+
+        #[cfg(target_os = "macos")]
+        let modifier = Key::Meta; // Cmd
+        #[cfg(not(target_os = "macos"))]
+        let modifier = Key::Alt;
+
+        let err = |e: enigo::InputError| e.to_string();
+
+        enigo.key(modifier, Direction::Press).map_err(err)?;
+
+        let result = enigo.key(Key::Tab, Direction::Click).map_err(err);
+
+        thread::sleep(Duration::from_millis(5));
+        let _ = enigo.key(modifier, Direction::Release);
+
+        result
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
 fn short_target(target: &str) -> &str {
     target.rsplit_once('/').map_or(target, |(_, file)| file)
 }
@@ -286,6 +311,7 @@ pub fn run() {
             mouse_move,
             mouse_click,
             get_global_mouse_position,
+            alt_tab
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

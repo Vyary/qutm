@@ -20,6 +20,7 @@ import { showInventory } from "./components/widgets/inventory/InventorySettings"
 import { showPrice } from "./components/widgets/price/PriceSettings";
 import { showZone } from "./components/widgets/zone/ZoneSettings";
 import { showLayout } from "./components/widgets/layout/LayoutSettings";
+import { invoke } from "@tauri-apps/api/core";
 
 export const [closeOverlay, setCloseOverlay] = createSignal(false);
 
@@ -79,7 +80,10 @@ function App() {
         <div
           class="min-h-dvh min-w-dvw"
           onClick={() => {
-            if (closeOverlay()) enablePassthrough();
+            if (closeOverlay()) {
+              invoke("alt_tab");
+              enablePassthrough();
+            }
           }}
         ></div>
       </Show>
