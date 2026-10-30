@@ -245,11 +245,10 @@ async fn alt_tab() -> Result<(), String> {
         let err = |e: enigo::InputError| e.to_string();
 
         enigo.key(modifier, Direction::Press).map_err(err)?;
-        thread::sleep(Duration::from_millis(30));
 
         let result = enigo.key(Key::Tab, Direction::Click).map_err(err);
 
-        thread::sleep(Duration::from_millis(30));
+        thread::sleep(Duration::from_millis(5));
         let _ = enigo.key(modifier, Direction::Release);
 
         result
