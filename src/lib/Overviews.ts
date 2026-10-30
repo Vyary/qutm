@@ -47,7 +47,9 @@ type ExchangePrices = Record<
 const TWELVE_HOURS = 12 * 60 * 60 * 1000;
 
 export const [overviews, setOverviews] = createStore<ExchangePrices>();
-export const [ts, setTs] = createSignal<string>("");
+export const [ts, setTs] = createSignal<number>(0);
+const isStale = (t?: number) => !t || Date.now() - t >= TWELVE_HOURS;
+let inflight: Promise<void> | null = null;
 
 const fetchOverviews = async () => {
   const currencyCategories = [
@@ -109,40 +111,39 @@ const fetchOverviews = async () => {
   return ep;
 };
 
-const refreshOverview = async () => {
-  setOverviews(await fetchOverviews());
-  saveOverviews();
+const saveOverviews = async (data: ExchangePrices) => {
+  const now = Date.now();
+  await store.set("overviews", data);
+  await store.set("timestamp", now);
+  await store.save();
+  setTs(now);
 };
 
-export const checkOverviews = async () => {
-  const ts = await store.get<number>("timestamp");
-  if (Date.now() - (ts ?? TWELVE_HOURS) >= TWELVE_HOURS) {
-    refreshOverview();
-  }
+const refreshOverview = () => {
+  inflight ??= (async () => {
+    try {
+      const data = await fetchOverviews();
+      setOverviews(reconcile(data));
+      await saveOverviews(data);
+    } catch (e) {
+      console.error("overview refresh failed: ", e);
+    } finally {
+      inflight = null;
+    }
+  })();
+  return inflight;
 };
 
 export const loadOverviews = async () => {
-  const ts = await store.get<number>("timestamp");
-  if (ts) {
-    const nd = new Date(ts);
-    setTs(nd.toISOString());
-  }
-
-  if (Date.now() - (ts ?? TWELVE_HOURS) >= TWELVE_HOURS) {
-    refreshOverview();
-    return;
-  }
-
-  const overviews = await store.get<ExchangePrices>("overviews");
-  if (overviews) setOverviews(reconcile(overviews));
-  if (!overviews) {
-    refreshOverview();
-  }
+  const [ts, cached] = await Promise.all([
+    store.get<number>("timestamp"),
+    store.get<ExchangePrices>("overviews"),
+  ]);
+  if (ts) setTs(ts);
+  if (cached) setOverviews(reconcile(cached));
+  if (!cached || isStale(ts)) await refreshOverview();
 };
 
-const saveOverviews = async () => {
-  store.set("overviews", overviews);
-  store.set("timestamp", Date.now());
-  setTs(new Date(Date.now()).toISOString());
-  store.save();
+export const checkOverviews = async () => {
+  if (isStale(ts() || 0)) await refreshOverview();
 };
