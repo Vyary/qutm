@@ -1,5 +1,4 @@
 import { checkOverviews, overviews, ts } from "@/lib/Overviews";
-import { createSignal, onMount } from "solid-js";
 import { fetch } from "@tauri-apps/plugin-http";
 import { debug, info } from "@tauri-apps/plugin-log";
 import { RateLimiter, updateTimes } from "./RateLimiter";
@@ -36,62 +35,49 @@ export interface PriceCheckResult {
 }
 
 function StaticTimeAgo(timestamp: string) {
-  const [text, setText] = createSignal("");
+  const past = Date.parse(timestamp);
+  if (Number.isNaN(past)) return "";
 
-  onMount(() => {
-    const past = new Date(timestamp).getTime();
-    const diffSeconds = Math.floor((Date.now() - past) / 1000);
+  const s = Math.floor((Date.now() - past) / 1000);
+  if (s < 60) return "just now";
 
-    if (diffSeconds < 60) {
-      setText("just now");
-    } else {
-      const diffMinutes = Math.floor(diffSeconds / 60);
-      if (diffMinutes < 60) {
-        setText(`${diffMinutes}m ago`);
-      } else {
-        const diffHours = Math.floor(diffMinutes / 60);
-        if (diffHours < 24) {
-          setText(`${diffHours}h ago`);
-        } else {
-          setText(`${Math.floor(diffHours / 24)}d ago`);
-        }
-      }
-    }
-  });
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m ago`;
 
-  return text();
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+
+  return `${Math.floor(h / 24)}d ago`;
 }
 
-const PriceCheck = async (
-  item: Item,
-  query: string,
-): Promise<PriceCheckResult> => {
+export const OverviewsPrice = async (item: Item): Promise<Prices[]> => {
   let s = performance.now();
   await checkOverviews();
   info(`checking overviews took: ${(performance.now() - s).toFixed(2)}ms`);
   const itemO = overviews[item.name.value];
   if (itemO) {
     const maxCurr = itemO.maxVolumeCurrency;
-    return {
-      prices: [
-        {
-          amount:
-            itemO.prices[
-              maxCurr == "exalted"
-                ? "exalted"
-                : maxCurr == "chaos"
-                  ? "chaos"
-                  : "divine"
-            ],
-          currency: itemO.maxVolumeCurrency,
-          listed: StaticTimeAgo(ts()),
-        },
-      ],
-      timeout: 0,
-    };
+    return [
+      {
+        amount:
+          itemO.prices[
+            maxCurr == "exalted"
+              ? "exalted"
+              : maxCurr == "chaos"
+                ? "chaos"
+                : "divine"
+          ],
+        currency: itemO.maxVolumeCurrency,
+        listed: StaticTimeAgo(new Date(ts()).toISOString()),
+      },
+    ];
   }
 
-  s = performance.now();
+  return [];
+};
+
+const PriceCheck = async (query: string): Promise<PriceCheckResult> => {
+  let s = performance.now();
   const rateLimit = RateLimiter();
   if (rateLimit) {
     return { prices: [], timeout: rateLimit };
@@ -110,7 +96,7 @@ const PriceCheck = async (
     },
   );
 
-  info(`search req took: ${(performance.now() - s).toFixed(2)}ms`);
+  info(`search request took: ${(performance.now() - s).toFixed(2)}ms`);
 
   const ipLimits = searchReq.headers.get("x-rate-limit-ip");
   const ipState = searchReq.headers.get("x-rate-limit-ip-state");
@@ -138,7 +124,7 @@ const PriceCheck = async (
       },
     },
   );
-  info(`searchRes took: ${(performance.now() - s).toFixed(2)}ms`);
+  info(`search result took: ${(performance.now() - s).toFixed(2)}ms`);
 
   const srData: SearchResponse = await searchRes.json();
 
