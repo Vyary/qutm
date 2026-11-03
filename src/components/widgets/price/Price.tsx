@@ -23,7 +23,6 @@ let interval: ReturnType<typeof setInterval> | undefined;
 
 export function Price() {
   const [item, setItem] = createStore<Item>({
-    name: { value: "", disabled: true },
     TypeFilters: { filters: { category: { value: "", disabled: true } } },
     EquipmentFilters: { filters: {}, disabled: true },
     ReqFilters: { filters: {}, disabled: true },
@@ -36,6 +35,7 @@ export function Price() {
   });
   const [timeout, setTimeoutLeft] = createSignal(0);
   const [prices, setPrices] = createSignal<Prices[]>([]);
+  const [ovPrice, setOvPrice] = createSignal(false);
   let requestId = 0;
   let disposed = false;
   let unlisten: UnlistenFn = () =>
@@ -81,6 +81,7 @@ export function Price() {
     const overviewsPrice = await OverviewsPrice(item);
     if (overviewsPrice.length > 0) {
       setPrices(overviewsPrice);
+      setOvPrice(true);
       return;
     }
 
@@ -92,6 +93,7 @@ export function Price() {
     try {
       const s = performance.now();
       const q = JSON.stringify(createQuery(item));
+      info(q);
       info(`query creating took: ${(performance.now() - s).toFixed(2)}ms`);
 
       const p = await PriceCheck(q);
@@ -99,6 +101,7 @@ export function Price() {
       if (p.timeout) return startCountdown(p.timeout);
 
       setPrices(p.prices);
+      setOvPrice(false);
       info(`pricing total: ${(performance.now() - s).toFixed(2)}ms`);
     } catch (e) {
       if (id === requestId) setPrices([]);
@@ -168,6 +171,7 @@ export function Price() {
             prices={prices}
             timeout={timeout}
             getPrice={getPrice}
+            ovPrice={ovPrice}
           />
         </BaseWidget>
       </Show>
