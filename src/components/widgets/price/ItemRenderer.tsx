@@ -1,4 +1,4 @@
-import { Accessor, For, JSX, Show } from "solid-js";
+import { Accessor, For, JSX, onMount, Show } from "solid-js";
 import { produce, type SetStoreFunction } from "solid-js/store";
 import {
   CLASSES,
@@ -10,6 +10,7 @@ import {
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { createQuery } from "./utils/CreateQuery.ts";
 import { enablePassthrough } from "@/lib/Passthrough.ts";
+import { error } from "@tauri-apps/plugin-log";
 
 interface ItemRendererProps {
   item: Item;
@@ -17,6 +18,7 @@ interface ItemRendererProps {
   prices: Accessor<Prices[]>;
   timeout: Accessor<number>;
   getPrice: () => void;
+  ovPrice: Accessor<boolean>;
 }
 
 type GroupType =
@@ -56,7 +58,7 @@ function InputRange(props: {
 function FilterRow<T extends GroupType>(props: {
   label: string;
   group: T;
-  key: keyof Item[T]["filters"] & string;
+  key: string;
   item: Item;
   setItem: SetStoreFunction<Item>;
 }) {
@@ -69,7 +71,7 @@ function FilterRow<T extends GroupType>(props: {
 
   return (
     <div
-      class="flex gap-1 items-center justify-between"
+      class="flex gap-1 items-center justify-between max-h-6"
       classList={{
         "opacity-40": range()?.disabled ?? true,
       }}
@@ -106,6 +108,78 @@ function FilterRow<T extends GroupType>(props: {
           );
         }}
       />
+    </div>
+  );
+}
+
+function BooleanRow<T extends GroupType>(props: {
+  label: string;
+  group: T;
+  key: string;
+  item: Item;
+  setItem: SetStoreFunction<Item>;
+}) {
+  const filters = (i: Item) =>
+    i[props.group].filters as unknown as Record<
+      string,
+      Toggleable<boolean> | undefined
+    >;
+  const bool = () => filters(props.item)[props.key];
+
+  const selected = () => {
+    const v = bool()?.value;
+    return v === undefined ? "Any" : v ? "Yes" : "No";
+  };
+
+  let detailsRef!: HTMLDetailsElement;
+
+  const handleSelect = (choice: "Any" | "Yes" | "No") => {
+    detailsRef.removeAttribute("open");
+    props.setItem(
+      produce((s) => {
+        if (choice === "Any") {
+          delete filters(s)[props.key];
+        } else {
+          filters(s)[props.key] = {
+            value: choice === "Yes",
+            disabled: false,
+          };
+        }
+      }),
+    );
+  };
+
+  const toggleDisabled = () =>
+    props.setItem(
+      produce((s) => {
+        const f = filters(s)[props.key];
+        if (f) f.disabled = !f.disabled;
+      }),
+    );
+
+  return (
+    <div class="flex gap-1 items-center justify-between max-h-6">
+      <span
+        class="cursor-pointer"
+        classList={{ "opacity-40": bool()?.disabled ?? true }}
+        onClick={toggleDisabled}
+      >
+        {props.label}
+      </span>
+      <details ref={detailsRef} class="dropdown dropdown-end">
+        <summary class="btn btn-xs btn-soft btn-outline w-16">
+          {selected()}
+        </summary>
+        <ul class="menu dropdown-content bg-base-200 border border-base-content/5 rounded-box z-1 w-52 p-2 shadow-sm">
+          <For each={["Any", "Yes", "No"] as const}>
+            {(choice) => (
+              <li>
+                <a onClick={() => handleSelect(choice)}>{choice}</a>
+              </li>
+            )}
+          </For>
+        </ul>
+      </details>
     </div>
   );
 }
@@ -215,7 +289,6 @@ function ModList(props: {
 const FLAGS = [
   { key: "corrupted", label: "Corrupted", color: "badge-error" },
   { key: "twiceCorrupted", label: "Twice Corrupted", color: "badge-error" },
-  { key: "identified", label: "Identified", color: "badge-error" },
   { key: "mirrored", label: "Mirrored", color: "badge-info" },
   { key: "sanctified", label: "Sanctified", color: "badge-warning" },
 ];
@@ -255,23 +328,48 @@ function FlagBadge(props: { item: Item; setItem: SetStoreFunction<Item> }) {
 }
 
 export function ItemRenderer(props: ItemRendererProps) {
-  const isArmour = () =>
-    CLASSES[props.item.TypeFilters.filters.category.value]?.type === "armour";
-  const isWeapon = () =>
-    CLASSES[props.item.TypeFilters.filters.category.value]?.type === "weapon";
-  const isCurrency = () =>
-    CLASSES[props.item.TypeFilters.filters.category.value]?.type === "currency";
+  const cat = () => props.item.TypeFilters.filters.category.value;
+  const rarity = () => props.item.TypeFilters.filters.rarity?.value;
+  const catType = () => CLASSES[cat()]?.type;
+
+  const isArmour = () => catType() === "armour";
+  const isWeapon = () => catType() === "weapon";
+  const isCurrency = () => catType() === "currency" || rarity() === "Currency";
   const isSceptre = () =>
     props.item.TypeFilters.filters.category.value === "Sceptres";
+  const hasReq = () =>
+    [
+      "armour",
+      "weapon",
+      "caster",
+      "belt",
+      "quiver",
+      "accessory",
+      "gem",
+      "flask",
+      "charm",
+    ].includes(catType());
+  const hasQuality = () =>
+    [
+      "armour",
+      "weapon",
+      "caster",
+      "accessory",
+      "gem",
+      "flask",
+      "charm",
+      "jewel",
+    ].includes(catType());
+  const isWaystone = () => catType() === "waystone";
+  const isGem = () => catType() === "gem" || catType() === "support";
 
-  const isWaystone = () =>
-    props.item.MapFilters.filters.bonus?.value.min ||
-    props.item.MapFilters.filters.iir?.value.min ||
-    props.item.MapFilters.filters.magicMonsters?.value.min ||
-    props.item.MapFilters.filters.packsize?.value.min ||
-    props.item.MapFilters.filters.rareMonsters?.value.min ||
-    props.item.MapFilters.filters.revives?.value.min ||
-    props.item.MapFilters.filters.tier?.value.min;
+  onMount(() => {
+    const c = CLASSES[props.item.TypeFilters.filters.category.value];
+    if (!c)
+      return error(
+        `no category found for: ${props.item.TypeFilters.filters.category.value}`,
+      );
+  });
 
   return (
     <div class="flex flex-col gap-1 justify-center p-4 text-sm">
@@ -290,21 +388,23 @@ export function ItemRenderer(props: ItemRendererProps) {
         onToggle={() => props.setItem("type", "disabled", (d) => !d)}
       />
 
-      <ToggleableRow
-        label="Rarity: "
-        el={props.item.TypeFilters.filters.rarity}
-        onToggle={() =>
-          props.setItem(
-            "TypeFilters",
-            "filters",
-            "rarity",
-            "disabled",
-            (d) => !d,
-          )
-        }
-      />
+      <Show when={catType() && !isCurrency()}>
+        <ToggleableRow
+          label="Rarity: "
+          el={props.item.TypeFilters.filters.rarity}
+          onToggle={() =>
+            props.setItem(
+              "TypeFilters",
+              "filters",
+              "rarity",
+              "disabled",
+              (d) => !d,
+            )
+          }
+        />
+      </Show>
 
-      <Show when={!isCurrency()}>
+      <Show when={catType() && !isCurrency() && !isGem()}>
         <FilterRow
           label="Item Level: "
           group="TypeFilters"
@@ -314,7 +414,7 @@ export function ItemRenderer(props: ItemRendererProps) {
         />
       </Show>
 
-      <Show when={!isWaystone() && !isCurrency()}>
+      <Show when={hasQuality()}>
         <FilterRow
           label="Quality: "
           group="TypeFilters"
@@ -349,123 +449,76 @@ export function ItemRenderer(props: ItemRendererProps) {
             />
           </Show>
           <Show when={isWeapon() && !isSceptre()}>
-            <FilterRow
-              label="Attack Speed: "
-              group="EquipmentFilters"
-              key="aps"
-              item={props.item}
-              setItem={props.setItem}
-            />
-            <FilterRow
-              label="Critical Chance: "
-              group="EquipmentFilters"
-              key="crit"
-              item={props.item}
-              setItem={props.setItem}
-            />
-            <FilterRow
-              label="DPS: "
-              group="EquipmentFilters"
-              key="dps"
-              item={props.item}
-              setItem={props.setItem}
-            />
-            <FilterRow
-              label="Physical DPS: "
-              group="EquipmentFilters"
-              key="pdps"
-              item={props.item}
-              setItem={props.setItem}
-            />
-            <FilterRow
-              label="Elemental DPS: "
-              group="EquipmentFilters"
-              key="edps"
-              item={props.item}
-              setItem={props.setItem}
-            />
-            <FilterRow
-              label="Reload Time: "
-              group="EquipmentFilters"
-              key="reloadTime"
-              item={props.item}
-              setItem={props.setItem}
-            />
+            <For
+              each={[
+                ["aps", "Attack Speed: "],
+                ["crit", "Critical Chance: "],
+                ["dps", "DPS: "],
+                ["pdps", "Physical DPS: "],
+                ["edps", "Elemental DPS: "],
+                ["reloadTime", "Reload Time: "],
+              ]}
+            >
+              {([k, l]) => (
+                <FilterRow
+                  label={l}
+                  group="EquipmentFilters"
+                  key={k}
+                  item={props.item}
+                  setItem={props.setItem}
+                />
+              )}
+            </For>
           </Show>
           <Show when={isArmour()}>
-            <FilterRow
-              label="Armour: "
-              group="EquipmentFilters"
-              key="ar"
-              item={props.item}
-              setItem={props.setItem}
-            />
-            <FilterRow
-              label="Evasion: "
-              group="EquipmentFilters"
-              key="ev"
-              item={props.item}
-              setItem={props.setItem}
-            />
-            <FilterRow
-              label="Energy Shield: "
-              group="EquipmentFilters"
-              key="es"
-              item={props.item}
-              setItem={props.setItem}
-            />
-            <FilterRow
-              label="Runic Ward: "
-              group="EquipmentFilters"
-              key="ward"
-              item={props.item}
-              setItem={props.setItem}
-            />
-            <FilterRow
-              label="Block: "
-              group="EquipmentFilters"
-              key="block"
-              item={props.item}
-              setItem={props.setItem}
-            />
+            <For
+              each={[
+                ["ar", "Armour: "],
+                ["ev", "Evasion: "],
+                ["es", "Energy Shield: "],
+                ["ward", "Runic Ward: "],
+                ["block", "Block: "],
+                ["reloadTime", "Reload Time: "],
+              ]}
+            >
+              {([k, l]) => (
+                <FilterRow
+                  label={l}
+                  group="EquipmentFilters"
+                  key={k}
+                  item={props.item}
+                  setItem={props.setItem}
+                />
+              )}
+            </For>
           </Show>
         </FilterGroup>
       </Show>
 
-      <Show when={!isWaystone() && !isCurrency()}>
+      <Show when={hasReq()}>
         <FilterGroup
           label="Requirements"
           disabled={props.item.ReqFilters.disabled}
           onToggle={() => props.setItem("ReqFilters", "disabled", (d) => !d)}
         >
-          <FilterRow
-            label="Level: "
-            group="ReqFilters"
-            key="lvl"
-            item={props.item}
-            setItem={props.setItem}
-          />
-          <FilterRow
-            label="Strength: "
-            group="ReqFilters"
-            key="str"
-            item={props.item}
-            setItem={props.setItem}
-          />
-          <FilterRow
-            label="Dexterity: "
-            group="ReqFilters"
-            key="dex"
-            item={props.item}
-            setItem={props.setItem}
-          />
-          <FilterRow
-            label="Intelligence: "
-            group="ReqFilters"
-            key="int"
-            item={props.item}
-            setItem={props.setItem}
-          />
+          <For
+            each={[
+              ["lvl", "Level: "],
+              ["str", "Strength: "],
+              ["dex", "Dexterity: "],
+              ["int", "Intelligence: "],
+            ]}
+          >
+            {([k, l]) => (
+              <FilterRow
+                label={l}
+                group="ReqFilters"
+                key={k}
+                item={props.item}
+                setItem={props.setItem}
+              />
+            )}
+          </For>
         </FilterGroup>
       </Show>
 
@@ -475,55 +528,112 @@ export function ItemRenderer(props: ItemRendererProps) {
           disabled={props.item.MapFilters.disabled}
           onToggle={() => props.setItem("MapFilters", "disabled", (d) => !d)}
         >
-          <FilterRow
-            label="Tier: "
-            group="MapFilters"
-            key="tier"
-            item={props.item}
-            setItem={props.setItem}
-          />
-          <FilterRow
-            label="Revives: "
-            group="MapFilters"
-            key="revives"
-            item={props.item}
-            setItem={props.setItem}
-          />
-          <FilterRow
-            label="Item Rarity: "
-            group="MapFilters"
-            key="iir"
-            item={props.item}
-            setItem={props.setItem}
-          />
-          <FilterRow
-            label="Pack Size: "
-            group="MapFilters"
-            key="packsize"
-            item={props.item}
-            setItem={props.setItem}
-          />
-          <FilterRow
-            label="Monster Rarity: "
-            group="MapFilters"
-            key="rareMonsters"
-            item={props.item}
-            setItem={props.setItem}
-          />
-          <FilterRow
-            label="Monster Effectiveness: "
-            group="MapFilters"
-            key="magicMonsters"
-            item={props.item}
-            setItem={props.setItem}
-          />
-          <FilterRow
-            label="Drop Chance: "
-            group="MapFilters"
-            key="bonus"
-            item={props.item}
-            setItem={props.setItem}
-          />
+          <For
+            each={[
+              ["tier", "Tier: "],
+              ["revives", "Revives: "],
+              ["iir", "Item Rarity: "],
+              ["packsize", "Pack Size: "],
+              ["rareMonsters", "Monster Rarity: "],
+              ["magicMonsters", "Monster Effectiveness: "],
+              ["bonus", "Drop Chance: "],
+            ]}
+          >
+            {([k, l]) => (
+              <FilterRow
+                label={l}
+                group="MapFilters"
+                key={k}
+                item={props.item}
+                setItem={props.setItem}
+              />
+            )}
+          </For>
+        </FilterGroup>
+      </Show>
+
+      <Show when={catType() && !isCurrency()}>
+        <FilterGroup
+          label="Miscellaneous"
+          disabled={props.item.MiscFilters.disabled}
+          onToggle={() => props.setItem("MiscFilters", "disabled", (d) => !d)}
+        >
+          <Show when={isGem()}>
+            <FilterRow
+              label="Gem Level: "
+              group="MiscFilters"
+              key="gemLevel"
+              item={props.item}
+              setItem={props.setItem}
+            />
+            <FilterRow
+              label="Gem Sockets: "
+              group="MiscFilters"
+              key="gemSockets"
+              item={props.item}
+              setItem={props.setItem}
+            />
+          </Show>
+          <For
+            each={[
+              {
+                label: "Identified: ",
+                key: "identified",
+                block: ["twiceCorrupted", "fractured", "sanctified"] as const,
+                show: true,
+              },
+              {
+                label: "Corrupted: ",
+                key: "corrupted",
+                block: ["twiceCorrupted", "mirrored", "sanctified"] as const,
+                show: true,
+              },
+              {
+                label: "Twice Corrupted: ",
+                key: "twiceCorrupted",
+                block: ["corrupted", "mirrored", "sanctified"] as const,
+                show: props.item.MiscFilters.filters.identified?.value != false,
+              },
+              {
+                label: "Mirrored: ",
+                key: "mirrored",
+                block: ["corrupted", "twiceCorrupted", "sanctified"] as const,
+                show: true,
+              },
+              {
+                label: "Fractured: ",
+                key: "fractured",
+                block: [] as const,
+                show:
+                  props.item.MiscFilters.filters.identified?.value != false &&
+                  !isWaystone(),
+              },
+              {
+                label: "Sanctified: ",
+                key: "sanctified",
+                block: ["corrupted", "twiceCorrupted", "mirrored"] as const,
+                show: props.item.MiscFilters.filters.identified?.value != false,
+              },
+            ]}
+          >
+            {(row) => (
+              <Show
+                when={
+                  !row.block.some(
+                    (k) => props.item.MiscFilters.filters[k]?.value === true,
+                  ) && row.show
+                }
+              >
+                <BooleanRow
+                  label={row.label}
+                  group="MiscFilters"
+                  key={row.key}
+                  item={props.item}
+                  setItem={props.setItem}
+                />
+              </Show>
+            )}
+          </For>
         </FilterGroup>
       </Show>
 
@@ -537,21 +647,13 @@ export function ItemRenderer(props: ItemRendererProps) {
         <div class="divider my-0 opacity-50"></div>
       </Show>
 
-      <Show when={props.item.skill.length > 0}>
-        <ModList modType="skill" item={props.item} setItem={props.setItem} />
-      </Show>
-
-      <Show when={props.item.enhancement.length > 0}>
-        <ModList
-          modType="enhancement"
-          item={props.item}
-          setItem={props.setItem}
-        />
-      </Show>
-
-      <Show when={props.item.implicit.length > 0}>
-        <ModList modType="implicit" item={props.item} setItem={props.setItem} />
-      </Show>
+      <For each={["skill", "enhancement", "implicit"] as const}>
+        {(type) => (
+          <Show when={props.item[type].length > 0}>
+            <ModList modType={type} item={props.item} setItem={props.setItem} />
+          </Show>
+        )}
+      </For>
 
       <Show when={props.item.explicit.length > 0}>
         <div class="divider my-0 opacity-50"></div>
@@ -560,43 +662,50 @@ export function ItemRenderer(props: ItemRendererProps) {
 
       <div class="divider my-0 opacity-50"></div>
 
-      <div class="w-full inline-flex justify-between">
-        <div>
+      <Show when={!props.ovPrice()}>
+        <div class="w-full inline-flex justify-between">
+          <div>
+            <button
+              onClick={async () => {
+                props.getPrice();
+              }}
+              class="btn btn-xs btn-soft btn-outline w-16"
+              classList={{
+                "btn-disabled": props.timeout() > 0,
+                "font-mono": props.timeout() > 0,
+              }}
+            >
+              {props.timeout() > 0
+                ? `${(props.timeout() / 1000).toFixed(1)}s`
+                : "Recheck"}
+            </button>
+          </div>
           <button
             onClick={async () => {
-              props.getPrice();
+              await openUrl(
+                "https://www.pathofexile.com/trade2/search/poe2/Forbidden%20Rites?q=" +
+                  JSON.stringify(createQuery(props.item)),
+              );
+
+              enablePassthrough();
             }}
-            class="btn btn-xs btn-soft"
-            classList={{
-              "btn-disabled": props.timeout() > 0,
-              "font-mono": props.timeout() > 0,
-            }}
+            class="btn btn-xs btn-soft btn-outline w-16"
           >
-            {props.timeout() > 0
-              ? `${(props.timeout() / 1000).toFixed(1)}s`
-              : "Recheck price"}
+            Trade
           </button>
         </div>
-        <button
-          onClick={async () => {
-            await openUrl(
-              "https://www.pathofexile.com/trade2/search/poe2/Forbidden%20Rites?q=" +
-                JSON.stringify(createQuery(props.item)),
-            );
-
-            enablePassthrough();
-          }}
-          class="btn btn-xs btn-soft"
-        >
-          Trade
-        </button>
-      </div>
+      </Show>
 
       <For each={props.prices()}>
         {(p) => (
           <div class="flex justify-between px-1">
             <span class="">
-              {p.amount >= 1 ? p.amount : p.amount.toFixed(4)} {p.currency}
+              {p.amount >= 1
+                ? p.amount % 1 === 0
+                  ? p.amount
+                  : p.amount.toFixed(2)
+                : p.amount.toFixed(4)}{" "}
+              {p.currency}
             </span>
             <span>{p.listed}</span>
           </div>

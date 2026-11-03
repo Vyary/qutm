@@ -1,4 +1,5 @@
 export const CLASSES: Record<string, { id: string; type: string }> = {
+  // ARMOUR STATS + REQUIREMENTS + QUALITY
   Helmets: { id: "armour.helmet", type: "armour" },
   "Body Armours": { id: "armour.chest", type: "armour" },
   Gloves: { id: "armour.gloves", type: "armour" },
@@ -7,34 +8,43 @@ export const CLASSES: Record<string, { id: string; type: string }> = {
   Shields: { id: "armour.shield", type: "armour" },
   Bucklers: { id: "armour.buckler", type: "armour" },
 
+  // WEAPON STATS + REQUIREMENTS + QUALITY
   Sceptres: { id: "weapon.sceptre", type: "weapon" },
   Talismans: { id: "weapon.talisman", type: "weapon" },
   Spears: { id: "weapon.spear", type: "weapon" },
   Quarterstaves: { id: "weapon.warstaff", type: "weapon" },
   Bows: { id: "weapon.bow", type: "weapon" },
   Crossbows: { id: "weapon.crossbow", type: "weapon" },
-  Staves: { id: "weapon.staff", type: "" },
 
-  Belts: { id: "accessory.belt", type: "accessory" },
+  // REQUIREMENTS
+  Augment: { id: "currency.rune", type: "augment" },
+  Belts: { id: "accessory.belt", type: "belt" },
+  Quivers: { id: "armour.quiver", type: "quiver" },
+
+  // REQUIREMENTS + QUALITY
+  Staves: { id: "weapon.staff", type: "caster" },
+  Wands: { id: "weapon.wand", type: "caster" },
   Amulets: { id: "accessory.amulet", type: "accessory" },
   Rings: { id: "accessory.ring", type: "accessory" },
+  "Skill Gems": { id: "gem.activegem", type: "gem" },
+  "Life Flasks": { id: "flask.life", type: "flask" },
+  "Mana Flasks": { id: "flask.mana", type: "flask" },
+  Charms: { id: "flask.charm", type: "charm" },
 
-  Quivers: { id: "armour.quiver", type: "" },
-  Wands: { id: "weapon.wand", type: "" },
-  "Trial Coins": { id: "map.barya", type: "" },
-  "Inscribed Ultimatum": { id: "map.ultimatum", type: "" },
-  Augment: { id: "currency.rune", type: "" },
-  "Skill Gems": { id: "gem.activegem", type: "" },
-  "Support Gems": { id: "gem.supportgem", type: "" },
-  "Life Flasks": { id: "flask.life", type: "" },
-  "Mana Flasks": { id: "flask.mana", type: "" },
-  Charms: { id: "flask.charm", type: "" },
-  Waystones: { id: "map.waystone", type: "" },
-  Tablet: { id: "map.tablet", type: "" },
-  Relics: { id: "sanctum.relic", type: "" },
-  Jewels: { id: "jewel", type: "" },
+  // QUALITY
+  Jewels: { id: "jewel", type: "jewel" },
+
+  // Waystones
+  Waystones: { id: "map.waystone", type: "waystone" },
+
+  // --- NO QUALITY / NO ATTRIBUTE REQUIREMENTS ---
   "Stackable Currency": { id: "", type: "currency" },
-  "Pinnacle Keys": { id: "map.bosskey", type: "" },
+  "Support Gems": { id: "gem.supportgem", type: "support" },
+  Relics: { id: "sanctum.relic", type: "relic" },
+  Tablet: { id: "map.tablet", type: "map" },
+  "Trial Coins": { id: "map.barya", type: "map" },
+  "Inscribed Ultimatum": { id: "map.ultimatum", type: "map" },
+  "Pinnacle Keys": { id: "map.bosskey", type: "map" },
 };
 
 export interface PoeTradeQueryPayload {
@@ -145,7 +155,7 @@ interface PoeStatFilter {
 }
 
 export interface Item {
-  name: Toggleable<string>;
+  name?: Toggleable<string>;
   type?: Toggleable<string>;
   TypeFilters: {
     filters: {

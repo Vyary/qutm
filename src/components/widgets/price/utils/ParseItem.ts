@@ -173,7 +173,6 @@ export const parseItem = (item: string) => {
   const lines = item.split("\n");
 
   const itemStruct: Item = {
-    name: { value: "", disabled: true },
     TypeFilters: { filters: { category: { value: "", disabled: true } } },
     EquipmentFilters: { filters: {}, disabled: true },
     ReqFilters: { filters: {}, disabled: true },
@@ -184,12 +183,6 @@ export const parseItem = (item: string) => {
     explicit: [],
     skill: [],
   };
-
-  itemStruct.name = { value: lines[2].trim(), disabled: true };
-
-  if (!lines[3].includes("---")) {
-    itemStruct.type = { value: lines[3].trim(), disabled: false };
-  }
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
@@ -246,6 +239,10 @@ export const parseItem = (item: string) => {
 
     const rarity = line.match(/^Rarity: (?<rarity>\w+)/)?.groups?.rarity;
     if (rarity) {
+      if (rarity === "Gem") {
+        continue;
+      }
+
       itemStruct.TypeFilters.filters.rarity = {
         value: rarity,
         disabled: false,
@@ -254,116 +251,78 @@ export const parseItem = (item: string) => {
     }
 
     // Equipment Filters
+    if (itemStruct.TypeFilters.filters.category.value !== "Skill Gems") {
+      if (line.includes("Armour: ")) {
+        const match = line.match(/(\d+)/);
 
-    if (line.includes("Armour: ")) {
-      const match = line.match(/(\d+)/);
+        if (match) {
+          const value = Number(match[1]);
 
-      if (match) {
-        const value = Number(match[1]);
+          itemStruct.EquipmentFilters.filters.ar = {
+            value: { min: value },
+            disabled: false,
+          };
 
-        itemStruct.EquipmentFilters.filters.ar = {
-          value: { min: value },
-          disabled: false,
-        };
-
-        itemStruct.EquipmentFilters.disabled = false;
-        continue;
-      }
-    }
-
-    if (line.includes("Critical Hit Chance: ")) {
-      const match = line.match(/(\d+?.\d+)%/);
-
-      if (match) {
-        const value = Number(match[1]);
-
-        itemStruct.EquipmentFilters.filters.crit = {
-          value: { min: value },
-          disabled: false,
-        };
-
-        itemStruct.EquipmentFilters.disabled = false;
-        continue;
-      }
-    }
-
-    if (line.includes("Block chance: ")) {
-      const match = line.match(/(\d+)%/);
-
-      if (match) {
-        const value = Number(match[1]);
-
-        itemStruct.EquipmentFilters.filters.block = {
-          value: { min: value },
-          disabled: false,
-        };
-
-        itemStruct.EquipmentFilters.disabled = false;
-        continue;
-      }
-    }
-
-    if (line.includes("Attacks per Second: ")) {
-      const match = line.match(/(\d+?.\d+)/);
-
-      if (match) {
-        const value = Number(match[1]);
-
-        itemStruct.EquipmentFilters.filters.aps = {
-          value: { min: value },
-          disabled: false,
-        };
-
-        itemStruct.EquipmentFilters.disabled = false;
-        continue;
-      }
-    }
-
-    const match = line.match(/Physical Damage: (\d[\d,]*)-(\d[\d,]*)/);
-    if (match) {
-      const min = Number(match[1].replace(/,/g, ""));
-      const max = Number(match[2].replace(/,/g, ""));
-      const value = (min + max) / 2;
-
-      itemStruct.EquipmentFilters.filters.pdps = {
-        value: { min: value },
-        disabled: false,
-      };
-
-      itemStruct.EquipmentFilters.disabled = false;
-      continue;
-    }
-
-    const edpsMatch = line.match(/Elemental Damage:\s*(.+)/);
-    if (edpsMatch) {
-      const damageRanges = edpsMatch[1].split(",");
-      let totalAverageDamage = 0;
-
-      for (const range of damageRanges) {
-        const rangeMatch = range.trim().match(/(\d[\d,]*)-(\d[\d,]*)/);
-        if (rangeMatch) {
-          const min = Number(rangeMatch[1].replace(/,/g, ""));
-          const max = Number(rangeMatch[2].replace(/,/g, ""));
-          totalAverageDamage += (min + max) / 2;
+          itemStruct.EquipmentFilters.disabled = false;
+          continue;
         }
       }
 
-      itemStruct.EquipmentFilters.filters.edps = {
-        value: { min: totalAverageDamage },
-        disabled: false,
-      };
+      if (line.includes("Critical Hit Chance: ")) {
+        const match = line.match(/(\d+?.\d+)%/);
 
-      itemStruct.EquipmentFilters.disabled = false;
-      continue;
-    }
+        if (match) {
+          const value = Number(match[1]);
 
-    if (line.includes("Energy Shield: ")) {
-      const match = line.match(/(\d+)/);
+          itemStruct.EquipmentFilters.filters.crit = {
+            value: { min: value },
+            disabled: false,
+          };
 
+          itemStruct.EquipmentFilters.disabled = false;
+          continue;
+        }
+      }
+
+      if (line.includes("Block chance: ")) {
+        const match = line.match(/(\d+)%/);
+
+        if (match) {
+          const value = Number(match[1]);
+
+          itemStruct.EquipmentFilters.filters.block = {
+            value: { min: value },
+            disabled: false,
+          };
+
+          itemStruct.EquipmentFilters.disabled = false;
+          continue;
+        }
+      }
+
+      if (line.includes("Attacks per Second: ")) {
+        const match = line.match(/(\d+?.\d+)/);
+
+        if (match) {
+          const value = Number(match[1]);
+
+          itemStruct.EquipmentFilters.filters.aps = {
+            value: { min: value },
+            disabled: false,
+          };
+
+          itemStruct.EquipmentFilters.disabled = false;
+          continue;
+        }
+      }
+
+      const match = line.match(/Physical Damage: (\d[\d,]*)-(\d[\d,]*)/);
       if (match) {
-        const value = Number(match[1]);
+        const min = Number(match[1].replace(/,/g, ""));
+        const max = Number(match[2].replace(/,/g, ""));
+        const value = (min + max) / 2;
 
-        itemStruct.EquipmentFilters.filters.es = {
+        itemStruct.EquipmentFilters.filters.pdps = {
           value: { min: value },
           disabled: false,
         };
@@ -371,88 +330,127 @@ export const parseItem = (item: string) => {
         itemStruct.EquipmentFilters.disabled = false;
         continue;
       }
-    }
 
-    if (line.includes("Evasion Rating: ")) {
-      const match = line.match(/(\d+)/);
+      const edpsMatch = line.match(/Elemental Damage:\s*(.+)/);
+      if (edpsMatch) {
+        const damageRanges = edpsMatch[1].split(",");
+        let totalAverageDamage = 0;
 
-      if (match) {
-        const value = Number(match[1]);
+        for (const range of damageRanges) {
+          const rangeMatch = range.trim().match(/(\d[\d,]*)-(\d[\d,]*)/);
+          if (rangeMatch) {
+            const min = Number(rangeMatch[1].replace(/,/g, ""));
+            const max = Number(rangeMatch[2].replace(/,/g, ""));
+            totalAverageDamage += (min + max) / 2;
+          }
+        }
 
-        itemStruct.EquipmentFilters.filters.ev = {
-          value: { min: value },
+        itemStruct.EquipmentFilters.filters.edps = {
+          value: { min: totalAverageDamage },
           disabled: false,
         };
 
         itemStruct.EquipmentFilters.disabled = false;
         continue;
       }
-    }
 
-    if (line.includes("Reload Time: ")) {
-      const match = line.match(/(\d+?.\d+)/);
+      if (line.includes("Energy Shield: ")) {
+        const match = line.match(/(\d+)/);
 
-      if (match) {
-        const value = Number(match[1]);
+        if (match) {
+          const value = Number(match[1]);
 
-        itemStruct.EquipmentFilters.filters.reloadTime = {
-          value: { min: value },
-          disabled: false,
-        };
+          itemStruct.EquipmentFilters.filters.es = {
+            value: { min: value },
+            disabled: false,
+          };
 
-        itemStruct.EquipmentFilters.disabled = false;
-        continue;
+          itemStruct.EquipmentFilters.disabled = false;
+          continue;
+        }
       }
-    }
 
-    if (line.includes("Spirit: ")) {
-      const match = line.match(/(\d+)/);
+      if (line.includes("Evasion Rating: ")) {
+        const match = line.match(/(\d+)/);
 
-      if (match) {
-        const value = Number(match[1]);
+        if (match) {
+          const value = Number(match[1]);
 
-        itemStruct.EquipmentFilters.filters.spirit = {
-          value: { min: value },
-          disabled: false,
-        };
+          itemStruct.EquipmentFilters.filters.ev = {
+            value: { min: value },
+            disabled: false,
+          };
 
-        itemStruct.EquipmentFilters.disabled = false;
-        continue;
+          itemStruct.EquipmentFilters.disabled = false;
+          continue;
+        }
       }
-    }
 
-    if (line.includes("Sockets: ")) {
-      const s = line.split("Sockets: ")[1];
-      const sockets = s.split("S").length - 1;
+      if (line.includes("Reload Time: ")) {
+        const match = line.match(/(\d+?.\d+)/);
 
-      if (sockets > 1) {
+        if (match) {
+          const value = Number(match[1]);
+
+          itemStruct.EquipmentFilters.filters.reloadTime = {
+            value: { min: value },
+            disabled: false,
+          };
+
+          itemStruct.EquipmentFilters.disabled = false;
+          continue;
+        }
+      }
+
+      if (line.includes("Spirit: ")) {
+        const match = line.match(/(\d+)/);
+
+        if (match) {
+          const value = Number(match[1]);
+
+          itemStruct.EquipmentFilters.filters.spirit = {
+            value: { min: value },
+            disabled: false,
+          };
+
+          itemStruct.EquipmentFilters.disabled = false;
+          continue;
+        }
+      }
+
+      if (line.includes("Sockets: ")) {
+        const s = line.split("Sockets: ")[1];
+        const sockets = s.split("S").length - 1;
+
+        if (sockets > 1) {
+          itemStruct.EquipmentFilters.filters.sockets = {
+            value: { min: sockets },
+            disabled: false,
+          };
+
+          itemStruct.EquipmentFilters.disabled = false;
+          continue;
+        }
+
         itemStruct.EquipmentFilters.filters.sockets = {
           value: { min: sockets },
-          disabled: false,
+          disabled: true,
         };
-
-        itemStruct.EquipmentFilters.disabled = false;
         continue;
       }
 
-      itemStruct.EquipmentFilters.filters.sockets = {
-        value: { min: sockets },
-        disabled: true,
-      };
-      continue;
-    }
+      if (line.includes("Runic Ward: ")) {
+        const match = line.match(/(\d+)/);
 
-    if (line.includes("Runic Ward: ")) {
-      const match = line.match(/(\d+)/);
+        if (match) {
+          const value = Number(match[1]);
 
-      if (match) {
-        const value = Number(match[1]);
-
-        itemStruct.EquipmentFilters.filters.ward = {
-          value: { min: value },
-          disabled: false,
-        };
-        continue;
+          itemStruct.EquipmentFilters.filters.ward = {
+            value: { min: value },
+            disabled: false,
+          };
+          continue;
+        }
       }
     }
 
@@ -579,6 +577,8 @@ export const parseItem = (item: string) => {
           value: { min: value },
           disabled: false,
         };
+
+        itemStruct.MiscFilters.disabled = false;
         continue;
       }
     }
@@ -594,6 +594,8 @@ export const parseItem = (item: string) => {
         value: { min: sockets },
         disabled: false,
       };
+
+      itemStruct.MiscFilters.disabled = false;
       continue;
     }
 
@@ -602,6 +604,8 @@ export const parseItem = (item: string) => {
         value: false,
         disabled: false,
       };
+
+      itemStruct.MiscFilters.disabled = false;
       continue;
     }
 
@@ -610,6 +614,8 @@ export const parseItem = (item: string) => {
         value: true,
         disabled: false,
       };
+
+      itemStruct.MiscFilters.disabled = false;
       continue;
     }
 
@@ -618,6 +624,8 @@ export const parseItem = (item: string) => {
         value: true,
         disabled: false,
       };
+
+      itemStruct.MiscFilters.disabled = false;
       continue;
     }
 
@@ -626,6 +634,8 @@ export const parseItem = (item: string) => {
         value: true,
         disabled: false,
       };
+
+      itemStruct.MiscFilters.disabled = false;
       continue;
     }
 
@@ -634,6 +644,8 @@ export const parseItem = (item: string) => {
         value: true,
         disabled: false,
       };
+
+      itemStruct.MiscFilters.disabled = false;
       continue;
     }
 
@@ -769,8 +781,12 @@ export const parseItem = (item: string) => {
     }
   }
 
-  if (itemStruct.type?.value === "") {
-    itemStruct.type.disabled = true;
+  if (!lines[3].includes("---")) {
+    itemStruct.type = { value: lines[3].trim(), disabled: false };
+  }
+
+  itemStruct.name = { value: lines[2].trim(), disabled: true };
+  if (!itemStruct.type) {
     itemStruct.name.disabled = false;
   }
 

@@ -130,6 +130,11 @@ const modIdExceptions = (id: string, category: string): string => {
     id = "explicit.stat_1379411836";
   }
 
+  // Grants Skill: Level # Blink
+  if (id == "skill.blink_reservation" && category == "Body Armours") {
+    id = "skill.blink";
+  }
+
   return id;
 };
 
@@ -268,8 +273,8 @@ export const createQuery = (item: Item) => {
         const rarity = item.TypeFilters.filters.rarity;
         const rarityValue = rarity?.value;
 
-        if (isEnabled(item.name)) {
-          if (rarityValue == "Unique") {
+        if (isEnabled(item.name) && item.name.value != "") {
+          if (rarityValue == "Unique" && item.type?.value) {
             query.name = item.name.value;
           } else if (rarityValue != "Rare") {
             query.term = item.name.value;
