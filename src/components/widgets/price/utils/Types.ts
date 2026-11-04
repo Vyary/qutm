@@ -9,6 +9,8 @@ export const CLASSES: Record<string, { id: string; type: string }> = {
   Bucklers: { id: "armour.buckler", type: "armour" },
 
   // WEAPON STATS + REQUIREMENTS + QUALITY
+  "One Hand Maces": { id: "weapon.onemace", type: "weapon" },
+  "Two Hand Maces": { id: "weapon.twomace", type: "weapon" },
   Sceptres: { id: "weapon.sceptre", type: "weapon" },
   Talismans: { id: "weapon.talisman", type: "weapon" },
   Spears: { id: "weapon.spear", type: "weapon" },

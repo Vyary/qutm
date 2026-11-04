@@ -1,10 +1,10 @@
 import { invoke } from "@tauri-apps/api/core";
-import { createSignal, onCleanup, onMount, Show } from "solid-js";
-import { createStore, reconcile } from "solid-js/store";
+import { createSignal, For, onCleanup, onMount, Show } from "solid-js";
+import { createStore, produce, reconcile } from "solid-js/store";
 import { BaseWidget } from "../BaseWidget";
 import { loadMods, saveMods } from "./utils/Mods";
 import { disablePassthrough } from "@/lib/Passthrough";
-import { loadOverviews } from "@/lib/Overviews";
+import { loadOverviews, overviews } from "@/lib/Overviews";
 import { error, info } from "@tauri-apps/plugin-log";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { UnlistenFn } from "@tauri-apps/api/event";
@@ -155,26 +155,62 @@ export function Price() {
     await saveMods().catch((e) => error(`saving mods: ${e}`));
   });
 
+  const eligible = () =>
+    Object.values(overviews).filter(
+      (i) => i.base === item.name?.value.replace("Exceptional ", ""),
+    );
+
   return (
-    <>
-      <Show when={item.TypeFilters.filters.category.value}>
-        <BaseWidget
-          name="price"
-          defaultPos={{ x: 50, y: 170 }}
-          defaultWidth={{ w: 550 }}
-          defaultTransparency={85}
-          transparencySlider={true}
-        >
-          <ItemRenderer
-            item={item}
-            setItem={setItem}
-            prices={prices}
-            timeout={timeout}
-            getPrice={getPrice}
-            ovPrice={ovPrice}
-          />
-        </BaseWidget>
-      </Show>
-    </>
+    <Show when={item.TypeFilters.filters.category.value}>
+      <BaseWidget
+        name="price"
+        defaultPos={{ x: 50, y: 170 }}
+        defaultWidth={{ w: 550 }}
+        defaultTransparency={85}
+        transparencySlider={true}
+        extraPanel={item.MiscFilters.filters.identified?.value === false}
+        extraChildren={
+          <div class="aura aura-dual">
+            <div class="flex flex-col gap-1 bg-base-200 rounded-2xl">
+              <For each={eligible()}>
+                {(i) => (
+                  <div
+                    class="cursor-pointer"
+                    onClick={() => {
+                      setItem(
+                        produce((s) => {
+                          s.type ??= {
+                            value: s.name!.value.replace("Exceptional ", ""),
+                            disabled: false,
+                          };
+                          s.type = {
+                            value: s.name!.value.replace("Exceptional ", ""),
+                            disabled: false,
+                          };
+                          s.name ??= { value: i.name, disabled: false };
+                          s.name = { value: i.name, disabled: false };
+                        }),
+                      );
+                      getPrice();
+                    }}
+                  >
+                    <img src={i.image} class="w-10 h-12 object-contain" />
+                  </div>
+                )}
+              </For>
+            </div>
+          </div>
+        }
+      >
+        <ItemRenderer
+          item={item}
+          setItem={setItem}
+          prices={prices}
+          timeout={timeout}
+          getPrice={getPrice}
+          ovPrice={ovPrice}
+        />
+      </BaseWidget>
+    </Show>
   );
 }
