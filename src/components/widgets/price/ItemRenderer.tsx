@@ -591,19 +591,29 @@ export function ItemRenderer(props: ItemRendererProps) {
               {
                 label: "Twice Corrupted: ",
                 key: "twiceCorrupted",
-                block: ["corrupted", "mirrored", "sanctified"] as const,
+                block: [
+                  "corrupted",
+                  "mirrored",
+                  "sanctified",
+                  "veiled",
+                ] as const,
                 show: props.item.MiscFilters.filters.identified?.value != false,
               },
               {
                 label: "Mirrored: ",
                 key: "mirrored",
-                block: ["corrupted", "twiceCorrupted", "sanctified"] as const,
+                block: [
+                  "corrupted",
+                  "twiceCorrupted",
+                  "sanctified",
+                  "veiled",
+                ] as const,
                 show: true,
               },
               {
                 label: "Fractured: ",
                 key: "fractured",
-                block: [] as const,
+                block: ["veiled"] as const,
                 show:
                   props.item.MiscFilters.filters.identified?.value != false &&
                   !isWaystone(),
@@ -611,8 +621,24 @@ export function ItemRenderer(props: ItemRendererProps) {
               {
                 label: "Sanctified: ",
                 key: "sanctified",
-                block: ["corrupted", "twiceCorrupted", "mirrored"] as const,
+                block: [
+                  "corrupted",
+                  "twiceCorrupted",
+                  "mirrored",
+                  "veiled",
+                ] as const,
                 show: props.item.MiscFilters.filters.identified?.value != false,
+              },
+              {
+                label: "Unrevealed: ",
+                key: "veiled",
+                block: [
+                  "fractured",
+                  "twiceCorrupted",
+                  "mirrored",
+                  "sanctified",
+                ] as const,
+                show: true,
               },
             ]}
           >

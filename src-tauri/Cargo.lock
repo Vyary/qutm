@@ -3290,7 +3290,7 @@ dependencies = [
 
 [[package]]
 name = "qutm"
-version = "0.7.6"
+version = "0.7.7"
 dependencies = [
  "chrono",
  "enigo",

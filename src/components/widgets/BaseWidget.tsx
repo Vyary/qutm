@@ -11,15 +11,16 @@ export function BaseWidget(props: {
   defaultWidth: { w: number };
   defaultTransparency: number;
   transparencySlider?: boolean;
+  extraPanel?: boolean;
+  extraChildren?: JSX.Element;
 }) {
-  let offset = { x: 0, y: 0 };
-  let start = { w: 0, h: 0, x: 0, y: 0 };
-
   const [pos, setPos] = createSignal(props.defaultPos);
   const [width, setWidth] = createSignal(props.defaultWidth);
   const [transparency, setTransparency] = createSignal(
     props.defaultTransparency,
   );
+  let offset = { x: 0, y: 0 };
+  let start = { w: 0, h: 0, x: 0, y: 0 };
 
   const savePosition = async (name: string) => {
     await store.set(`${name}Pos`, pos());
@@ -100,79 +101,92 @@ export function BaseWidget(props: {
 
   return (
     <div
-      class={`absolute h-auto backdrop-blur-md rounded-2xl ring-1 ring-base-content/5`}
-      style={{
-        left: `${pos().x}px`,
-        top: `${pos().y}px`,
-        "background-color": `color-mix(in oklch, var(--color-base-200) ${transparency()}%, transparent)`,
-      }}
+      class="absolute flex items-start gap-2"
+      style={{ left: `${pos().x}px`, top: `${pos().y}px` }}
     >
-      <Show when={!passthrough()}>
-        <div
-          class="relative cursor-move h-5 -mb-5 z-10 select-none"
-          onMouseDown={onDown}
-        ></div>
-      </Show>
+      <div
+        class={`relative h-auto backdrop-blur-md rounded-2xl ring-1 ring-base-content/5`}
+        style={{
+          "background-color": `color-mix(in oklch, var(--color-base-200) ${transparency()}%, transparent)`,
+        }}
+      >
+        <Show when={!passthrough()}>
+          <div
+            class="relative cursor-move h-5 -mb-5 z-10 select-none"
+            onMouseDown={onDown}
+          ></div>
+        </Show>
 
-      <div class="min-h-0 overflow-x-auto flex-1 max-h-230">
-        {props.children}
-      </div>
-
-      <Show when={false}>
-        <div
-          class="absolute top-1/2 -translate-y-1/2 right-1.5 cursor-e-resize text-base-content/50 hover:text-base-content transition-colors"
-          onMouseDown={onResizeDown}
-        >
-          <svg viewBox="0 0 8 60" class="w-1" fill="currentColor">
-            <rect x="0" y="0" width="8" height="60" rx="4" />
-          </svg>
+        <div class="min-h-0 overflow-x-auto flex-1 max-h-230">
+          {props.children}
         </div>
-      </Show>
 
-      <Show when={!passthrough()}>
-        <Show when={props.transparencySlider}>
-          <div class="flex gap-0.5 bg-base-300/30 rounded-b-2xl border-t border-base-content/5">
-            <div class="flex items-center gap-2 px-5 py-3 w-65 justify-end">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                class="w-4 h-4 text-base-content/40"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <circle cx="12" cy="12" r="10" />
-                <path d="M12 2v20" />
-              </svg>
-              <input
-                type="range"
-                min={0}
-                max={100}
-                value={transparency()}
-                class="range range-xs"
-                step={1}
-                onInput={(e) => {
-                  setTransparency(Number(e.currentTarget.value));
-                  saveTransparency(props.name);
-                }}
-              />
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                class="w-4 h-4 text-base-content/80"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <circle cx="12" cy="12" r="10" />
-              </svg>
-            </div>
+        <Show when={false}>
+          <div
+            class="absolute top-1/2 -translate-y-1/2 right-1.5 cursor-e-resize text-base-content/50 hover:text-base-content transition-colors"
+            onMouseDown={onResizeDown}
+          >
+            <svg viewBox="0 0 8 60" class="w-1" fill="currentColor">
+              <rect x="0" y="0" width="8" height="60" rx="4" />
+            </svg>
           </div>
         </Show>
+
+        <Show when={!passthrough()}>
+          <Show when={props.transparencySlider}>
+            <div class="flex gap-0.5 bg-base-300/30 rounded-b-2xl border-t border-base-content/5">
+              <div class="flex items-center gap-2 px-5 py-3 w-65 justify-end">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="w-4 h-4 text-base-content/40"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M12 2v20" />
+                </svg>
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  value={transparency()}
+                  class="range range-xs"
+                  step={1}
+                  onInput={(e) => {
+                    setTransparency(Number(e.currentTarget.value));
+                    saveTransparency(props.name);
+                  }}
+                />
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="w-4 h-4 text-base-content/80"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <circle cx="12" cy="12" r="10" />
+                </svg>
+              </div>
+            </div>
+          </Show>
+        </Show>
+      </div>
+      <Show when={props.extraPanel}>
+        <div
+          class={`relative h-auto backdrop-blur-md rounded-2xl ring-1 ring-base-content/5`}
+          style={{
+            "background-color": `color-mix(in oklch, var(--color-base-200) ${transparency()}%, transparent)`,
+          }}
+        >
+          {props.extraChildren}
+        </div>
       </Show>
     </div>
   );
