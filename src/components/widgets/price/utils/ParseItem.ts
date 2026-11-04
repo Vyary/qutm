@@ -1,4 +1,4 @@
-import { info, warn } from "@tauri-apps/plugin-log";
+import { error, info, warn } from "@tauri-apps/plugin-log";
 import { findModId } from "./CreateQuery";
 import { Item, ItemMod } from "./Types";
 
@@ -149,6 +149,19 @@ const parseModLine = (
         }
       }
 
+      if (mod.includes("Lose")) {
+        const id = findModId(modType, mod.replace("Lose", "Recover"));
+        if (id) {
+          multiLineMod = "";
+          return {
+            id: id,
+            mod: mod.replace("Lose", "Recover"),
+            min: -value,
+            disabled: false,
+          };
+        }
+      }
+
       mod = mod.replace("#", `${modValues[i]}`);
     }
   }
@@ -165,7 +178,7 @@ const parseModLine = (
     return parseModLine(modType, multiLineMod, true);
   }
 
-  info(`unmatched (${modType}): raw="${line}"`);
+  error(`unmatched (${modType}): raw="${line}"`);
   return { id: "", mod: "", disabled: false };
 };
 
@@ -420,7 +433,7 @@ export const parseItem = (item: string) => {
 
       if (line.includes("Sockets: ")) {
         const s = line.split("Sockets: ")[1];
-        const sockets = s.split("S").length - 1;
+        const sockets = (s.match(/[SJ]/g) || []).length;
 
         if (sockets > 1) {
           itemStruct.EquipmentFilters.filters.sockets = {
