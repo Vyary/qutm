@@ -1,22 +1,137 @@
-export const CLASSES: Record<string, { id: string; type: string }> = {
+export const CLASSES: Record<
+  string,
+  { id: string; type: string; categories?: string[] }
+> = {
   // ARMOUR STATS + REQUIREMENTS + QUALITY
-  Helmets: { id: "armour.helmet", type: "armour" },
-  "Body Armours": { id: "armour.chest", type: "armour" },
-  Gloves: { id: "armour.gloves", type: "armour" },
-  Boots: { id: "armour.boots", type: "armour" },
-  Foci: { id: "armour.focus", type: "armour" },
-  Shields: { id: "armour.shield", type: "armour" },
-  Bucklers: { id: "armour.buckler", type: "armour" },
+  Helmets: {
+    id: "armour.helmet",
+    type: "armour",
+    categories: ["Helmets", "Armour", "All Equipment"],
+  },
+  "Body Armours": {
+    id: "armour.chest",
+    type: "armour",
+    categories: ["Body Armours", "Armour", "All Equipment"],
+  },
+  Gloves: {
+    id: "armour.gloves",
+    type: "armour",
+    categories: ["Gloves", "Armour", "All Equipment"],
+  },
+  Boots: {
+    id: "armour.boots",
+    type: "armour",
+    categories: ["Boots", "Armour", "All Equipment"],
+  },
+  Foci: {
+    id: "armour.focus",
+    type: "armour",
+    categories: ["Foci", "Armour", "All Equipment"],
+  },
+  Shields: {
+    id: "armour.shield",
+    type: "armour",
+    categories: ["Shields", "Shields and Bucklers", "Armour", "All Equipment"],
+  },
+  Bucklers: {
+    id: "armour.buckler",
+    type: "armour",
+    categories: ["Bucklers", "Shields and Bucklers", "Armour", "All Equipment"],
+  },
 
   // WEAPON STATS + REQUIREMENTS + QUALITY
-  "One Hand Maces": { id: "weapon.onemace", type: "weapon" },
-  "Two Hand Maces": { id: "weapon.twomace", type: "weapon" },
-  Sceptres: { id: "weapon.sceptre", type: "weapon" },
-  Talismans: { id: "weapon.talisman", type: "weapon" },
-  Spears: { id: "weapon.spear", type: "weapon" },
-  Quarterstaves: { id: "weapon.warstaff", type: "weapon" },
-  Bows: { id: "weapon.bow", type: "weapon" },
-  Crossbows: { id: "weapon.crossbow", type: "weapon" },
+  "One Hand Maces": {
+    id: "weapon.onemace",
+    type: "weapon",
+    categories: [
+      "Martial Weapon",
+      "All Equipment",
+      "Martial Weapon, Wand or Staff",
+      "Weapon",
+      "One Hand Maces",
+      "One Hand Mace or Quarterstaff",
+      "One Hand Mace, Two Hand Mace or Talisman",
+    ],
+  },
+  "Two Hand Maces": {
+    id: "weapon.twomace",
+    type: "weapon",
+    categories: [
+      "Martial Weapon",
+      "All Equipment",
+      "Martial Weapon, Wand or Staff",
+      "Weapon",
+      "Two Hand Maces",
+      "One Hand Mace, Two Hand Mace or Talisman",
+    ],
+  },
+  Sceptres: {
+    id: "weapon.sceptre",
+    type: "weapon",
+    categories: ["All Equipment", "Sceptres", "Weapon", "Caster Weapon"],
+  },
+  Talismans: {
+    id: "weapon.talisman",
+    type: "weapon",
+    categories: [
+      "Martial Weapon",
+      "All Equipment",
+      "Martial Weapon, Wand or Staff",
+      "Weapon",
+      "Talismans",
+      "One Hand Mace, Two Hand Mace or Talisman",
+    ],
+  },
+  Spears: {
+    id: "weapon.spear",
+    type: "weapon",
+    categories: [
+      "Martial Weapon",
+      "All Equipment",
+      "Martial Weapon, Wand or Staff",
+      "Weapon",
+      "Spears",
+      "Crossbow, Bow or Spear",
+      "Quarterstaff or Spear",
+    ],
+  },
+  Quarterstaves: {
+    id: "weapon.warstaff",
+    type: "weapon",
+    categories: [
+      "Martial Weapon",
+      "All Equipment",
+      "Martial Weapon, Wand or Staff",
+      "Weapon",
+      "Quarterstaves",
+      "One Hand Mace or Quarterstaff",
+      "Quarterstaff or Spear",
+    ],
+  },
+  Bows: {
+    id: "weapon.bow",
+    type: "weapon",
+    categories: [
+      "Martial Weapon",
+      "All Equipment",
+      "Martial Weapon, Wand or Staff",
+      "Weapon",
+      "Bows",
+      "Crossbow, Bow or Spear",
+    ],
+  },
+  Crossbows: {
+    id: "weapon.crossbow",
+    type: "weapon",
+    categories: [
+      "Martial Weapon",
+      "All Equipment",
+      "Martial Weapon, Wand or Staff",
+      "Weapon",
+      "Crossbows",
+      "Crossbow, Bow or Spear",
+    ],
+  },
 
   // REQUIREMENTS
   Augment: { id: "currency.rune", type: "augment" },
@@ -24,8 +139,30 @@ export const CLASSES: Record<string, { id: string; type: string }> = {
   Quivers: { id: "armour.quiver", type: "quiver" },
 
   // REQUIREMENTS + QUALITY
-  Staves: { id: "weapon.staff", type: "caster" },
-  Wands: { id: "weapon.wand", type: "caster" },
+  Staves: {
+    id: "weapon.staff",
+    type: "caster",
+    categories: [
+      "Wand or Staff",
+      "All Equipment",
+      "Martial Weapon, Wand or Staff",
+      "Weapon",
+      "Caster Weapon",
+      "Staves",
+    ],
+  },
+  Wands: {
+    id: "weapon.wand",
+    type: "caster",
+    categories: [
+      "Wand or Staff",
+      "All Equipment",
+      "Martial Weapon, Wand or Staff",
+      "Weapon",
+      "Caster Weapon",
+      "Wands",
+    ],
+  },
   Amulets: { id: "accessory.amulet", type: "accessory" },
   Rings: { id: "accessory.ring", type: "accessory" },
   "Skill Gems": { id: "gem.activegem", type: "gem" },
@@ -225,6 +362,7 @@ export interface Item {
   implicit: ItemMod[];
   explicit: ItemMod[];
   skill: ItemMod[];
+  runes: Rune[];
 }
 
 export interface Toggleable<T> {
@@ -245,4 +383,15 @@ export interface Prices {
   amount: number;
   currency: string;
   listed: string;
+}
+
+export interface Rune {
+  id: string;
+  mod: string;
+  disabled: boolean;
+  min?: number;
+  max?: number;
+  name?: string;
+  count: number;
+  fractured?: Toggleable<boolean>;
 }

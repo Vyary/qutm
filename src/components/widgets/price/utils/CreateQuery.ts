@@ -250,6 +250,11 @@ export const createQuery = (item: Item) => {
     );
 
     pushStats(
+      0,
+      item.runes.map((m) => toStatFilter(m, m.id)),
+    );
+
+    pushStats(
       1,
       item.explicit.map((m) => {
         let id = modIdExceptions(m.id, category);

@@ -1,8 +1,6 @@
 name: "cache-warm"
 
 on:
-  push:
-    branches: [main]
   schedule:
     - cron: "0 3 * * 1"   # weekly, so the cache doesn't expire after 7 days
   repository_dispatch:

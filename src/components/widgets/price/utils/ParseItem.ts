@@ -1,6 +1,7 @@
 import { error, info, warn } from "@tauri-apps/plugin-log";
 import { findModId } from "./CreateQuery";
-import { Item, ItemMod } from "./Types";
+import { CLASSES, Item, ItemMod, Rune } from "./Types";
+import augments from "@/assets/augments.json";
 
 let multiLineMod = "";
 
@@ -17,7 +18,7 @@ const parseModLine = (
 
   // match Adds 4(2-4) to 5(5-8) Physical Damage to Attacks
   const XtoX = line.match(
-    /(?<pre>.* )?(?<low>-?\d+)\(.*?\) to (?<high>-?\d+)\(.*?\)(?<rest>.*)/,
+    /(?<pre>.* )?(?<low>-?\d+)(\(.*?\))? to (?<high>-?\d+)(\(.*?\))?(?<rest>.*)/,
   );
   if (XtoX) {
     const { pre, low, high, rest } = XtoX.groups!;
@@ -182,6 +183,74 @@ const parseModLine = (
   return { id: "", mod: "", disabled: false };
 };
 
+const parseRune = (category: string, line: string) => {
+  line = line.replace(" (rune)", "");
+
+  let runeName: string | undefined;
+  let count = 1;
+
+  const categories = CLASSES[category]?.categories;
+  if (!categories) error(`no category for ${category} in parseRune`);
+
+  if (categories) {
+    for (const cat of categories) {
+      const augmentsValue = augments?.[cat as keyof typeof augments];
+
+      runeName = augmentsValue?.[line as keyof typeof augmentsValue];
+      if (runeName) break;
+
+      if (!runeName) {
+        const XtoX = line.match(
+          /(?<pre>.* )?(?<low>-?\d+)(\(.*?\))? to (?<high>-?\d+)(\(.*?\))?(?<rest>.*)/,
+        );
+        if (XtoX) {
+          const { pre, low, high, rest } = XtoX.groups!;
+
+          for (const run of [2, 3, 4, 5, 6]) {
+            const mod =
+              `${pre ? pre : ""}${Number(low) / run} to ${Number(high) / 2}${rest}` as keyof typeof augmentsValue;
+            const r = augmentsValue?.[mod];
+            if (r) {
+              runeName = r;
+              count = run;
+              break;
+            }
+          }
+        }
+
+        const val = line.match(/(?<pre>^|.*?)(?<num>-?\d+)(?<rest>.*$)/);
+        if (val) {
+          const { pre, num, rest } = val.groups!;
+
+          for (const run of [2, 3, 4, 5, 6]) {
+            const mod =
+              `${pre}${Number(num) / run}${rest}` as keyof typeof augmentsValue;
+            const r = augmentsValue?.[mod];
+            if (r) {
+              runeName = r;
+              count = run;
+              break;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  const mod = parseModLine("rune", line);
+  const rune: Rune = {
+    id: mod.id,
+    mod: mod.mod,
+    min: mod.min,
+    max: mod.max,
+    name: runeName,
+    count: count,
+    disabled: true,
+  };
+
+  return rune;
+};
+
 export const parseItem = (item: string) => {
   const lines = item.split("\n");
 
@@ -195,6 +264,7 @@ export const parseItem = (item: string) => {
     implicit: [],
     explicit: [],
     skill: [],
+    runes: [],
   };
 
   for (let i = 0; i < lines.length; i++) {
@@ -731,6 +801,14 @@ export const parseItem = (item: string) => {
           `skill added: "${mod.mod}" id=${mod.id} min=${mod.min} max=${mod.max} disabled=${mod.disabled}\n`,
         );
         continue;
+      }
+
+      if (line.includes("(rune)")) {
+        const rune = parseRune(
+          itemStruct.TypeFilters.filters.category.value,
+          line,
+        );
+        itemStruct.runes.push(rune);
       }
     }
 

@@ -32,6 +32,7 @@ export function Price() {
     implicit: [],
     explicit: [],
     skill: [],
+    runes: [],
   });
   const [timeout, setTimeoutLeft] = createSignal(0);
   const [prices, setPrices] = createSignal<Prices[]>([]);
