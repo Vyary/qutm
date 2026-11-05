@@ -193,11 +193,11 @@ const parseRune = (category: string, line: string) => {
   if (!categories) error(`no category for ${category} in parseRune`);
 
   if (categories) {
-    for (const cat of categories) {
+    loop: for (const cat of categories) {
       const augmentsValue = augments?.[cat as keyof typeof augments];
 
       runeName = augmentsValue?.[line as keyof typeof augmentsValue];
-      if (runeName) break;
+      if (runeName) break loop;
 
       if (!runeName) {
         const XtoX = line.match(
@@ -213,7 +213,7 @@ const parseRune = (category: string, line: string) => {
             if (r) {
               runeName = r;
               count = run;
-              break;
+              break loop;
             }
           }
         }
@@ -226,10 +226,11 @@ const parseRune = (category: string, line: string) => {
             const mod =
               `${pre}${Number(num) / run}${rest}` as keyof typeof augmentsValue;
             const r = augmentsValue?.[mod];
+            info(`-----------------> rune ${r}]`);
             if (r) {
               runeName = r;
               count = run;
-              break;
+              break loop;
             }
           }
         }
