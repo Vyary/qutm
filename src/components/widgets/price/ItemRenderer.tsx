@@ -3,6 +3,7 @@ import { produce, type SetStoreFunction } from "solid-js/store";
 import {
   CLASSES,
   type Item,
+  type Rune,
   type MinMax,
   type Prices,
   type Toggleable,
@@ -11,6 +12,7 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import { createQuery } from "./utils/CreateQuery.ts";
 import { enablePassthrough } from "@/lib/Passthrough.ts";
 import { error } from "@tauri-apps/plugin-log";
+import { overviews } from "@/lib/Overviews.ts";
 
 interface ItemRendererProps {
   item: Item;
@@ -27,6 +29,20 @@ type GroupType =
   | "ReqFilters"
   | "MapFilters"
   | "MiscFilters";
+
+function isRune(item: any): item is Rune {
+  return item && typeof item === "object" && "count" in item && "mod" in item;
+}
+
+function formatValue(value: number) {
+  if (!value) return 0;
+
+  return value >= 1
+    ? value % 1 === 0
+      ? value
+      : value.toFixed(2)
+    : value.toFixed(4);
+}
 
 function InputRange(props: {
   min?: number;
@@ -228,7 +244,7 @@ function ToggleableRow(props: {
 }
 
 function ModList(props: {
-  modType: "skill" | "enhancement" | "implicit" | "explicit";
+  modType: "skill" | "enhancement" | "implicit" | "explicit" | "runes";
   item: Item;
   setItem: SetStoreFunction<Item>;
 }) {
@@ -237,7 +253,7 @@ function ModList(props: {
       <For each={props.item[props.modType]}>
         {(mod, i) => (
           <div classList={{ "opacity-40": mod.disabled }}>
-            <span class="flex items-center justify-between">
+            <span class="flex items-center justify-between gap-1">
               <div class="inline-flex items-center gap-1">
                 <InputRange
                   min={mod.min}
@@ -278,6 +294,29 @@ function ModList(props: {
               >
                 {mod.fractured ? "Fractured" : ""}
               </div>
+              <Show when={isRune(mod) ? mod : null} keyed>
+                {(rune) => {
+                  const overview = overviews[rune.name || ""];
+                  const maxC = overview?.maxVolumeCurrency || "exalted";
+                  const curr =
+                    overview?.prices?.[
+                      maxC as "exalted" | "chaos" | "divine"
+                    ] || 0;
+                  return (
+                    <Show when={rune.name}>
+                      <div class="flex flex-col items-end justify-center text-xs opacity-60 max-h-6">
+                        <div class="flex gap-1">
+                          <Show when={rune.count > 1}>
+                            <div>{`${rune.count} x `}</div>
+                          </Show>
+                          <div>{`${rune.name}`}</div>
+                        </div>
+                        <div class="-mt-1">{`${formatValue(rune.count * curr)} ${maxC}`}</div>
+                      </div>
+                    </Show>
+                  );
+                }}
+              </Show>
             </span>
           </div>
         )}
@@ -667,13 +706,14 @@ export function ItemRenderer(props: ItemRendererProps) {
         when={
           props.item.skill.length > 0 ||
           props.item.enhancement.length > 0 ||
+          props.item.runes.length > 0 ||
           props.item.implicit.length > 0
         }
       >
         <div class="divider my-0 opacity-50"></div>
       </Show>
 
-      <For each={["skill", "enhancement", "implicit"] as const}>
+      <For each={["skill", "enhancement", "runes", "implicit"] as const}>
         {(type) => (
           <Show when={props.item[type].length > 0}>
             <ModList modType={type} item={props.item} setItem={props.setItem} />
@@ -726,12 +766,7 @@ export function ItemRenderer(props: ItemRendererProps) {
         {(p) => (
           <div class="flex justify-between px-1">
             <span class="">
-              {p.amount >= 1
-                ? p.amount % 1 === 0
-                  ? p.amount
-                  : p.amount.toFixed(2)
-                : p.amount.toFixed(4)}{" "}
-              {p.currency}
+              {formatValue(p.amount)} {p.currency}
             </span>
             <span>{p.listed}</span>
           </div>
