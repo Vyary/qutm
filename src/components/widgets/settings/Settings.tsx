@@ -1,4 +1,4 @@
-import { createSignal, onMount, Show, type JSX } from "solid-js";
+import { createSignal, For, onMount, Show, type JSX } from "solid-js";
 import { filePath, selectFile, startTailing, watching } from "@/lib/File";
 import { enablePassthrough, togglePassthrough } from "@/lib/Passthrough";
 import { character, setCharacterName } from "../zone/state/Character";
@@ -40,6 +40,10 @@ export const [textSlider, setTextSlider, hydrateTextSlider] =
   createPersistedSignal("textSize", 1);
 export const [RTL, setRTL, hydrateRTL] = createPersistedSignal("RTL", false);
 export const [dev, setDev, hydrateDev] = createPersistedSignal("dev", false);
+export const [league, setLeague, hydrateLeague] = createPersistedSignal(
+  "league",
+  "Forbidden Rites",
+);
 
 export const textSize = () => TEXT_SIZES[textSlider()];
 export const textSizeSmall = () => TEXT_SIZES[Math.max(textSlider() - 1, 0)];
@@ -154,8 +158,15 @@ function AppearanceCard() {
 }
 
 export function Settings() {
+  let detailsRef!: HTMLDetailsElement;
+
   onMount(() => {
-    void Promise.all([hydrateRTL(), hydrateTextSlider(), hydrateDev()]);
+    void Promise.all([
+      hydrateRTL(),
+      hydrateTextSlider(),
+      hydrateDev(),
+      hydrateLeague(),
+    ]);
   });
 
   const saveAndClose = () => {
@@ -173,7 +184,7 @@ export function Settings() {
       <h2 class="mb-4 border-b border-base-content/10 pb-3 text-sm font-semibold uppercase tracking-widest opacity-80">
         <div class="flex items-center justify-between">
           Settings
-          <span class="text-xs text-base-content/50">v0.7.10</span>
+          <span class="text-xs text-base-content/50">v0.7.11</span>
         </div>
       </h2>
 
@@ -189,16 +200,29 @@ export function Settings() {
               global
             />
           </Card>
-          <Card title="Character">
+          <Card title="League">
             <label class="flex flex-col gap-1.5">
-              <span class="text-xs opacity-60">Character name</span>
-              <input
-                type="text"
-                placeholder="Enter character name"
-                class="input input-sm w-full"
-                value={character.name}
-                onInput={(e) => setCharacterName(e.currentTarget.value.trim())}
-              />
+              <details ref={detailsRef} class="dropdown dropdown-center">
+                <summary class="btn btn-sm btn-neutral w-full">
+                  {league()}
+                </summary>
+                <ul class="menu dropdown-content bg-base-200 border border-base-content/5 rounded-box z-1 p-2 shadow-sm">
+                  <For each={["Forbidden Rites", "Runes of Aldur"] as const}>
+                    {(choice) => (
+                      <li>
+                        <a
+                          onClick={() => {
+                            detailsRef.removeAttribute("open");
+                            setLeague(choice);
+                          }}
+                        >
+                          {choice}
+                        </a>
+                      </li>
+                    )}
+                  </For>
+                </ul>
+              </details>
             </label>
           </Card>
         </div>
@@ -207,9 +231,18 @@ export function Settings() {
 
         <div class="grid grid-cols-2 items-start gap-4">
           <div class="flex flex-col gap-4">
-            <Card title="Features">
-              <ZoneSettings />
-              <LayoutSettings />
+            <Card title="Character Name">
+              <label class="flex flex-col gap-1.5">
+                <input
+                  type="text"
+                  placeholder="Enter character name"
+                  class="input input-sm w-full"
+                  value={character.name}
+                  onInput={(e) =>
+                    setCharacterName(e.currentTarget.value.trim())
+                  }
+                />
+              </label>
             </Card>
             <AppearanceCard />
             <Card title="Advanced">
@@ -223,11 +256,17 @@ export function Settings() {
             </Card>
           </div>
 
-          <Card title="Beta features" badge="Beta">
-            <InventorySettings />
-            <div class="border-t border-base-content/10" />
-            <PriceSettings />
-          </Card>
+          <div class="flex flex-col gap-4">
+            <Card title="Features">
+              <ZoneSettings />
+              <LayoutSettings />
+            </Card>
+            <Card title="Beta features" badge="Beta">
+              <InventorySettings />
+              <div class="border-t border-base-content/10" />
+              <PriceSettings />
+            </Card>
+          </div>
         </div>
       </div>
 
