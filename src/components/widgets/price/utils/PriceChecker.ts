@@ -3,6 +3,7 @@ import { fetch } from "@tauri-apps/plugin-http";
 import { debug, info } from "@tauri-apps/plugin-log";
 import { RateLimiter, updateTimes } from "./RateLimiter";
 import { Item, Prices } from "./Types";
+import { league } from "../../settings/Settings";
 
 export interface Listing {
   indexed: string;
@@ -54,6 +55,7 @@ export const OverviewsPrice = async (item: Item): Promise<Prices[]> => {
   let s = performance.now();
   await checkOverviews();
   info(`checking overviews took: ${(performance.now() - s).toFixed(2)}ms`);
+  if (item.name === undefined) return [];
   const itemO = overviews[item.name.value];
   if (itemO) {
     const maxCurr = itemO.maxVolumeCurrency;
@@ -86,7 +88,7 @@ const PriceCheck = async (query: string): Promise<PriceCheckResult> => {
 
   s = performance.now();
   const searchReq = await fetch(
-    "https://www.pathofexile.com/api/trade2/search/poe2/Forbidden%20Rites",
+    `https://www.pathofexile.com/api/trade2/search/poe2/${league()}`,
     {
       method: "POST",
       headers: {

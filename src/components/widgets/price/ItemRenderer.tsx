@@ -13,6 +13,7 @@ import { createQuery } from "./utils/CreateQuery.ts";
 import { enablePassthrough } from "@/lib/Passthrough.ts";
 import { error } from "@tauri-apps/plugin-log";
 import { overviews } from "@/lib/Overviews.ts";
+import { league } from "../settings/Settings.tsx";
 
 interface ItemRendererProps {
   item: Item;
@@ -749,7 +750,7 @@ export function ItemRenderer(props: ItemRendererProps) {
           <button
             onClick={async () => {
               await openUrl(
-                "https://www.pathofexile.com/trade2/search/poe2/Forbidden%20Rites?q=" +
+                `https://www.pathofexile.com/trade2/search/poe2/${league()}?q=` +
                   JSON.stringify(createQuery(props.item)),
               );
 

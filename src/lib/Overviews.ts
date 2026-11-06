@@ -3,6 +3,7 @@ import { info } from "@tauri-apps/plugin-log";
 import { createStore, reconcile } from "solid-js/store";
 import { fetch } from "@tauri-apps/plugin-http";
 import { createSignal } from "solid-js";
+import { league } from "@/components/widgets/settings/Settings";
 
 interface ItemInfo {
   id: string;
@@ -87,16 +88,16 @@ const UNIQUE_CATEGORIES = [
   "UniqueSanctumRelics",
 ];
 const TWELVE_HOURS = 12 * 60 * 60 * 1000;
-const LEAGUE = "Forbidden Rites";
 
 export const [overviews, setOverviews] = createStore<ExchangePrices>();
 export const [ts, setTs] = createSignal<number>(0);
+const [overviewsLeague, setOverviewsLeague] = createSignal("");
 const isStale = (t?: number) => !t || Date.now() - t >= TWELVE_HOURS;
 let inflight: Promise<void> | null = null;
 
 const fetchExchange = async (category: string) => {
   const response = await fetch(
-    `https://poe.ninja/poe2/api/economy/exchange/current/overview?league=${LEAGUE}&type=${category}`,
+    `https://poe.ninja/poe2/api/economy/exchange/current/overview?league=${league()}&type=${category}`,
     {
       method: "GET",
     },
@@ -110,7 +111,7 @@ const fetchExchange = async (category: string) => {
 
 const fetchUnique = async (category: string) => {
   const response = await fetch(
-    `https://poe.ninja/poe2/api/economy/stash/current/item/overview?league=${LEAGUE}&type=${category}`,
+    `https://poe.ninja/poe2/api/economy/stash/current/item/overview?league=${league()}&type=${category}`,
     {
       method: "GET",
     },
@@ -181,10 +182,11 @@ const fetchOverviews = async () => {
   return ep;
 };
 
-const saveOverviews = async (data: ExchangePrices) => {
+const saveOverviews = async (data: ExchangePrices, league: string) => {
   const now = Date.now();
   await store.set("overviews", data);
   await store.set("timestamp", now);
+  await store.set("overviewLeague", league);
   await store.save();
   setTs(now);
 };
@@ -194,7 +196,8 @@ const refreshOverview = () => {
     try {
       const data = await fetchOverviews();
       setOverviews(reconcile(data));
-      await saveOverviews(data);
+      setOverviewsLeague(league());
+      await saveOverviews(data, league());
     } catch (e) {
       console.error("overview refresh failed: ", e);
     } finally {
@@ -205,15 +208,20 @@ const refreshOverview = () => {
 };
 
 export const loadOverviews = async () => {
-  const [ts, cached] = await Promise.all([
+  const [ts, cached, l] = await Promise.all([
     store.get<number>("timestamp"),
     store.get<ExchangePrices>("overviews"),
+    store.get<string>("overviewLeague"),
   ]);
   if (ts) setTs(ts);
+  if (l) setOverviewsLeague(l);
   if (cached) setOverviews(reconcile(cached));
-  if (!cached || isStale(ts)) await refreshOverview();
+  if (!cached || isStale(ts) || overviewsLeague() != league())
+    await refreshOverview();
 };
 
 export const checkOverviews = async () => {
-  if (isStale(ts() || 0)) await refreshOverview();
+  info(`overviews league: ${overviewsLeague()}, league: ${league()}`);
+  if (isStale(ts() || 0) || overviewsLeague() != league())
+    await refreshOverview();
 };
