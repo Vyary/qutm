@@ -1,6 +1,6 @@
 {
   "name": "qutm",
-  "version": "0.7.11",
+  "version": "0.7.12",
   "description": "",
   "type": "module",
   "scripts": {
@@ -8,6 +8,7 @@
     "dev": "vite",
     "build": "vite build",
     "serve": "vite preview",
+    "pretauri": "bun scripts/sync-version.js",
     "tauri": "tauri",
     "update": "bun update --latest && cd src-tauri && cargo update"
   },
