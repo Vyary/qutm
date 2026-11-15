@@ -22,10 +22,11 @@
     "@solidjs/diagnostics": "^2.0.0-rc.21",
     "@solidjs/start-devtools": "^1.0.0-next.4",
     "@solidjs/vite-plugin": "^3.0.0-next.57",
+    "@tauri-apps/cli": "^2",
+    "@types/node": "^26.6.6",
     "eslint-plugin-solid": "~0.19.0",
     "oxlint": "~1.92.0",
     "typescript": "^7.0.2",
-    "vite": "^8.3.5",
-    "@tauri-apps/cli": "^2"
+    "vite": "^8.3.5"
   }
 }

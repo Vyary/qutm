@@ -1,6 +1,6 @@
 import { defineConfig } from "vite";
 import solid from "@solidjs/vite-plugin";
-// @ts-expect-error type error without @types/node package
+import path from "path";
 import process from "node:process";
 const host = process.env.TAURI_DEV_HOST;
 
@@ -9,6 +9,11 @@ export default defineConfig(() => ({
   plugins: [
     solid({ start: true, diagnostics: true }), // add `ssr: true` for streaming SSR
   ],
+  resolve: {
+    alias: {
+      "@": path.resolve(import.meta.dirname, "./src"),
+    },
+  },
 
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
   //

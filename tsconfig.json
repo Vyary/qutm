@@ -8,6 +8,12 @@
       "DOM"
     ],
     "skipLibCheck": true,
+    /* Path Mapping */
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ]
+    },
     /* Bundler mode */
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
