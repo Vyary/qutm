@@ -13,17 +13,20 @@
   },
   "license": "MIT",
   "dependencies": {
-    "@solidjs/web": "^2.0.0-rc.21",
     "solid-js": "^2.0.0-rc.21",
+    "@solidjs/web": "^2.0.0-rc.21",
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-opener": "^2"
   },
   "devDependencies": {
+    "@tauri-apps/cli": "^2",
+    "@solidjs/vite-plugin": "^3.0.0-next.57",
     "@solidjs/diagnostics": "^2.0.0-rc.21",
     "@solidjs/start-devtools": "^1.0.0-next.4",
-    "@solidjs/vite-plugin": "^3.0.0-next.57",
-    "@tauri-apps/cli": "^2",
     "@types/node": "^26.6.6",
+    "tailwindcss": "^4.3.5",
+    "@tailwindcss/vite": "^4.3.5",
+    "daisyui": "^5.8.1",
     "eslint-plugin-solid": "~0.19.0",
     "oxlint": "~1.92.0",
     "typescript": "^7.0.2",

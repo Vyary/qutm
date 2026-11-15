@@ -28,6 +28,13 @@ function App() {
         </a>
       </div>
       <p>Click on the Tauri, Vite, and Solid logos to learn more.</p>
+      <div class="aura aura-dual">
+        <div class="card bg-base-100">
+          <div class="card-body">
+            <p>This card has dual aura</p>
+          </div>
+        </div>
+      </div>
 
       <form
         class="row"
