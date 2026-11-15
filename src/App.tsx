@@ -1,132 +1,49 @@
-import { createSignal, onCleanup, onMount, Show } from "solid-js";
-import "./App.css";
-import { getCurrentWindow } from "@tauri-apps/api/window";
-import { enablePassthrough, passthrough } from "./lib/Passthrough";
-import { unregisterAll } from "@tauri-apps/plugin-global-shortcut";
-import { loadFilePath, showOverlay } from "./lib/File";
-import { info } from "@tauri-apps/plugin-log";
-import { Zone } from "./components/widgets/zone/Zone";
-import initTrayIcon from "./lib/TrayIcon";
-import { Settings } from "./components/widgets/settings/Settings";
-import { Updater } from "./components/updater/Updater";
-import { Inventory } from "./components/widgets/inventory/Inventory";
-import { Price } from "./components/widgets/price/Price";
-import { UnlistenFn } from "@tauri-apps/api/event";
-import { SetupFlow } from "./components/SetupFlow";
-import { Layouts } from "./components/widgets/layout/Layouts";
-import { Guard } from "./components/Guard";
-import { autoUpdate } from "./components/updater/UpdaterSettings";
-import { showInventory } from "./components/widgets/inventory/InventorySettings";
-import { showPrice } from "./components/widgets/price/PriceSettings";
-import { showZone } from "./components/widgets/zone/ZoneSettings";
-import { showLayout } from "./components/widgets/layout/LayoutSettings";
+import { createSignal } from "solid-js";
+import logo from "./assets/logo.svg";
 import { invoke } from "@tauri-apps/api/core";
-
-export const [closeOverlay, setCloseOverlay] = createSignal(false);
+import "./App.css";
 
 function App() {
-  let unlisten: UnlistenFn = () => info("app on close unlisten not updated");
+  const [greetMsg, setGreetMsg] = createSignal("");
+  const [name, setName] = createSignal("");
 
-  const handleEsc = (e: KeyboardEvent) => {
-    if (e.key === "Escape") {
-      info("Escape triggered");
-      enablePassthrough();
-    }
-  };
-
-  onMount(async () => {
-    info(Date.now().toString());
-
-    const initializeApp = async () => {
-      const s = performance.now();
-
-      initTrayIcon();
-      enablePassthrough();
-      getCurrentWindow().maximize();
-
-      loadFilePath();
-
-      window.addEventListener("keydown", handleEsc);
-
-      info(
-        `finished loading initial state in ${(performance.now() - s).toFixed(2)}ms`,
-      );
-    };
-
-    initializeApp();
-
-    unlisten = await getCurrentWindow().onCloseRequested(async () => {
-      window.removeEventListener("keydown", handleEsc);
-      await unregisterAll();
-    });
-  });
-
-  onCleanup(async () => {
-    window.removeEventListener("keydown", handleEsc);
-    await unregisterAll();
-    unlisten();
-  });
+  async function greet() {
+    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
+    setGreetMsg(await invoke("greet", { name: name() }));
+  }
 
   return (
-    <main
-      class="min-h-dvh min-w-dvw flex items-center justify-center gap-2"
-      classList={{
-        "bg-neutral-content/3": !passthrough(),
-        "bg-[repeating-linear-gradient(-45deg,rgba(0,0,0,0.25)_0px,rgba(0,0,0,0.25)_2px,transparent_3px,transparent_8px)]":
-          !passthrough(),
-      }}
-    >
-      <Show when={closeOverlay() && !passthrough()}>
-        <div
-          class="min-h-dvh min-w-dvw"
-          onClick={() => {
-            if (closeOverlay()) {
-              invoke("alt_tab");
-              enablePassthrough();
-            }
-          }}
-        ></div>
-      </Show>
+    <main class="container">
+      <h1>Welcome to Tauri + Solid</h1>
 
-      <Guard name="Update" show={autoUpdate()}>
-        <Updater />
-      </Guard>
+      <div class="row">
+        <a href="https://vite.dev" target="_blank">
+          <img src="/vite.svg" class="logo vite" alt="Vite logo" />
+        </a>
+        <a href="https://tauri.app" target="_blank">
+          <img src="/tauri.svg" class="logo tauri" alt="Tauri logo" />
+        </a>
+        <a href="https://solidjs.com" target="_blank">
+          <img src={logo} class="logo solid" alt="Solid logo" />
+        </a>
+      </div>
+      <p>Click on the Tauri, Vite, and Solid logos to learn more.</p>
 
-      <Guard name="SetupFlow" show={true}>
-        <SetupFlow />
-      </Guard>
-
-      <div
-        classList={{
-          hidden: !showOverlay() && passthrough(),
+      <form
+        class="row"
+        onSubmit={(e) => {
+          e.preventDefault();
+          greet();
         }}
       >
-        <Guard name="Zone" show={showZone()}>
-          <Zone />
-        </Guard>
-
-        <Guard name="Layout" show={showLayout()}>
-          <Layouts />
-        </Guard>
-      </div>
-
-      <div
-        classList={{
-          hidden: passthrough(),
-        }}
-      >
-        <Guard name="Settings" show={true}>
-          <Settings />
-        </Guard>
-
-        <Guard name="inventory" show={showInventory()}>
-          <Inventory />
-        </Guard>
-
-        <Guard name="Price" show={showPrice()}>
-          <Price />
-        </Guard>
-      </div>
+        <input
+          id="greet-input"
+          onChange={(e) => setName(e.currentTarget.value)}
+          placeholder="Enter a name..."
+        />
+        <button type="submit">Greet</button>
+      </form>
+      <p>{greetMsg()}</p>
     </main>
   );
 }

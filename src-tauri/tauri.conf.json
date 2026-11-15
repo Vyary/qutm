@@ -1,28 +1,20 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Qutm - PoE2 Overlay",
-  "version": "../package.json",
+  "productName": "qutm",
+  "version": "0.1.0",
   "identifier": "qutm",
   "build": {
     "beforeDevCommand": "bun run dev",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "bun scripts/sync-version.js && bun run build",
-    "frontendDist": "../dist"
+    "beforeBuildCommand": "bun run build",
+    "frontendDist": "../dist/client"
   },
   "app": {
     "windows": [
       {
-        "title": "Qutm",
-        "titleBarStyle": "Overlay",
-        "hiddenTitle": true,
-        "transparent": true,
-        "alwaysOnTop": true,
-        "skipTaskbar": true,
-        "decorations": false,
-        "focusable": true,
-        "shadow": false,
-        "width": 0,
-        "height": 0
+        "title": "qutm",
+        "width": 800,
+        "height": 600
       }
     ],
     "security": {
@@ -38,15 +30,6 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ],
-    "createUpdaterArtifacts": true
-  },
-  "plugins": {
-    "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDgyQUMwMjAxQkY0QzNGQ0UKUldUT1AweS9BUUtzZ2x1M3pNOXEvL1Z0c1RDQjFlaFIrUmtjeHJaYU8wVzVVc3MyL0tsVUN6SFAK",
-      "endpoints": [
-        "https://github.com/Vyary/qutm/releases/latest/download/latest.json"
-      ]
-    }
+    ]
   }
 }

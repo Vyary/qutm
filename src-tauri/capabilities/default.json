@@ -5,29 +5,6 @@
   "windows": ["main"],
   "permissions": [
     "core:default",
-    "opener:default",
-    "core:window:default",
-    "core:window:allow-close",
-    "core:window:allow-minimize",
-    "core:window:allow-maximize",
-    "core:window:allow-set-ignore-cursor-events",
-    "global-shortcut:allow-register",
-    "global-shortcut:allow-unregister",
-    "global-shortcut:allow-unregister-all",
-    "dialog:default",
-    "core:app:allow-default-window-icon",
-    "process:default",
-    "updater:default",
-    "fs:allow-write-text-file",
-    "fs:allow-read-text-file",
-    "clipboard-manager:allow-read-text",
-    "clipboard-manager:allow-write-text",
-    "store:default",
-    "log:default",
-    "core:event:default",
-    {
-      "identifier": "http:default",
-      "allow": [{ "url": "https://poe.ninja/*" }, { "url": "https://www.pathofexile.com/api/*" }]
-    }
+    "opener:default"
   ]
 }
