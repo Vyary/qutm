@@ -6,9 +6,10 @@ import {
   togglePassthrough,
 } from "./lib/Passthrough";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { ShortcutRecorder } from "./components/Shortcut";
+import { ShortcutRecorder } from "./components/ShortcutRecorder";
 import { createShortcut } from "./lib/Shortcut";
 import { WidgetBase } from "./components/WidgetBase";
+import { trayIcon } from "./lib/TrayIcon";
 
 const [show, setShow] = createSignal(false);
 
@@ -16,6 +17,7 @@ function App() {
   createShortcut("overlay", "F3", true, togglePassthrough);
 
   onSettled(() => {
+    void trayIcon();
     enablePassthrough();
     getCurrentWindow().maximize();
   });
