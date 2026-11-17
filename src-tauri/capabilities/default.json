@@ -9,6 +9,10 @@
     "core:default",
     "opener:default",
     "core:window:allow-maximize",
-    "core:window:allow-set-ignore-cursor-events"
+    "core:window:allow-set-ignore-cursor-events",
+    "log:default",
+    "store:default",
+    "global-shortcut:allow-register",
+    "global-shortcut:allow-unregister"
   ]
 }

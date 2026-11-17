@@ -1,26 +1,23 @@
 import { Show } from "solid-js";
-import {
-  createFormatForDisplay,
-  createHotkeyRecorder,
-} from "@tanstack/solid-hotkeys";
+import { formatForDisplay } from "@tanstack/hotkeys";
+import { createHotkeyRecorder } from "@/lib/Hotkeys";
+import { shortcuts, updateShortcut } from "@/lib/Shortcut";
 
-export function ShortcutRecorder() {
-  const formatForDisplay = createFormatForDisplay();
+export function ShortcutRecorder(props: { name: string }) {
+  const shortcut = () => shortcuts[props.name];
   const recorder = createHotkeyRecorder({
-    onRecord: (hotkey) => console.log("Recorded:", hotkey), // e.g. 'Mod+Shift+S'
+    onRecord: (hotkey) => updateShortcut(props.name, formatForDisplay(hotkey)),
   });
-
-  const label = () => {
-    if (recorder.isRecording()) return "Press a key combination...";
-    const hotkey = recorder.recordedHotkey();
-    return hotkey ? formatForDisplay(hotkey) : "Click to record";
-  };
 
   return (
     <div>
-      <button onClick={recorder.startRecording}>{label()}</button>
+      <button class="btn" onClick={recorder.startRecording}>
+        {shortcut()}
+      </button>
       <Show when={recorder.isRecording()}>
-        <button onClick={recorder.cancelRecording}>Cancel</button>
+        <button class="btn" onClick={recorder.cancelRecording}>
+          Cancel
+        </button>
       </Show>
     </div>
   );

@@ -1,10 +1,19 @@
-import { onSettled } from "solid-js";
+import { createSignal, onSettled, Show } from "solid-js";
 import "./App.css";
-import { enablePassthrough, passthrough } from "./lib/Passthrough";
+import {
+  enablePassthrough,
+  passthrough,
+  togglePassthrough,
+} from "./lib/Passthrough";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { ShortcutRecorder } from "./components/Shortcut";
+import { createShortcut } from "./lib/Shortcut";
+
+const [show, setShow] = createSignal(false);
 
 function App() {
+  createShortcut("overlay", "F3", true, togglePassthrough);
+
   onSettled(() => {
     enablePassthrough();
     getCurrentWindow().maximize();
@@ -21,7 +30,12 @@ function App() {
         },
       ]}
     >
-      <ShortcutRecorder />
+      <button class="btn btn-primary" onClick={() => setShow((s) => !s)}>
+        Show/Hide
+      </button>
+      <Show when={show()}>
+        <ShortcutRecorder name="overlay" />
+      </Show>
     </main>
   );
 }

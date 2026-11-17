@@ -14,9 +14,12 @@
   "license": "MIT",
   "dependencies": {
     "@solidjs/web": "^2.0.0-rc.21",
-    "@tanstack/solid-hotkeys": "0.25.1",
+    "@tanstack/hotkeys": "^0.32.0",
     "@tauri-apps/api": "^2",
+    "@tauri-apps/plugin-global-shortcut": "~2",
+    "@tauri-apps/plugin-log": "~2",
     "@tauri-apps/plugin-opener": "^2",
+    "@tauri-apps/plugin-store": "~2",
     "solid-js": "^2.0.0-rc.21"
   },
   "devDependencies": {
@@ -32,8 +35,5 @@
     "oxlint": "~1.92.0",
     "typescript": "^7.0.2",
     "vite": "^8.3.5"
-  },
-  "patchedDependencies": {
-    "@tanstack/solid-hotkeys@0.25.1": "patches/@tanstack%2Fsolid-hotkeys@0.24.0.patch"
   }
 }
