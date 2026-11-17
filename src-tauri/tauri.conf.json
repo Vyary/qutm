@@ -1,20 +1,28 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "qutm",
-  "version": "0.1.0",
+  "version": "../package.json",
   "identifier": "qutm",
   "build": {
     "beforeDevCommand": "bun run dev",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "bun run build",
+    "beforeBuildCommand": "bun scripts/sync-version.js && bun run build",
     "frontendDist": "../dist/client"
   },
   "app": {
     "windows": [
       {
-        "title": "qutm",
-        "width": 800,
-        "height": 600
+        "title": "Qutm",
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true,
+        "transparent": true,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "decorations": false,
+        "focusable": true,
+        "shadow": false,
+        "width": 0,
+        "height": 0
       }
     ],
     "security": {

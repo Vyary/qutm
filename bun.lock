@@ -6,21 +6,22 @@
       "name": "qutm",
       "dependencies": {
         "@solidjs/web": "^2.0.0-rc.21",
-        "@tailwindcss/vite": "^4.3.5",
+        "@tanstack/solid-hotkeys": "^0.25.1",
         "@tauri-apps/api": "^2",
         "@tauri-apps/plugin-opener": "^2",
         "solid-js": "^2.0.0-rc.21",
-        "tailwindcss": "^4.3.5",
       },
       "devDependencies": {
         "@solidjs/diagnostics": "^2.0.0-rc.21",
         "@solidjs/start-devtools": "^1.0.0-next.4",
         "@solidjs/vite-plugin": "^3.0.0-next.57",
+        "@tailwindcss/vite": "^4.3.5",
         "@tauri-apps/cli": "^2",
         "@types/node": "^26.6.6",
         "daisyui": "^5.8.1",
         "eslint-plugin-solid": "~0.19.0",
         "oxlint": "~1.92.0",
+        "tailwindcss": "^4.3.5",
         "typescript": "^7.0.2",
         "vite": "^8.3.5",
       },
@@ -174,6 +175,10 @@
     "@tailwindcss/oxide-win32-x64-msvc": ["@tailwindcss/oxide-win32-x64-msvc@4.3.5", "", { "os": "win32", "cpu": "x64" }, "sha512-XiKFfIy1RWe7qK4WqByxNW7Oz1/nkOy8o/BWhHminyV1PmpUd8Eedj5v2A8h2kpqeVlz6xRnwk9Fr/ZXNLcZfg=="],
 
     "@tailwindcss/vite": ["@tailwindcss/vite@4.3.5", "", { "dependencies": { "@tailwindcss/node": "4.3.5", "@tailwindcss/oxide": "4.3.5", "tailwindcss": "4.3.5" }, "peerDependencies": { "vite": "^5.2.0 || ^6 || ^7 || ^8" } }, "sha512-BCNiY0a1ZjdOHVqw7kyb7U72BwfMF3dfUuN+tQsLWky/J5JOI/r7abibglXfygrZhVO/3u3V+E25kkKTeMkXaQ=="],
+
+    "@tanstack/hotkeys": ["@tanstack/hotkeys@0.32.0", "", {}, "sha512-RofohKwXpAtnySoa/sXCWjkA3fyWn8AKcxXO6/Uc/r+ufNiMAyYSmwpVmT7L9hzRNta9ai10Y2soKKfmK5tL8Q=="],
+
+    "@tanstack/solid-hotkeys": ["@tanstack/solid-hotkeys@0.25.1", "", { "dependencies": { "@tanstack/hotkeys": "0.32.0" }, "peerDependencies": { "solid-js": "^1.7.0" } }, "sha512-zjW1rv9jBqEmgl4OcNJWwdzhFoI5P8Mcpf0HEeBcCbEcz06hednAM/0mbfMPITXR3bvvZkabOTW8k1VkR5cbpA=="],
 
     "@tauri-apps/api": ["@tauri-apps/api@2.12.4", "", {}, "sha512-pVmfis+4zT8H0Qhp3xPZx9Ju7kpzvA6rr/PSJPyuwfvucTQ8sVt61NYU9KMkK703UFlYadFmjKA4HhybOtN0gg=="],
 
