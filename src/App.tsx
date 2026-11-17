@@ -8,6 +8,7 @@ import {
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { ShortcutRecorder } from "./components/Shortcut";
 import { createShortcut } from "./lib/Shortcut";
+import { WidgetBase } from "./components/WidgetBase";
 
 const [show, setShow] = createSignal(false);
 
@@ -34,7 +35,16 @@ function App() {
         Show/Hide
       </button>
       <Show when={show()}>
-        <ShortcutRecorder name="overlay" />
+        <WidgetBase
+          name="shortcut"
+          defaultPos={{ x: 10, y: 10 }}
+          defaultTransparency={95}
+          transparencySlider
+        >
+          <div class="p-10">
+            <ShortcutRecorder name="overlay" />
+          </div>
+        </WidgetBase>
       </Show>
     </main>
   );
