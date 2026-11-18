@@ -1,14 +1,34 @@
 import { TrayIcon, TrayIconEvent } from "@tauri-apps/api/tray";
-import { Menu } from "@tauri-apps/api/menu";
+import { Menu, PredefinedMenuItem, Submenu } from "@tauri-apps/api/menu";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { defaultWindowIcon, exit } from "@tauri-apps/api/app";
 import { error } from "@tauri-apps/plugin-log";
 import { togglePassthrough } from "./Passthrough";
+import { store } from "./Store";
+import { relaunch } from "@tauri-apps/plugin-process";
 
 export async function trayIcon() {
   try {
+    const sep = await PredefinedMenuItem.new({ item: "Separator" });
+
+    const dataSubmenu = await Submenu.new({
+      text: "Advanced Storage Options...",
+      items: [
+        {
+          id: "clear_all_data",
+          text: "Factory Reset All Data",
+          action: async () => {
+            store.clear();
+            await relaunch();
+          },
+        },
+      ],
+    });
+
     const menu = await Menu.new({
       items: [
+        dataSubmenu,
+        sep,
         {
           id: "quit",
           text: "Quit",

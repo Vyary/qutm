@@ -1,20 +1,65 @@
+use serde::Serialize;
 use std::io::SeekFrom;
 use std::time::Duration;
-
 use tauri::{Emitter, Window};
 use tokio::fs::File;
 use tokio::io::{AsyncBufReadExt, AsyncSeekExt, BufReader};
 
-fn parse_zone(line: &str) -> Option<&str> {
-    let zone = line
-        .split_once("Generating level ")?
-        .1
-        .split_once("area \"")?
-        .1
-        .split_once('"')?
-        .0;
+#[derive(Clone, Serialize)]
+struct AreaInfo {
+    level: u32,
+    name: String,
+}
 
-    (!zone.is_empty() && !zone.to_ascii_lowercase().contains("hideout")).then_some(zone)
+fn parse_area(line: &str) -> Option<AreaInfo> {
+    let rest = line.split_once("Generating level ")?.1;
+    let (level, rest) = rest.split_once(" area \"")?;
+    let name = rest.split_once('"')?.0;
+
+    if name.is_empty() || name.to_ascii_lowercase().contains("hideout") {
+        return None;
+    }
+
+    Some(AreaInfo {
+        level: level.parse().ok()?,
+        name: name.to_string(),
+    })
+}
+
+#[derive(Clone, Serialize)]
+struct LevelUp {
+    name: String,
+    class: String,
+    level: u32,
+}
+
+fn parse_level_up(line: &str) -> Option<LevelUp> {
+    let (before, after) = line.split_once(" is now level ")?;
+    let who = before.rsplit_once(": ")?.1; // "Name (Class)"
+    let (name, class) = who.split_once(" (")?;
+    let class = class.strip_suffix(')')?;
+    let level = after.split_whitespace().next()?.parse().ok()?;
+
+    Some(LevelUp {
+        name: name.to_string(),
+        class: class.to_string(),
+        level,
+    })
+}
+
+fn parse_overlay(line: &str) -> Option<bool> {
+    if line.contains("[STARTUP] Loading Start") || line.contains("[WINDOW] Gained focus") {
+        Some(true)
+    } else if line.contains("[WINDOW] Lost focus") || line.contains("Closing game gracefully") {
+        Some(false)
+    } else {
+        None
+    }
+}
+
+fn parse_quote(line: &str) -> Option<&str> {
+    let quote = line.trim_end().rsplit_once(": ")?.1;
+    (!quote.is_empty()).then_some(quote)
 }
 
 #[tauri::command]
@@ -38,9 +83,16 @@ async fn tail_file(window: Window, file_path: String) -> Result<(), String> {
             continue;
         }
 
-        if let Some(zone) = parse_zone(&line) {
-            let _ = window.emit("area-entered", zone);
+        if let Some(show) = parse_overlay(&line) {
+            let _ = window.emit("show-overlay", show);
+        } else if let Some(level_up) = parse_level_up(&line) {
+            let _ = window.emit("character-level-up", level_up);
+        } else if let Some(area) = parse_area(&line) {
+            let _ = window.emit("area-entered", area);
+        } else if let Some(quote) = parse_quote(&line) {
+            let _ = window.emit("log-quote", quote);
         }
+
         line.clear();
     }
 }

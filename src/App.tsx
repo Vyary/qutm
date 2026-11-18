@@ -12,6 +12,12 @@ import { initFileWatch } from "./lib/File";
 import { Guard } from "./components/Guard";
 import { autoUpdate } from "./components/Updater/UpdaterSettings";
 import { Updater } from "./components/Updater/Updater";
+import {
+  initShowOverlay,
+  showOverlay,
+  stopShowOverlay,
+} from "./lib/ShowOverlay";
+import { Zone } from "./components/Zone/Zone";
 
 function App() {
   createShortcut("overlay", "F3", true, togglePassthrough);
@@ -19,8 +25,13 @@ function App() {
   onSettled(() => {
     trayIcon();
     initFileWatch();
+    initShowOverlay();
     enablePassthrough();
     getCurrentWindow().maximize();
+
+    return () => {
+      stopShowOverlay();
+    };
   });
 
   return (
@@ -37,6 +48,16 @@ function App() {
       <Guard name="Update" show={autoUpdate()}>
         <Updater />
       </Guard>
+
+      <div
+        class={{
+          hidden: !showOverlay() && passthrough(),
+        }}
+      >
+        <Guard name="Zone" show={true}>
+          <Zone />
+        </Guard>
+      </div>
     </main>
   );
 }
