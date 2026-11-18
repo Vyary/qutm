@@ -66,3 +66,11 @@ export const setFlag = (quote: string) => {
     s.flags[tracker.zone][quote] = true;
   });
 };
+
+export const changeZone = (zone: string) => {
+  setTracker((s) => {
+    s.prevZone = s.zone;
+    s.zone = zone;
+    s.history.unshift(zone);
+  });
+};

@@ -17,7 +17,7 @@ import {
   showOverlay,
   stopShowOverlay,
 } from "./lib/ShowOverlay";
-import { Zone } from "./components/Zone/Zone";
+import { showZone, Zone } from "./components/Zone/Zone";
 
 function App() {
   createShortcut("overlay", "F3", true, togglePassthrough);
@@ -54,7 +54,7 @@ function App() {
           hidden: !showOverlay() && passthrough(),
         }}
       >
-        <Guard name="Zone" show={true}>
+        <Guard name="Zone" show={showZone()}>
           <Zone />
         </Guard>
       </div>
