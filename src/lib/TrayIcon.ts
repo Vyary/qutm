@@ -1,11 +1,11 @@
 import { TrayIcon, TrayIconEvent } from "@tauri-apps/api/tray";
 import { Menu, PredefinedMenuItem, Submenu } from "@tauri-apps/api/menu";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { defaultWindowIcon, exit } from "@tauri-apps/api/app";
+import { defaultWindowIcon } from "@tauri-apps/api/app";
 import { error } from "@tauri-apps/plugin-log";
 import { togglePassthrough } from "./Passthrough";
 import { store } from "./Store";
-import { relaunch } from "@tauri-apps/plugin-process";
+import { exit, relaunch } from "@tauri-apps/plugin-process";
 
 export async function trayIcon() {
   try {
@@ -35,7 +35,7 @@ export async function trayIcon() {
           action: async () => {
             await getCurrentWindow().close();
             await getCurrentWindow().minimize();
-            await new Promise((r) => setTimeout(r, 800));
+            await new Promise((r) => setTimeout(r, 2000));
             await exit(0);
           },
         },

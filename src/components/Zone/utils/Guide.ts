@@ -1,4 +1,4 @@
-import { createStore } from "solid-js";
+import { createStore, flush } from "solid-js";
 import guideJson from "@/assets/guide2.json";
 import { store } from "@/lib/Store";
 import { info } from "@tauri-apps/plugin-log";
@@ -24,8 +24,9 @@ type GuideStore = Record<
 
 export const [guide, setGuide] = createStore<GuideStore>({});
 
-const saveGuide = async (g: GuideStore) => {
-  await store.set("guide", g);
+export const saveGuide = async () => {
+  flush();
+  await store.set("guide", guide);
   await store.save();
   info("guide saved");
 };
@@ -39,7 +40,7 @@ export const loadGuide = async () => {
   }
 
   setGuide(() => guideJson);
-  saveGuide(guideJson);
+  saveGuide();
 };
 
 export const addGroup = (zone: string) => {

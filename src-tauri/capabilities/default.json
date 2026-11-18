@@ -18,7 +18,6 @@
     "core:app:allow-default-window-icon",
     "dialog:default",
     "core:window:allow-minimize",
-    "core:window:allow-destroy",
     "process:default"
   ]
 }
