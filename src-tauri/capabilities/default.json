@@ -15,6 +15,7 @@
     "store:default",
     "global-shortcut:allow-register",
     "global-shortcut:allow-unregister",
-    "core:app:allow-default-window-icon"
+    "core:app:allow-default-window-icon",
+    "dialog:default"
   ]
 }

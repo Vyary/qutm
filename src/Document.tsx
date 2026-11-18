@@ -13,8 +13,7 @@ export default function Document(props: ParentProps) {
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="theme-color" content="#000000" />
-        <link rel="icon" href="/src/assets/logo.svg" />
-        <title>Tauri + Solid + Typescript App</title>
+        <title>Qutm</title>
         <HydrationScript />
       </head>
       <body>{props.children}</body>

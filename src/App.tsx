@@ -1,4 +1,4 @@
-import { createSignal, onSettled, Show } from "solid-js";
+import { onSettled } from "solid-js";
 import "./App.css";
 import {
   enablePassthrough,
@@ -6,18 +6,19 @@ import {
   togglePassthrough,
 } from "./lib/Passthrough";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { ShortcutRecorder } from "./components/ShortcutRecorder";
 import { createShortcut } from "./lib/Shortcut";
-import { WidgetBase } from "./components/WidgetBase";
 import { trayIcon } from "./lib/TrayIcon";
-
-const [show, setShow] = createSignal(false);
+import { initFileWatch } from "./lib/File";
+import { Guard } from "./components/Guard";
+import { autoUpdate } from "./components/Updater/UpdaterSettings";
+import { Updater } from "./components/Updater/Updater";
 
 function App() {
   createShortcut("overlay", "F3", true, togglePassthrough);
 
   onSettled(() => {
-    void trayIcon();
+    trayIcon();
+    initFileWatch();
     enablePassthrough();
     getCurrentWindow().maximize();
   });
@@ -33,21 +34,9 @@ function App() {
         },
       ]}
     >
-      <button class="btn btn-primary" onClick={() => setShow((s) => !s)}>
-        Show/Hide
-      </button>
-      <Show when={show()}>
-        <WidgetBase
-          name="shortcut"
-          defaultPos={{ x: 10, y: 10 }}
-          defaultTransparency={95}
-          transparencySlider
-        >
-          <div class="p-10">
-            <ShortcutRecorder name="overlay" />
-          </div>
-        </WidgetBase>
-      </Show>
+      <Guard name="Update" show={autoUpdate()}>
+        <Updater />
+      </Guard>
     </main>
   );
 }
