@@ -9,34 +9,35 @@
     "build": "vite build",
     "serve": "vite preview",
     "tauri": "tauri",
-    "lint": "oxlint src"
+    "lint": "oxlint src",
+    "update": "bun update --latest && cd src-tauri && cargo update"
   },
   "license": "MIT",
   "dependencies": {
-    "@solidjs/web": "^2.0.0-rc.21",
-    "@tanstack/hotkeys": "^0.32.0",
-    "@tauri-apps/api": "^2",
-    "@tauri-apps/plugin-dialog": "~2",
-    "@tauri-apps/plugin-global-shortcut": "~2",
-    "@tauri-apps/plugin-log": "~2",
-    "@tauri-apps/plugin-opener": "^2",
-    "@tauri-apps/plugin-process": "~2",
-    "@tauri-apps/plugin-store": "~2",
-    "@tauri-apps/plugin-updater": "~2",
-    "solid-js": "^2.0.0-rc.21"
+    "@solidjs/web": "^2.0.1",
+    "@tanstack/hotkeys": "^0.33.0",
+    "@tauri-apps/api": "^2.12.5",
+    "@tauri-apps/plugin-dialog": "~2.8.4",
+    "@tauri-apps/plugin-global-shortcut": "~2.4.1",
+    "@tauri-apps/plugin-log": "~2.10.2",
+    "@tauri-apps/plugin-opener": "^2.7.3",
+    "@tauri-apps/plugin-process": "~2.4.0",
+    "@tauri-apps/plugin-store": "~2.5.1",
+    "@tauri-apps/plugin-updater": "~2.14.1",
+    "solid-js": "^2.0.1"
   },
   "devDependencies": {
-    "@tauri-apps/cli": "^2",
-    "@solidjs/vite-plugin": "^3.0.0-next.57",
-    "@solidjs/diagnostics": "^2.0.0-rc.21",
-    "@solidjs/start-devtools": "^1.0.0-next.4",
+    "@tauri-apps/cli": "^2.12.6",
+    "@solidjs/vite-plugin": "^3.0.1",
+    "@solidjs/diagnostics": "^2.0.1",
+    "@solidjs/start-devtools": "^1.0.0",
     "@types/node": "^26.6.6",
     "tailwindcss": "^4.3.5",
     "@tailwindcss/vite": "^4.3.5",
     "daisyui": "^5.8.1",
-    "eslint-plugin-solid": "~0.19.0",
-    "oxlint": "~1.92.0",
+    "eslint-plugin-solid": "~0.20.0",
+    "oxlint": "~1.94.0",
     "typescript": "^7.0.2",
-    "vite": "^8.3.5"
+    "vite": "^8.3.8"
   }
 }
