@@ -1,6 +1,6 @@
 import { store } from "@/lib/Store";
 import { listen } from "@tauri-apps/api/event";
-import { error } from "@tauri-apps/plugin-log";
+import { error, info } from "@tauri-apps/plugin-log";
 import { createStore } from "solid-js";
 
 interface Character {
@@ -33,16 +33,17 @@ export const initCharacter = () => {
   });
 };
 
-export const stopCharacter = () => {
+export const stopCharacter = async () => {
   const p = listening;
   listening = undefined;
   p?.then((unlisten) => unlisten());
-  saveCharacter();
+  await saveCharacter();
 };
 
 const saveCharacter = async () => {
   await store.set("character", character);
   await store.save();
+  info("character saved");
 };
 
 const loadCharacter = async () => {

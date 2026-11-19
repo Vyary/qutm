@@ -1,8 +1,10 @@
 import { createStore, flush } from "solid-js";
 import guideJson from "@/assets/guide2.json";
 import { store } from "@/lib/Store";
-import { info } from "@tauri-apps/plugin-log";
+import { error, info } from "@tauri-apps/plugin-log";
 import { Zone } from "../Zone";
+import { save, open } from "@tauri-apps/plugin-dialog";
+import { readTextFile, writeTextFile } from "@tauri-apps/plugin-fs";
 
 export interface Guide {
   prev?: string;
@@ -192,4 +194,55 @@ export const changeDoneQuote = (
     s[zone].guide[zoneIndex].tasks[taskIndex].condition = text;
     s[zone].quotes[text] = true;
   });
+};
+
+export const exportGuide = async () => {
+  try {
+    const filePath = await save({
+      filters: [
+        {
+          name: "JSON",
+          extensions: ["json"],
+        },
+      ],
+      defaultPath: "guide.json",
+    });
+
+    if (!filePath) {
+      info("export cancelled");
+      return;
+    }
+
+    await writeTextFile(filePath, JSON.stringify(guide));
+  } catch (e) {
+    error("exporting guide: " + e);
+  }
+};
+
+export const importGuide = async () => {
+  try {
+    const filePath = await open({
+      multiple: false,
+      directory: false,
+      filters: [
+        {
+          name: "JSON",
+          extensions: ["json"],
+        },
+      ],
+    });
+
+    if (!filePath) {
+      info("import cancelled");
+      return;
+    }
+
+    const rawFile = await readTextFile(filePath);
+    const file = JSON.parse(rawFile);
+
+    setGuide(() => file);
+    saveGuide();
+  } catch (e) {
+    error("importing guide: " + e);
+  }
 };

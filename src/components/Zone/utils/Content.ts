@@ -40,7 +40,7 @@ let listening: Promise<() => void> | undefined;
 
 export const initQuoteTracking = () => {
   listening ??= listen<string>("log-quote", (e) => {
-    const zoneQuotes = guide[tracker.zone].quotes;
+    const zoneQuotes = guide[tracker.zone]?.quotes;
     if (zoneQuotes) {
       let quote = e.payload;
 

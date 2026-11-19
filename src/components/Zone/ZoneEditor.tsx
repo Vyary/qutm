@@ -19,7 +19,7 @@ import {
   moveTaskUp,
   removeTask,
 } from "./utils/Guide";
-import { RTL } from "./Zone";
+import { RTL } from "../Settings";
 
 export const [openEditor, setOpenEditor] = createSignal(false);
 

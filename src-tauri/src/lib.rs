@@ -8,21 +8,21 @@ use tokio::io::{AsyncBufReadExt, AsyncSeekExt, BufReader};
 #[derive(Clone, Serialize)]
 struct AreaInfo {
     level: u32,
-    name: String,
+    code: String,
 }
 
 fn parse_area(line: &str) -> Option<AreaInfo> {
     let rest = line.split_once("Generating level ")?.1;
     let (level, rest) = rest.split_once(" area \"")?;
-    let name = rest.split_once('"')?.0;
+    let code = rest.split_once('"')?.0;
 
-    if name.is_empty() || name.to_ascii_lowercase().contains("hideout") {
+    if code.is_empty() || code.to_ascii_lowercase().contains("hideout") {
         return None;
     }
 
     Some(AreaInfo {
         level: level.parse().ok()?,
-        name: name.to_string(),
+        code: code.to_string(),
     })
 }
 
@@ -100,6 +100,7 @@ async fn tail_file(window: Window, file_path: String) -> Result<(), String> {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_process::init())

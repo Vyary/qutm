@@ -1,11 +1,11 @@
 import { store } from "@/lib/Store";
 import { listen } from "@tauri-apps/api/event";
-import { error } from "@tauri-apps/plugin-log";
+import { error, info } from "@tauri-apps/plugin-log";
 import { createStore } from "solid-js";
 
 interface AreaEntered {
   level: number;
-  name: string;
+  code: string;
 }
 
 interface Tracker {
@@ -32,9 +32,9 @@ export const initTracker = () => {
   listening ??= listen<AreaEntered>("area-entered", (e) => {
     setTracker((s) => {
       s.prevZone = s.zone;
-      s.zone = e.payload.name;
+      s.zone = e.payload.code;
       s.zoneLevel = e.payload.level;
-      s.history.unshift(e.payload.name);
+      s.history.unshift(e.payload.code);
     });
   }).catch((e) => {
     error(String(e));
@@ -43,16 +43,17 @@ export const initTracker = () => {
   });
 };
 
-export const stopTracker = () => {
+export const stopTracker = async () => {
   const p = listening;
   listening = undefined;
   p?.then((unlisten) => unlisten());
-  saveTracker();
+  await saveTracker();
 };
 
 const saveTracker = async () => {
   await store.set("tracker", tracker);
   await store.save();
+  info("tracker saved");
 };
 
 const loadTracker = async () => {

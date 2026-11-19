@@ -1,4 +1,4 @@
-import { createSignal, onSettled } from "solid-js";
+import { onSettled } from "solid-js";
 import "./App.css";
 import {
   enablePassthrough,
@@ -17,9 +17,8 @@ import {
   showOverlay,
   stopShowOverlay,
 } from "./lib/ShowOverlay";
-import { showZone, Zone } from "./components/Zone/Zone";
-
-const [show, setShow] = createSignal(true);
+import { Zone, showZone } from "./components/Zone/Zone";
+import { Layout, showLayout } from "./components/Layout/Layout";
 
 function App() {
   createShortcut("overlay", "F3", true, togglePassthrough);
@@ -51,17 +50,13 @@ function App() {
         <Updater />
       </Guard>
 
-      <button class="btn" onClick={() => setShow((s) => !s)}>
-        Show/Hide
-      </button>
-
       <div
         class={{
           hidden: !showOverlay() && passthrough(),
         }}
       >
-        <Guard name="Zone" show={show()}>
-          <Zone />
+        <Guard name="Layout" show={showLayout()}>
+          <Layout />
         </Guard>
       </div>
     </main>

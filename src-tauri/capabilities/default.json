@@ -11,13 +11,15 @@
     "core:window:allow-maximize",
     "core:window:allow-set-ignore-cursor-events",
     "core:window:allow-close",
+    "core:window:allow-minimize",
     "log:default",
     "store:default",
     "global-shortcut:allow-register",
     "global-shortcut:allow-unregister",
     "core:app:allow-default-window-icon",
     "dialog:default",
-    "core:window:allow-minimize",
-    "process:default"
+    "process:default",
+    "fs:allow-write-text-file",
+    "fs:allow-read-text-file"
   ]
 }
