@@ -1,10 +1,10 @@
 import { createSignal, For, onSettled, Show } from "solid-js";
 import { WidgetBase } from "../WidgetBase";
 import { initTracker, stopTracker, tracker } from "./utils/Tracker";
-import { content, initQuoteTracking, stopQuoteTracking } from "./utils/Content";
+import { content, initQuoteTracker, stopQuoteTracker } from "./utils/Content";
 import { loadTowns, towns } from "./utils/Towns";
 import { loadGuide, saveGuide } from "./utils/Guide";
-import { initCharacter, stopCharacter } from "./utils/Character";
+import { initCharacterTracker, stopCharacterTracker } from "./utils/Character";
 import { ZoneEditor, ZoneEditorSettings } from "./ZoneEditor";
 import { LevelWarning } from "./LevelWarning";
 import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -19,16 +19,16 @@ export function Zone() {
     loadGuide();
 
     initTracker();
-    initCharacter();
-    initQuoteTracking();
+    initCharacterTracker();
+    initQuoteTracker();
   };
 
   const cleanUp = async () => {
     await saveGuide();
     await stopTracker();
-    await stopCharacter();
+    await stopCharacterTracker();
 
-    stopQuoteTracking();
+    stopQuoteTracker();
   };
 
   onSettled(() => {

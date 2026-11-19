@@ -23,7 +23,7 @@ export function Layout() {
     let disposed = false;
     let unlisten: (() => void) | undefined;
 
-    Promise.resolve(initLayoutTracker()).catch((e) => error(String(e)));
+    initLayoutTracker();
 
     getCurrentWindow()
       .onCloseRequested(async () => {

@@ -17,7 +17,7 @@ export const [character, setCharacter] = createStore<Character>({
 
 let listening: Promise<() => void> | undefined;
 
-export const initCharacter = () => {
+export const initCharacterTracker = () => {
   loadCharacter();
 
   listening ??= listen<Character>("character-level-up", (e) => {
@@ -33,7 +33,7 @@ export const initCharacter = () => {
   });
 };
 
-export const stopCharacter = async () => {
+export const stopCharacterTracker = async () => {
   const p = listening;
   listening = undefined;
   p?.then((unlisten) => unlisten());

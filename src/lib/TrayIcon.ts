@@ -7,6 +7,7 @@ import { togglePassthrough } from "./Passthrough";
 import { store } from "./Store";
 import { exit, relaunch } from "@tauri-apps/plugin-process";
 import { exportGuide, importGuide } from "@/components/Zone/utils/Guide";
+import { importLayouts } from "@/components/Layout/LayoutState";
 
 export async function trayIcon() {
   try {
@@ -24,6 +25,11 @@ export async function trayIcon() {
           id: "import_guide",
           text: "Import Guide",
           action: importGuide,
+        },
+        {
+          id: "import_layouts",
+          text: "Import Layouts",
+          action: importLayouts,
         },
       ],
     });

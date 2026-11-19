@@ -38,7 +38,7 @@ export const content = createRoot(() =>
 
 let listening: Promise<() => void> | undefined;
 
-export const initQuoteTracking = () => {
+export const initQuoteTracker = () => {
   listening ??= listen<string>("log-quote", (e) => {
     const zoneQuotes = guide[tracker.zone]?.quotes;
     if (zoneQuotes) {
@@ -59,7 +59,7 @@ export const initQuoteTracking = () => {
   });
 };
 
-export const stopQuoteTracking = () => {
+export const stopQuoteTracker = () => {
   const p = listening;
   listening = undefined;
   p?.then((unlisten) => unlisten());
