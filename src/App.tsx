@@ -55,6 +55,10 @@ function App() {
           hidden: !showOverlay() && passthrough(),
         }}
       >
+        <Guard name="Zone" show={showZone()}>
+          <Zone />
+        </Guard>
+
         <Guard name="Layout" show={showLayout()}>
           <Layout />
         </Guard>
