@@ -3,11 +3,11 @@ import { createSignal, createStore } from "solid-js";
 import { Item, Prices } from "./Types";
 import { invoke } from "@tauri-apps/api/core";
 import { error, info } from "@tauri-apps/plugin-log";
-import { parseItem } from "./ParseItem";
 import { disablePassthrough } from "@/lib/Passthrough";
 import { setCloseOverlay } from "@/lib/CloseOverlay";
 import { OverviewsPrice, PriceCheck } from "./PriceChecker";
 import { createQuery } from "./CreateQuery";
+import { parseItem } from "./ParseItem";
 
 export const emptyItem = {
   TypeFilters: { filters: { category: { value: "", disabled: true } } },
@@ -23,7 +23,6 @@ export const emptyItem = {
 };
 
 export const [item, setItem] = createStore<Item>(emptyItem);
-
 export const [prices, setPrices] = createSignal<Prices[]>([]);
 export const [ovPrice, setOvPrice] = createSignal(false);
 export const [timeout, setTimeoutLeft] = createSignal(0);

@@ -14,7 +14,7 @@ import { RTL, textSize, textSizeSmall, textSlider } from "../Settings";
 export const [showZone, setShowZone] = createSignal(true);
 
 export function Zone() {
-  const load = () => {
+  const onLoad = () => {
     loadTowns();
     loadGuide();
 
@@ -35,7 +35,7 @@ export function Zone() {
     let disposed = false;
     let unlisten: (() => void) | undefined;
 
-    load();
+    onLoad();
 
     getCurrentWindow()
       .onCloseRequested(async () => await cleanUp())

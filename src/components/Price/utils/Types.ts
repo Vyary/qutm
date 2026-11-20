@@ -108,6 +108,7 @@ interface PoeStatFilter {
 export interface Item {
   name?: Toggleable<string>;
   type?: Toggleable<string>;
+  quantity?: number;
   TypeFilters: {
     filters: {
       category: Toggleable<string>;

@@ -273,6 +273,13 @@ export const parseItem = (item: string) => {
     const line = lines[i].trim();
     if (line.includes("---")) continue;
 
+    if (line.includes("Stack Size: ")) {
+      const match = line.match(/Stack Size:\s*([\d,]+)/);
+      if (match) {
+        itemStruct.quantity = parseInt(match[1].replace(/,/g, ""), 10);
+      }
+    }
+
     // Type Filters
     if (line.includes("Item Class: ")) {
       const c = line.split("Item Class: ")[1].trim();

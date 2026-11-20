@@ -1,4 +1,4 @@
-import { onSettled } from "solid-js";
+import { onSettled, Show } from "solid-js";
 import "./App.css";
 import {
   enablePassthrough,
@@ -20,6 +20,9 @@ import {
 import { Zone, showZone } from "./components/Zone/Zone";
 import { Layout, showLayout } from "./components/Layout/Layout";
 import { Price, showPrice } from "./components/Price/Price";
+import { closeOverlay } from "./lib/CloseOverlay";
+import { invoke } from "@tauri-apps/api/core";
+import { Inventory, showInventory } from "./components/Inventory/Inventory";
 
 function App() {
   createShortcut("overlay", "F3", true, togglePassthrough);
@@ -47,6 +50,18 @@ function App() {
         },
       ]}
     >
+      <Show when={closeOverlay() && !passthrough()}>
+        <div
+          class="min-h-dvh min-w-dvw"
+          onClick={() => {
+            if (closeOverlay()) {
+              invoke("alt_tab");
+              enablePassthrough();
+            }
+          }}
+        ></div>
+      </Show>
+
       <Guard name="Update" show={autoUpdate()}>
         <Updater />
       </Guard>
@@ -70,6 +85,10 @@ function App() {
           hidden: passthrough(),
         }}
       >
+        <Guard name="Price" show={showInventory()}>
+          <Inventory />
+        </Guard>
+
         <Guard name="Price" show={showPrice()}>
           <Price />
         </Guard>

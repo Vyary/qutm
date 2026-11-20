@@ -21,6 +21,7 @@
     "process:default",
     "fs:allow-write-text-file",
     "fs:allow-read-text-file",
+    "clipboard-manager:allow-write-text",
     {
       "identifier": "http:default",
       "allow": [

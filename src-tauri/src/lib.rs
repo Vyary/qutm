@@ -1,4 +1,8 @@
-use enigo::{Direction, Enigo, Key, Keyboard, Settings};
+use enigo::{
+    Button, Coordinate, Direction,
+    Direction::{Press, Release},
+    Enigo, Key, Keyboard, Mouse, Settings,
+};
 use serde::Serialize;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::thread;
@@ -130,8 +134,8 @@ fn ms(d: Duration) -> f64 {
 }
 
 fn send_copy(enigo: &mut Enigo, scale: u64) -> Result<(), String> {
-    let pre = scaled(10_000, scale);
-    let mid = scaled(10_000, scale);
+    let pre = scaled(50_000, scale);
+    let mid = scaled(50_000, scale);
 
     info!(
         "os_copy: sending copy (scale {scale}%, pre {:.1}ms, mid {:.1}ms)",
@@ -236,6 +240,64 @@ fn os_copy(app: AppHandle) -> Result<String, String> {
 }
 
 // ---------------------------------------------------------------------------
+// alt_tab: automate alt+tab
+// ---------------------------------------------------------------------------
+
+#[tauri::command]
+async fn alt_tab() -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(|| -> Result<(), String> {
+        let mut enigo = Enigo::new(&Settings::default()).map_err(|e| e.to_string())?;
+
+        #[cfg(target_os = "macos")]
+        let modifier = Key::Meta; // Cmd
+        #[cfg(not(target_os = "macos"))]
+        let modifier = Key::Alt;
+
+        let err = |e: enigo::InputError| e.to_string();
+
+        enigo.key(modifier, Direction::Press).map_err(err)?;
+
+        let result = enigo.key(Key::Tab, Direction::Click).map_err(err);
+
+        thread::sleep(Duration::from_millis(5));
+        let _ = enigo.key(modifier, Direction::Release);
+
+        result
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+// ---------------------------------------------------------------------------
+// get_global_mouse_position, mouse_move, mouse_click: general mouse functions
+// ---------------------------------------------------------------------------
+
+#[tauri::command]
+fn get_global_mouse_position() -> Option<(i32, i32)> {
+    if let Ok(enigo) = Enigo::new(&Settings::default()) {
+        if let Ok(pos) = enigo.location() {
+            return Some(pos);
+        }
+    }
+    None
+}
+
+#[tauri::command]
+async fn mouse_move(x: i32, y: i32) -> Result<(), String> {
+    let mut enigo = Enigo::new(&Settings::default()).unwrap();
+    enigo.move_mouse(x, y, Coordinate::Abs).unwrap();
+    Ok(())
+}
+
+#[tauri::command]
+async fn mouse_click() -> Result<(), String> {
+    let mut enigo = Enigo::new(&Settings::default()).unwrap();
+    enigo.button(Button::Left, Press).unwrap();
+    enigo.button(Button::Left, Release).unwrap();
+    Ok(())
+}
+
+// ---------------------------------------------------------------------------
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -255,7 +317,14 @@ pub fn run() {
                 .build(),
         )
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![tail_file, os_copy])
+        .invoke_handler(tauri::generate_handler![
+            tail_file,
+            os_copy,
+            alt_tab,
+            get_global_mouse_position,
+            mouse_move,
+            mouse_click
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
