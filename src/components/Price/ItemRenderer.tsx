@@ -241,20 +241,20 @@ function ModList(props: {
 }) {
   return (
     <div class="space-y-1">
-      <For each={props.item[props.modType]} keyed={false}>
+      <For each={props.item[props.modType]}>
         {(mod, i) => (
-          <div class={{ "opacity-40": mod().disabled }}>
+          <div class={{ "opacity-40": mod.disabled }}>
             <span class="flex items-center justify-between gap-1">
               <div class="inline-flex items-center gap-1">
                 <InputRange
-                  min={mod().min}
-                  max={mod().max}
+                  min={mod.min}
+                  max={mod.max}
                   onInput={(
                     valueType: "min" | "max",
                     value: number | undefined,
                   ) => {
                     props.setItem((s) => {
-                      s[props.modType][i][valueType] = value;
+                      s[props.modType][i()][valueType] = value;
                     });
                   }}
                 />
@@ -262,53 +262,57 @@ function ModList(props: {
                   class="cursor-pointer"
                   onClick={() =>
                     props.setItem((s) => {
-                      s[props.modType][i].disabled =
-                        !s[props.modType][i].disabled;
+                      s[props.modType][i()].disabled =
+                        !s[props.modType][i()].disabled;
                     })
                   }
                 >
-                  {mod().mod}
+                  {mod.mod}
                 </div>
               </div>
               <div
                 class={[
                   "cursor-pointer text-xs ",
                   {
-                    "opacity-40": mod().fractured?.disabled,
+                    "opacity-40": mod.fractured?.disabled,
                   },
                   {
-                    "badge badge-xs badge-soft badge-warning": mod().fractured
+                    "badge badge-xs badge-soft badge-warning": mod.fractured
                       ? true
                       : false,
                   },
                 ]}
                 onClick={() => {
                   props.setItem((s) => {
-                    const fractured = s[props.modType][i]!.fractured;
+                    const fractured = s[props.modType][i()]!.fractured;
                     if (fractured) fractured.disabled = !fractured.disabled;
                   });
                 }}
               >
-                {mod().fractured ? "Fractured" : ""}
+                {mod.fractured ? "Fractured" : ""}
               </div>
-              <Show when={isRune(mod) ? mod : null} keyed>
+              <Show when={isRune(mod) ? mod : null}>
                 {(rune) => {
-                  const overview = overviews[rune.name || ""];
-                  const maxC = overview?.maxVolumeCurrency || "exalted";
-                  const curr =
-                    overview?.prices?.[
-                      maxC as "exalted" | "chaos" | "divine"
+                  const name = () => rune().name;
+                  const overview = () => overviews[name() ?? ""];
+                  const maxC = () => overview()?.maxVolumeCurrency || "exalted";
+                  const curr = () =>
+                    overview()?.prices?.[
+                      maxC() as "exalted" | "chaos" | "divine"
                     ] || 0;
+
                   return (
-                    <Show when={rune.name}>
+                    <Show when={name()}>
                       <div class="flex flex-col items-end justify-center text-xs opacity-60 max-h-6">
                         <div class="flex gap-1">
-                          <Show when={rune.count > 1}>
-                            <div>{`${rune.count} x `}</div>
+                          <Show when={rune().count > 1}>
+                            <div>{`${rune().count} x `}</div>
                           </Show>
-                          <div>{`${rune.name}`}</div>
+                          <div>{name()}</div>
                         </div>
-                        <div class="-mt-1">{`${formatValue(rune.count * curr)} ${maxC}`}</div>
+                        <div class="-mt-1">
+                          {`${formatValue(rune().count * curr())} ${maxC()}`}
+                        </div>
                       </div>
                     </Show>
                   );
