@@ -19,6 +19,7 @@ import {
 } from "./lib/ShowOverlay";
 import { Zone, showZone } from "./components/Zone/Zone";
 import { Layout, showLayout } from "./components/Layout/Layout";
+import { Price, showPrice } from "./components/Price/Price";
 
 function App() {
   createShortcut("overlay", "F3", true, togglePassthrough);
@@ -61,6 +62,16 @@ function App() {
 
         <Guard name="Layout" show={showLayout()}>
           <Layout />
+        </Guard>
+      </div>
+
+      <div
+        class={{
+          hidden: passthrough(),
+        }}
+      >
+        <Guard name="Price" show={showPrice()}>
+          <Price />
         </Guard>
       </div>
     </main>

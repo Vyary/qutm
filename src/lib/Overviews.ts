@@ -44,7 +44,21 @@ interface UniqueResponse {
   }[];
 }
 
-type ExchangePrices = Record<
+export type overviewPrice = {
+  id: string;
+  name: string;
+  base: string;
+  image: string;
+  category: string;
+  maxVolumeCurrency: string;
+  prices: {
+    exalted: number;
+    chaos: number;
+    divine: number;
+  };
+};
+
+type overviewPrices = Record<
   string,
   {
     id: string;
@@ -88,7 +102,7 @@ const UNIQUE_CATEGORIES = [
 ];
 const TWELVE_HOURS = 12 * 60 * 60 * 1000;
 
-export const [overviews, setOverviews] = createStore<ExchangePrices>({});
+export const [overviews, setOverviews] = createStore<overviewPrices>({});
 export const [ts, setTs] = createSignal<number>(0);
 const [overviewsLeague, setOverviewsLeague] = createSignal("");
 const isStale = (t?: number) => !t || Date.now() - t >= TWELVE_HOURS;
@@ -130,7 +144,7 @@ const fetchOverviews = async (league: string) => {
       Promise.all(UNIQUE_CATEGORIES.map((c) => fetchUnique(c, league))),
     ]);
 
-  const ep: ExchangePrices = {};
+  const ep: overviewPrices = {};
 
   for (const data of exchanges) {
     const exaltedPrice = data.core.rates["exalted"];
@@ -182,7 +196,7 @@ const fetchOverviews = async (league: string) => {
   return ep;
 };
 
-const saveOverviews = async (data: ExchangePrices, league: string) => {
+const saveOverviews = async (data: overviewPrices, league: string) => {
   const now = Date.now();
   await store.set("overviews", data);
   await store.set("timestamp", now);
@@ -219,7 +233,7 @@ const refreshOverview = async () => {
 export const loadOverviews = async () => {
   const [savedTs, cached, savedLeague] = await Promise.all([
     store.get<number>("timestamp"),
-    store.get<ExchangePrices>("overviews"),
+    store.get<overviewPrices>("overviews"),
     store.get<string>("overviewLeague"),
   ]);
 

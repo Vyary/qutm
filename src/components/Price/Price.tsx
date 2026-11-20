@@ -1,16 +1,46 @@
-import { For, Show } from "solid-js";
+import { createSignal, For, onSettled, Show } from "solid-js";
 import { WidgetBase } from "../WidgetBase";
+import { loadOverviews, overviewPrice } from "@/lib/Overviews";
+import {
+  getPrice,
+  hasCategory,
+  item,
+  ovPrice,
+  prices,
+  sameBaseOverviews,
+  scanItem,
+  selectItemBase,
+  setItem,
+  timeout,
+} from "./utils/PriceState";
+import { ItemRenderer } from "./ItemRenderer";
+import { createShortcut } from "@/lib/Shortcut";
+import { loadMods } from "./utils/Mods";
+
+export const [showPrice, setShowPrice] = createSignal(true);
 
 export function Price() {
+  createShortcut("itemScan", "Alt+D", false, scanItem);
+
+  onSettled(() => {
+    loadMods();
+    loadOverviews();
+  });
+
   return (
-    <Show when={item.TypeFilters.filters.category.value}>
+    <Show when={hasCategory()}>
       <WidgetBase
         name="price"
         defaultPos={{ x: 50, y: 170 }}
         defaultTransparency={85}
-        transparencySlider={true}
+        transparencySlider
         extraPanel={item.MiscFilters.filters.identified?.value === false}
-        extraChildren={<ItemPicker />}
+        extraChildren={
+          <ItemPicker
+            filteredOverviews={sameBaseOverviews()}
+            chooseAction={selectItemBase}
+          />
+        }
       >
         <ItemRenderer
           item={item}
@@ -25,33 +55,20 @@ export function Price() {
   );
 }
 
-function ItemPicker() {
+function ItemPicker(props: {
+  filteredOverviews: overviewPrice[];
+  chooseAction: (item: overviewPrice) => void;
+}) {
   return (
     <div class="aura aura-dual">
       <div class="flex flex-col gap-1 bg-base-200 rounded-2xl">
-        <For each={eligible()}>
-          {(i) => (
+        <For each={props.filteredOverviews} keyed={false}>
+          {(item) => (
             <div
               class="cursor-pointer"
-              onClick={() => {
-                setItem(
-                  produce((s) => {
-                    s.type ??= {
-                      value: s.name!.value.replace("Exceptional ", ""),
-                      disabled: false,
-                    };
-                    s.type = {
-                      value: s.name!.value.replace("Exceptional ", ""),
-                      disabled: false,
-                    };
-                    s.name ??= { value: i.name, disabled: false };
-                    s.name = { value: i.name, disabled: false };
-                  }),
-                );
-                getPrice();
-              }}
+              onClick={() => props.chooseAction(item())}
             >
-              <img src={i.image} class="w-10 h-12 object-contain" />
+              <img src={item().image} class="w-10 h-12 object-contain" />
             </div>
           )}
         </For>

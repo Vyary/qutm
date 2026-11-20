@@ -1,9 +1,18 @@
+use enigo::{Direction, Enigo, Key, Keyboard, Settings};
 use serde::Serialize;
-use std::io::SeekFrom;
-use std::time::Duration;
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::thread;
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
+use tauri::AppHandle;
 use tauri::{Emitter, Window};
+use tauri_plugin_clipboard_manager::ClipboardExt;
+use tauri_plugin_log::log::{info, warn};
 use tokio::fs::File;
-use tokio::io::{AsyncBufReadExt, AsyncSeekExt, BufReader};
+use tokio::io::{AsyncBufReadExt, AsyncSeekExt, BufReader, SeekFrom};
+
+// ---------------------------------------------------------------------------
+// tail_file: track Client.txt and emit signals
+// ---------------------------------------------------------------------------
 
 #[derive(Clone, Serialize)]
 struct AreaInfo {
@@ -97,9 +106,142 @@ async fn tail_file(window: Window, file_path: String) -> Result<(), String> {
     }
 }
 
+// ---------------------------------------------------------------------------
+// os_copy: auto-tuning copy
+// ---------------------------------------------------------------------------
+
+static SCALE_PCT: AtomicU64 = AtomicU64::new(100);
+
+const MIN_SCALE: u64 = 10;
+const MAX_SCALE: u64 = 800;
+const MAX_ATTEMPTS: u32 = 3;
+
+#[cfg(target_os = "macos")]
+const MODIFIER: Key = Key::Meta;
+#[cfg(not(target_os = "macos"))]
+const MODIFIER: Key = Key::Control;
+
+fn scaled(base_us: u64, scale: u64) -> Duration {
+    Duration::from_micros(base_us * scale / 100)
+}
+
+fn ms(d: Duration) -> f64 {
+    d.as_secs_f64() * 1000.0
+}
+
+fn send_copy(enigo: &mut Enigo, scale: u64) -> Result<(), String> {
+    let pre = scaled(10_000, scale);
+    let mid = scaled(10_000, scale);
+
+    info!(
+        "os_copy: sending copy (scale {scale}%, pre {:.1}ms, mid {:.1}ms)",
+        ms(pre),
+        ms(mid)
+    );
+
+    enigo
+        .key(MODIFIER, Direction::Press)
+        .map_err(|e| e.to_string())?;
+    thread::sleep(pre);
+
+    let pressed_c = (|| {
+        enigo.key(Key::Unicode('c'), Direction::Press)?;
+        thread::sleep(mid);
+        enigo.key(Key::Unicode('c'), Direction::Release)
+    })();
+
+    let released = enigo.key(MODIFIER, Direction::Release);
+
+    pressed_c.map_err(|e| e.to_string())?;
+    released.map_err(|e| e.to_string())
+}
+
+fn wait_for_copy(app: &AppHandle, sentinel: &str, timeout: Duration) -> Option<(String, Duration)> {
+    let start = Instant::now();
+    let mut poll = Duration::from_millis(5);
+
+    while start.elapsed() < timeout {
+        if let Ok(text) = app.clipboard().read_text() {
+            if !text.is_empty() && text != sentinel {
+                return Some((text, start.elapsed()));
+            }
+        }
+        thread::sleep(poll);
+        poll = (poll * 2).min(Duration::from_millis(40));
+    }
+    None
+}
+
+#[tauri::command(async)]
+fn os_copy(app: AppHandle) -> Result<String, String> {
+    let total_start = Instant::now();
+    let mut enigo = Enigo::new(&Settings::default()).map_err(|e| e.to_string())?;
+    let clipboard = app.clipboard();
+
+    let original = clipboard.read_text().ok();
+    let nanos = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_nanos())
+        .unwrap_or(0);
+    let sentinel = format!("__os_copy_sentinel_{nanos}__");
+
+    let mut scale = SCALE_PCT.load(Ordering::Relaxed);
+    info!("os_copy: start, learned scale {scale}%");
+
+    for attempt in 0..MAX_ATTEMPTS {
+        clipboard
+            .write_text(sentinel.clone())
+            .map_err(|e| e.to_string())?;
+
+        send_copy(&mut enigo, scale)?;
+
+        let timeout = scaled(200_000, scale);
+        match wait_for_copy(&app, &sentinel, timeout) {
+            Some((text, waited)) => {
+                let learned = if attempt == 0 {
+                    (scale * 90 / 100).max(MIN_SCALE)
+                } else {
+                    scale
+                };
+                SCALE_PCT.store(learned, Ordering::Relaxed);
+
+                info!(
+                    "os_copy: ok on attempt {} | clipboard changed after {:.1}ms | total {:.1}ms | scale {scale}% -> {learned}%",
+                    attempt + 1,
+                    ms(waited),
+                    ms(total_start.elapsed())
+                );
+                return Ok(text);
+            }
+            None => {
+                let next = (scale * 2).min(MAX_SCALE);
+                warn!(
+                    "os_copy: attempt {} timed out after {:.1}ms | scale {scale}% -> {next}%",
+                    attempt + 1,
+                    ms(timeout)
+                );
+                scale = next;
+            }
+        }
+    }
+
+    if let Some(orig) = original {
+        let _ = clipboard.write_text(orig);
+    }
+    warn!(
+        "os_copy: gave up after {MAX_ATTEMPTS} attempts, total {:.1}ms",
+        ms(total_start.elapsed())
+    );
+    Err("Copy didn't register (nothing selected, or the app is too slow)".into())
+}
+
+// ---------------------------------------------------------------------------
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_single_instance::init(|_app, _args, _cwd| {}))
+        .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
@@ -113,7 +255,7 @@ pub fn run() {
                 .build(),
         )
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![tail_file])
+        .invoke_handler(tauri::generate_handler![tail_file, os_copy])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
