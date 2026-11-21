@@ -2,13 +2,13 @@ import { filePath, selectFile } from "@/lib/File";
 import { enablePassthrough } from "@/lib/Passthrough";
 import { store } from "@/lib/Store";
 import { createSignal, For, Show } from "solid-js";
-import { ShortcutRecorder } from "./ShortcutRecorder";
+import { ShortcutRecorder } from "../ShortcutRecorder";
 import { JSX } from "@solidjs/web/jsx-runtime";
-import { setShowZone, showZone } from "./Zone/Zone";
+import { setShowZone, showZone } from "../Zone/Zone";
+import { setShowLayout, showLayout } from "../Layout/Layout";
+import { setShowInventory, showInventory } from "../Inventory/Inventory";
+import { setShowPrice, showPrice } from "../Price/Price";
 import { WidgetToggle } from "./WidgetToggle";
-import { setShowLayout, showLayout } from "./Layout/Layout";
-import { setShowInventory, showInventory } from "./Inventory/Inventory";
-import { setShowPrice, showPrice } from "./Price/Price";
 
 const steps = [
   {
@@ -160,7 +160,10 @@ export function SetupFlow() {
             <Show when={step() === 1}>
               <div class="mx-auto w-full max-w-xs">
                 <Card title="Shortcut">
-                  <ShortcutRecorder name="overlay" />
+                  <ShortcutRecorder
+                    name="overlay"
+                    description="Show or hide overlay"
+                  />
                 </Card>
               </div>
             </Show>

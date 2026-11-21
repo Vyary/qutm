@@ -1,7 +1,7 @@
 import { createMemo, Show } from "solid-js";
 import { character } from "./utils/Character";
 import { tracker } from "./utils/Tracker";
-import { RTL, textSize } from "../Settings";
+import { RTL, textSize } from "../Settings/Settings";
 
 export function LevelWarning() {
   const overleveled = () => tracker.zoneLevel - character.level < 0;

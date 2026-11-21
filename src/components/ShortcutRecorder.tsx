@@ -3,25 +3,26 @@ import { formatForDisplay } from "@tanstack/hotkeys";
 import { createHotkeyRecorder } from "@/lib/Hotkeys";
 import { shortcuts, updateShortcut } from "@/lib/Shortcut";
 
-export function ShortcutRecorder(props: { name: string }) {
+export function ShortcutRecorder(props: { name: string; description: string }) {
   const shortcut = () => shortcuts[props.name];
   const recorder = createHotkeyRecorder({
     onRecord: (hotkey) => updateShortcut(props.name, formatForDisplay(hotkey)),
   });
 
   return (
-    <div class="flex flex-col gap-3">
-      <div class="flex items-center justify-center gap-2 py-1">
-        <kbd class="kbd kbd-md">{shortcut()}</kbd>
+    <div class="flex items-center justify-between gap-3">
+      <div class="flex flex-col gap-1">
+        <kbd class="kbd kbd-md w-fit">{shortcut()}</kbd>
+        <span class="text-xs text-base-content/50">{props.description}</span>
       </div>
 
       <div class="flex items-center gap-2">
         <button
-          class="btn btn-primary btn-xs flex-1"
+          class="btn btn-primary btn-xs"
           onClick={recorder.startRecording}
           disabled={recorder.isRecording()}
         >
-          {recorder.isRecording() ? "Listening..." : "Change shortcut"}
+          {recorder.isRecording() ? "Listening..." : "Change"}
         </button>
 
         <Show when={recorder.isRecording()}>

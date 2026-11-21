@@ -3,7 +3,7 @@ import { fetch } from "@tauri-apps/plugin-http";
 import { debug, info } from "@tauri-apps/plugin-log";
 import { RateLimiter, updateTimes } from "./RateLimiter";
 import { Item, Prices } from "./Types";
-import { league } from "@/components/Settings";
+import { league } from "@/components/Settings/Settings";
 
 export interface Listing {
   indexed: string;

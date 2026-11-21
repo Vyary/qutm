@@ -1,6 +1,7 @@
 import { passthrough } from "@/lib/Passthrough";
 import { store } from "@/lib/Store";
 import { JSX } from "@solidjs/web/jsx-runtime";
+import { info } from "@tauri-apps/plugin-log";
 import { createSignal, onSettled, Show, untrack } from "solid-js";
 
 type Pos = { x: number; y: number };
@@ -76,6 +77,8 @@ export function WidgetBase(props: {
       store.get<Pos>(`${props.name}Pos`),
       store.get<number>(`${props.name}Transparency`),
     ]);
+
+    info(`${props.name} loaded pos: ${JSON.stringify(savedP)}`);
 
     if (savedP) setPos(savedP);
     if (savedT) setTransparency(savedT);

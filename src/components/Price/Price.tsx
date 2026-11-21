@@ -31,7 +31,7 @@ export function Price() {
     <Show when={hasCategory()}>
       <WidgetBase
         name="price"
-        defaultPos={{ x: 50, y: 170 }}
+        defaultPos={{ x: 615, y: 15 }}
         defaultTransparency={85}
         transparencySlider
         extraPanel={item.MiscFilters.filters.identified?.value === false}

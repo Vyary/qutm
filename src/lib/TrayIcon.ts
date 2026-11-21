@@ -8,7 +8,7 @@ import { store } from "./Store";
 import { exit, relaunch } from "@tauri-apps/plugin-process";
 import { exportGuide, importGuide } from "@/components/Zone/utils/Guide";
 import { importLayouts } from "@/components/Layout/LayoutState";
-import { setShowSettings } from "@/components/Settings";
+import { setShowSettings } from "@/components/Settings/Settings";
 
 export async function trayIcon() {
   try {

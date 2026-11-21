@@ -4,7 +4,7 @@ import { error, info } from "@tauri-apps/plugin-log";
 import { createSignal } from "solid-js";
 import { store } from "./Store";
 import { disablePassthrough } from "./Passthrough";
-import { setShowSetup } from "@/components/SetupFlow";
+import { setShowSetup } from "@/components/Settings/SetupFlow";
 
 export const [filePath, setFilePath] = createSignal("");
 export const [watching, setWatching] = createSignal(false);

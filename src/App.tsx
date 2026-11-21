@@ -22,13 +22,13 @@ import { Price, showPrice } from "./components/Price/Price";
 import { closeOverlay } from "./lib/CloseOverlay";
 import { invoke } from "@tauri-apps/api/core";
 import { Inventory, showInventory } from "./components/Inventory/Inventory";
-import { SetupFlow, showSetup } from "./components/SetupFlow";
+import { SetupFlow, showSetup } from "./components/Settings/SetupFlow";
 import { loadSaved } from "./lib/Store";
-import { Settings, showSettings } from "./components/Settings";
+import { Settings, showSettings } from "./components/Settings/Settings";
 import { info } from "@tauri-apps/plugin-log";
 
 function App() {
-  createShortcut("overlay", "F3", true, togglePassthrough);
+  createShortcut("overlay", "Control+Shift+F", true, togglePassthrough);
 
   onSettled(() => {
     info(`app render: ${Date.now().toString()}`);

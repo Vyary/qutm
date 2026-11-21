@@ -13,7 +13,7 @@ import { overviews } from "@/lib/Overviews.ts";
 import { Accessor, For, onSettled, Show, StoreSetter } from "solid-js";
 import { JSX } from "@solidjs/web/jsx-runtime";
 import { ITEM_CLASSES } from "./utils/ItemClasses.ts";
-import { league } from "../Settings.tsx";
+import { league } from "../Settings/Settings.tsx";
 import { emptyItem } from "./utils/PriceState.ts";
 
 interface ItemRendererProps {

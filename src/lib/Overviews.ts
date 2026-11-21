@@ -2,7 +2,7 @@ import { error, info } from "@tauri-apps/plugin-log";
 import { createSignal, createStore } from "solid-js";
 import { store } from "./Store";
 import { fetch } from "@tauri-apps/plugin-http";
-import { league } from "@/components/Settings";
+import { league } from "@/components/Settings/Settings";
 
 interface ItemInfo {
   id: string;

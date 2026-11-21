@@ -1,15 +1,17 @@
 import { filePath, selectFile } from "@/lib/File";
 import { store } from "@/lib/Store";
 import { createSignal, For, onSettled, Show } from "solid-js";
-import { ShortcutRecorder } from "./ShortcutRecorder";
-import { character, setCharacterName } from "./Zone/utils/Character";
-import { WidgetToggle } from "./WidgetToggle";
-import { setShowZone, showZone } from "./Zone/Zone";
-import { setShowLayout, showLayout } from "./Layout/Layout";
-import { setShowInventory, showInventory } from "./Inventory/Inventory";
-import { setShowPrice, showPrice } from "./Price/Price";
+import { ShortcutRecorder } from "../ShortcutRecorder";
+import { character, setCharacterName } from "../Zone/utils/Character";
+import { setShowZone, showZone } from "../Zone/Zone";
+import { setShowLayout, showLayout } from "../Layout/Layout";
+import { setShowInventory, showInventory } from "../Inventory/Inventory";
+import { setShowPrice, showPrice } from "../Price/Price";
 import { JSX } from "@solidjs/web/jsx-runtime";
-import { autoUpdate, setAutoUpdate } from "./Updater";
+import { autoUpdate, setAutoUpdate } from "../Updater";
+import { WidgetToggle } from "./WidgetToggle";
+import { enablePassthrough } from "@/lib/Passthrough";
+import { clearInventory, clearRecording } from "../Inventory/InventoryState";
 
 function createPersistedSignal<T>(key: string, initial: T) {
   const [value, setValue] = createSignal<T>(initial as Exclude<T, Function>);
@@ -180,14 +182,17 @@ export function Settings() {
       <h2 class="mb-4 border-b border-base-content/10 pb-3 text-sm font-semibold uppercase tracking-widest opacity-80">
         <div class="flex items-center justify-between">
           Settings
-          <span class="text-xs text-base-content/50">v0.7.11</span>
+          <span class="text-xs text-base-content/50">v0.8.0</span>
         </div>
       </h2>
 
       <div class="flex flex-col gap-4">
         <div class="grid grid-cols-2 items-start gap-4">
           <Card title="Overlay Shortcut">
-            <ShortcutRecorder name="overlay" />
+            <ShortcutRecorder
+              name="overlay"
+              description="Show or hide overlay"
+            />
           </Card>
           <Card title="League">
             <label class="flex flex-col gap-1.5">
@@ -277,14 +282,48 @@ export function Settings() {
                 show={showInventory}
                 setShow={setShowInventory}
               />
+              <Show when={showInventory()}>
+                <div class="flex gap-2">
+                  <button
+                    class="btn btn-primary btn-xs"
+                    onClick={clearInventory}
+                  >
+                    Clear Inventory
+                  </button>
+                  <button
+                    class="btn btn-primary btn-xs"
+                    onClick={clearRecording}
+                  >
+                    Reset Auto-Scanning Steps
+                  </button>
+                </div>
+                <ShortcutRecorder
+                  name="autoScan"
+                  description="Start or stop automatic scanning"
+                />
+                <ShortcutRecorder
+                  name="addStep"
+                  description="Record the next scanning step"
+                />
+                <ShortcutRecorder
+                  name="addMouseClick"
+                  description="Record a mouse click for the scan"
+                />
+              </Show>
               <div class="border-t border-base-content/10" />
               <WidgetToggle
                 label="Price"
-                description="Check Item Price"
+                description="Check item price"
                 defaultState={true}
                 show={showPrice}
                 setShow={setShowPrice}
               />
+              <Show when={showPrice()}>
+                <ShortcutRecorder
+                  name="itemScan"
+                  description="Check item price"
+                />
+              </Show>
             </Card>
           </div>
         </div>
@@ -299,7 +338,10 @@ export function Settings() {
         <button
           class="btn btn-primary btn-sm px-6"
           disabled={!filePath()}
-          onClick={() => setShowSettings(false)}
+          onClick={() => {
+            setShowSettings(false);
+            enablePassthrough();
+          }}
         >
           Save
         </button>

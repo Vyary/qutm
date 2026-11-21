@@ -14,8 +14,7 @@ import {
 import { createShortcut } from "@/lib/Shortcut";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { error } from "@tauri-apps/plugin-log";
-import { setLeague } from "../Settings";
-import { checkOverviews, overviews } from "@/lib/Overviews";
+import { overviews } from "@/lib/Overviews";
 
 export const [showInventory, setShowInventory] = createSignal(false);
 
@@ -56,7 +55,7 @@ export function Inventory() {
   return (
     <WidgetBase
       name="inventory"
-      defaultPos={{ x: 545, y: 15 }}
+      defaultPos={{ x: 10, y: 15 }}
       defaultTransparency={90}
       transparencySlider
     >

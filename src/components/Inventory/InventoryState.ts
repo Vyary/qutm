@@ -75,7 +75,7 @@ export const clearInventory = async () => {
   setInventory((s) => (s = {}));
 };
 
-export const clearPlaces = async () => {
+export const clearRecording = async () => {
   await store.delete("places");
   setPlaces(() => []);
 };

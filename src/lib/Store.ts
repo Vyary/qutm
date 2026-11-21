@@ -1,7 +1,7 @@
 import { setShowInventory } from "@/components/Inventory/Inventory";
 import { setShowLayout } from "@/components/Layout/Layout";
 import { setShowPrice } from "@/components/Price/Price";
-import { setShowSetup } from "@/components/SetupFlow";
+import { setShowSetup } from "@/components/Settings/SetupFlow";
 import { setAutoUpdate } from "@/components/Updater";
 import { setShowZone } from "@/components/Zone/Zone";
 import { load } from "@tauri-apps/plugin-store";
