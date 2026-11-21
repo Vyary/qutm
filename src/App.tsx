@@ -28,6 +28,7 @@ import {
 } from "./components/Inventory/Inventory";
 import { setShowSetup, SetupFlow } from "./components/SetupFlow";
 import { store } from "./lib/Store";
+import { Settings, showSettings } from "./components/Settings";
 
 const loadSaved = async () => {
   const [
@@ -43,7 +44,7 @@ const loadSaved = async () => {
     store.get<boolean>("showInventory"),
     store.get<boolean>("showPrice"),
     store.get<boolean>("showSetup"),
-    store.get<boolean>("showUpdate"),
+    store.get<boolean>("showAuto Update"),
   ]);
 
   setShowZone(savedShowZone ?? false);
@@ -127,6 +128,10 @@ function App() {
 
         <Guard name="Price" show={showPrice()}>
           <Price />
+        </Guard>
+
+        <Guard name="Settings" show={showSettings()}>
+          <Settings />
         </Guard>
       </div>
     </main>

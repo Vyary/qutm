@@ -3,11 +3,12 @@ import { Menu, PredefinedMenuItem, Submenu } from "@tauri-apps/api/menu";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { defaultWindowIcon } from "@tauri-apps/api/app";
 import { error } from "@tauri-apps/plugin-log";
-import { togglePassthrough } from "./Passthrough";
+import { disablePassthrough, togglePassthrough } from "./Passthrough";
 import { store } from "./Store";
 import { exit, relaunch } from "@tauri-apps/plugin-process";
 import { exportGuide, importGuide } from "@/components/Zone/utils/Guide";
 import { importLayouts } from "@/components/Layout/LayoutState";
+import { setShowSettings } from "@/components/Settings";
 
 export async function trayIcon() {
   try {
@@ -50,6 +51,14 @@ export async function trayIcon() {
 
     const menu = await Menu.new({
       items: [
+        {
+          id: "settings",
+          text: "Settings",
+          action: async () => {
+            setShowSettings(true);
+            disablePassthrough();
+          },
+        },
         exportImportSubmenu,
         sep,
         dataSubmenu,

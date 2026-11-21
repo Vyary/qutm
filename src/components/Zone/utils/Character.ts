@@ -22,9 +22,13 @@ export const initCharacterTracker = () => {
 
   listening ??= listen<Character>("character-level-up", (e) => {
     setCharacter((s) => {
-      s.name = e.payload.name;
-      s.class = e.payload.class;
-      s.level = e.payload.level;
+      if (s.name === "") {
+        s.name = e.payload.name;
+        s.class = e.payload.class;
+      }
+      if (s.name === e.payload.name) {
+        s.level = e.payload.level;
+      }
     });
   }).catch((e) => {
     error(String(e));
@@ -38,6 +42,12 @@ export const stopCharacterTracker = async () => {
   listening = undefined;
   p?.then((unlisten) => unlisten());
   await saveCharacter();
+};
+
+export const setCharacterName = (name: string) => {
+  setCharacter((s) => {
+    s.name = name;
+  });
 };
 
 const saveCharacter = async () => {

@@ -209,16 +209,6 @@ export function Inventory() {
             </tr>
           </tfoot>
         </table>
-        <button
-          class="btn"
-          onClick={async () => {
-            setLeague("Runes of Aldur");
-            await new Promise((r) => setTimeout(r, 3000));
-            checkOverviews();
-          }}
-        >
-          Change League
-        </button>
       </div>
     </WidgetBase>
   );

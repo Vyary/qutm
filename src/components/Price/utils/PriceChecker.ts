@@ -70,7 +70,7 @@ export const OverviewsPrice = async (item: Item): Promise<Prices[]> => {
                 : "divine"
           ],
         currency: itemO.maxVolumeCurrency,
-        listed: StaticTimeAgo(new Date(ts).toISOString()),
+        listed: StaticTimeAgo(new Date(ts()).toISOString()),
       },
     ];
   }
