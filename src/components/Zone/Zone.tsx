@@ -9,7 +9,13 @@ import { ZoneEditor, ZoneEditorSettings } from "./ZoneEditor";
 import { LevelWarning } from "./LevelWarning";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { error } from "@tauri-apps/plugin-log";
-import { RTL, textSize, textSizeSmall, textSlider } from "../Settings/Settings";
+import {
+  dev,
+  RTL,
+  textSize,
+  textSizeSmall,
+  textSlider,
+} from "../Settings/Settings";
 
 export const [showZone, setShowZone] = createSignal(false);
 
@@ -53,7 +59,7 @@ export function Zone() {
   });
 
   return (
-    <Show when={towns[tracker.zone]}>
+    <Show when={towns[tracker.zone] || dev()}>
       <WidgetBase
         name="zone"
         defaultPos={{ x: 20, y: 170 }}
@@ -72,7 +78,9 @@ export function Zone() {
         </div>
 
         <LevelWarning />
-        <ZoneEditorSettings />
+        <Show when={dev()}>
+          <ZoneEditorSettings />
+        </Show>
 
         <div class={["px-5 py-3", { "space-y-1": textSlider() > 0 }]}>
           <For each={content().tasks} keyed={(task) => task.text}>
