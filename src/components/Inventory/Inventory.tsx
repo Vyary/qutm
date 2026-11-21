@@ -1,4 +1,4 @@
-import { createSignal, For, onSettled } from "solid-js";
+import { createMemo, createSignal, For, onSettled } from "solid-js";
 import { WidgetBase } from "../WidgetBase";
 import {
   addMouseClick,
@@ -97,10 +97,16 @@ export function Inventory() {
               }
             >
               {(item, i) => {
-                const ovItem = overviews[item()[0]];
-                const maxC = overviews[item()[0]].maxVolumeCurrency as
-                  "exalted" | "divine" | "chaos";
-                const price = () => overviews[item()[0]].prices[maxC];
+                const name = createMemo(() => item()[0]);
+                const ovItem = createMemo(() => overviews[name()]);
+                const maxC = createMemo(
+                  () =>
+                    ovItem().maxVolumeCurrency as
+                      | "exalted"
+                      | "divine"
+                      | "chaos",
+                );
+                const price = createMemo(() => ovItem().prices[maxC()]);
 
                 return (
                   <tr class="border-b border-base-content/5 transition-colors hover:bg-base-content/5">
@@ -112,7 +118,7 @@ export function Inventory() {
                       <div class="flex items-center gap-2">
                         <div class="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-base-content/5">
                           <img
-                            src={`https://web.poecdn.com/${ovItem.image}`}
+                            src={`https://web.poecdn.com/${ovItem().image}`}
                             alt=""
                             class="h-6 w-6 object-contain"
                           />
@@ -120,10 +126,10 @@ export function Inventory() {
                         <button
                           type="button"
                           title="Click to copy name"
-                          onClick={() => copyName(item()[0])}
+                          onClick={() => copyName(name())}
                           class="max-w-48 cursor-pointer truncate text-left font-medium transition-colors hover:text-primary"
                         >
-                          {item()[0]}
+                          {name()}
                         </button>
                       </div>
                     </td>
@@ -132,7 +138,7 @@ export function Inventory() {
 
                     <td>
                       <span class="badge badge-ghost badge-sm whitespace-nowrap">
-                        {ovItem.category}
+                        {ovItem().category}
                       </span>
                     </td>
 
@@ -140,13 +146,13 @@ export function Inventory() {
                       <span class="font-semibold tabular-nums">
                         {price().toFixed(2)}
                       </span>{" "}
-                      <span class="text-xs text-base-content/50">{maxC}</span>
+                      <span class="text-xs text-base-content/50">{maxC()}</span>
                     </td>
 
                     <td class="w-8">
                       <button
                         type="button"
-                        onClick={() => removeItem(item()[0])}
+                        onClick={() => removeItem(name())}
                         aria-label="Remove item"
                         class="btn btn-ghost btn-xs btn-square text-base-content/30 hover:bg-error/10 hover:text-error"
                       >
