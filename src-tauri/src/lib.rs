@@ -302,6 +302,12 @@ async fn mouse_click() -> Result<(), String> {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .setup(|_| {
+            if let Ok(duration) = SystemTime::now().duration_since(UNIX_EPOCH) {
+                info!("{}", duration.as_millis());
+            }
+            Ok(())
+        })
         .plugin(tauri_plugin_single_instance::init(|_app, _args, _cwd| {}))
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_http::init())

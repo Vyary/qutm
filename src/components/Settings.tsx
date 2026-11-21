@@ -186,7 +186,7 @@ export function Settings() {
 
       <div class="flex flex-col gap-4">
         <div class="grid grid-cols-2 items-start gap-4">
-          <Card title="Shortcut">
+          <Card title="Overlay Shortcut">
             <ShortcutRecorder name="overlay" />
           </Card>
           <Card title="League">
@@ -242,7 +242,7 @@ export function Settings() {
                 onChange={setDev}
               />
               <WidgetToggle
-                label="AutoUpdate"
+                label="Update"
                 description="Auto Update App"
                 defaultState={true}
                 show={autoUpdate}

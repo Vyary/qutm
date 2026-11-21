@@ -29,6 +29,7 @@ import {
 import { setShowSetup, SetupFlow } from "./components/SetupFlow";
 import { store } from "./lib/Store";
 import { Settings, showSettings } from "./components/Settings";
+import { info } from "@tauri-apps/plugin-log";
 
 const loadSaved = async () => {
   const [
@@ -59,6 +60,9 @@ function App() {
   createShortcut("overlay", "F3", true, togglePassthrough);
 
   onSettled(() => {
+    info(Date.now().toString());
+    const s = performance.now();
+
     trayIcon();
     initFileWatch();
     initShowOverlay();
@@ -66,6 +70,10 @@ function App() {
     getCurrentWindow().maximize();
 
     void loadSaved();
+
+    info(
+      `finished loading initial state in ${(performance.now() - s).toFixed(2)}ms`,
+    );
 
     return () => {
       stopShowOverlay();
