@@ -304,7 +304,7 @@ pub fn run() {
     tauri::Builder::default()
         .setup(|_| {
             if let Ok(duration) = SystemTime::now().duration_since(UNIX_EPOCH) {
-                info!("{}", duration.as_millis());
+                info!("tauri start: {}", duration.as_millis());
             }
             Ok(())
         })
