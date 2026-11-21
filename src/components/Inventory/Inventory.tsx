@@ -17,7 +17,7 @@ import { error } from "@tauri-apps/plugin-log";
 import { setLeague } from "../Settings";
 import { checkOverviews, overviews } from "@/lib/Overviews";
 
-export const [showInventory, setShowInventory] = createSignal(true);
+export const [showInventory, setShowInventory] = createSignal(false);
 
 export function Inventory() {
   createShortcut("autoScan", "F5", false, autoScan);
@@ -102,9 +102,7 @@ export function Inventory() {
                 const maxC = createMemo(
                   () =>
                     ovItem().maxVolumeCurrency as
-                      | "exalted"
-                      | "divine"
-                      | "chaos",
+                      "exalted" | "divine" | "chaos",
                 );
                 const price = createMemo(() => ovItem().prices[maxC()]);
 

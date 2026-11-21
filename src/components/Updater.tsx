@@ -3,6 +3,8 @@ import { relaunch } from "@tauri-apps/plugin-process";
 import { createSignal, onSettled, Show } from "solid-js";
 import { info } from "@tauri-apps/plugin-log";
 
+export const [autoUpdate, setAutoUpdate] = createSignal(false);
+
 export function Updater() {
   const [isUpdating, setIsUpdating] = createSignal(false);
   const [updateStatus, setUpdateStatus] = createSignal("");

@@ -10,15 +10,29 @@ export function ShortcutRecorder(props: { name: string }) {
   });
 
   return (
-    <div>
-      <button class="btn" onClick={recorder.startRecording}>
-        {shortcut()}
-      </button>
-      <Show when={recorder.isRecording()}>
-        <button class="btn" onClick={recorder.cancelRecording}>
-          Cancel
+    <div class="flex flex-col gap-3">
+      <div class="flex items-center justify-center gap-2 py-1">
+        <kbd class="kbd kbd-md">{shortcut()}</kbd>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button
+          class="btn btn-primary btn-xs flex-1"
+          onClick={recorder.startRecording}
+          disabled={recorder.isRecording()}
+        >
+          {recorder.isRecording() ? "Listening..." : "Change shortcut"}
         </button>
-      </Show>
+
+        <Show when={recorder.isRecording()}>
+          <button
+            class="btn btn-ghost btn-xs"
+            onClick={recorder.cancelRecording}
+          >
+            Cancel
+          </button>
+        </Show>
+      </div>
     </div>
   );
 }

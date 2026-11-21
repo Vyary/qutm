@@ -9,7 +9,7 @@ import {
   stopLayoutTracker,
 } from "./LayoutState";
 
-export const [showLayout, setShowLayout] = createSignal(true);
+export const [showLayout, setShowLayout] = createSignal(false);
 
 const pct = (n: number) => `${n * 100}%`;
 

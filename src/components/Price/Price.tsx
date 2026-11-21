@@ -17,7 +17,7 @@ import { ItemRenderer } from "./ItemRenderer";
 import { createShortcut } from "@/lib/Shortcut";
 import { loadMods } from "./utils/Mods";
 
-export const [showPrice, setShowPrice] = createSignal(true);
+export const [showPrice, setShowPrice] = createSignal(false);
 
 export function Price() {
   createShortcut("itemScan", "Alt+D", false, scanItem);

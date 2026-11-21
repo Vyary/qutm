@@ -11,7 +11,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { error } from "@tauri-apps/plugin-log";
 import { RTL, textSize, textSizeSmall, textSlider } from "../Settings";
 
-export const [showZone, setShowZone] = createSignal(true);
+export const [showZone, setShowZone] = createSignal(false);
 
 export function Zone() {
   const onLoad = () => {

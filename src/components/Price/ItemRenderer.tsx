@@ -445,7 +445,7 @@ export function ItemRenderer(props: ItemRendererProps) {
           onToggle={() =>
             props.setItem((s) => {
               const name = s.name;
-              if (name) name.disabled = name.disabled;
+              if (name) name.disabled = !name.disabled;
             })
           }
         />

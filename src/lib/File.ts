@@ -3,10 +3,11 @@ import { invoke } from "@tauri-apps/api/core";
 import { error, info } from "@tauri-apps/plugin-log";
 import { createSignal } from "solid-js";
 import { store } from "./Store";
-import { disablePassthrough, enablePassthrough } from "./Passthrough";
+import { disablePassthrough } from "./Passthrough";
+import { setShowSetup } from "@/components/SetupFlow";
 
 export const [filePath, setFilePath] = createSignal("");
-const [watching, setWatching] = createSignal(false);
+export const [watching, setWatching] = createSignal(false);
 
 const startTailing = async (path: string) => {
   setWatching(true);
@@ -62,7 +63,5 @@ export const initFileWatch = async () => {
   }
 
   disablePassthrough();
-  selectFile();
-  enablePassthrough();
-  // show setup
+  setShowSetup(true);
 };

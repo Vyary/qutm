@@ -10,19 +10,49 @@ import { createShortcut } from "./lib/Shortcut";
 import { trayIcon } from "./lib/TrayIcon";
 import { initFileWatch } from "./lib/File";
 import { Guard } from "./components/Guard";
-import { autoUpdate } from "./components/Updater/UpdaterSettings";
-import { Updater } from "./components/Updater/Updater";
+import { autoUpdate, setAutoUpdate, Updater } from "./components/Updater";
 import {
   initShowOverlay,
   showOverlay,
   stopShowOverlay,
 } from "./lib/ShowOverlay";
-import { Zone, showZone } from "./components/Zone/Zone";
-import { Layout, showLayout } from "./components/Layout/Layout";
-import { Price, showPrice } from "./components/Price/Price";
+import { Zone, setShowZone, showZone } from "./components/Zone/Zone";
+import { Layout, setShowLayout, showLayout } from "./components/Layout/Layout";
+import { Price, setShowPrice, showPrice } from "./components/Price/Price";
 import { closeOverlay } from "./lib/CloseOverlay";
 import { invoke } from "@tauri-apps/api/core";
-import { Inventory, showInventory } from "./components/Inventory/Inventory";
+import {
+  Inventory,
+  setShowInventory,
+  showInventory,
+} from "./components/Inventory/Inventory";
+import { setShowSetup, SetupFlow } from "./components/SetupFlow";
+import { store } from "./lib/Store";
+
+const loadSaved = async () => {
+  const [
+    savedShowZone,
+    savedShowLayout,
+    savedShowInventory,
+    savedShowPrice,
+    savedShowSetup,
+    savedAutoUpdate,
+  ] = await Promise.all([
+    store.get<boolean>("showZone"),
+    store.get<boolean>("showLayout"),
+    store.get<boolean>("showInventory"),
+    store.get<boolean>("showPrice"),
+    store.get<boolean>("showSetup"),
+    store.get<boolean>("showUpdate"),
+  ]);
+
+  setShowZone(savedShowZone ?? false);
+  setShowLayout(savedShowLayout ?? false);
+  setShowInventory(savedShowInventory ?? false);
+  setShowPrice(savedShowPrice ?? false);
+  setShowSetup(savedShowSetup ?? true);
+  setAutoUpdate(savedAutoUpdate ?? false);
+};
 
 function App() {
   createShortcut("overlay", "F3", true, togglePassthrough);
@@ -33,6 +63,8 @@ function App() {
     initShowOverlay();
     enablePassthrough();
     getCurrentWindow().maximize();
+
+    void loadSaved();
 
     return () => {
       stopShowOverlay();
@@ -64,6 +96,10 @@ function App() {
 
       <Guard name="Update" show={autoUpdate()}>
         <Updater />
+      </Guard>
+
+      <Guard name="SetupFlow" show={true}>
+        <SetupFlow />
       </Guard>
 
       <div
