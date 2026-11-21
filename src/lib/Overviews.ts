@@ -58,22 +58,7 @@ export type overviewPrice = {
   };
 };
 
-type overviewPrices = Record<
-  string,
-  {
-    id: string;
-    name: string;
-    base: string;
-    image: string;
-    category: string;
-    maxVolumeCurrency: string;
-    prices: {
-      exalted: number;
-      chaos: number;
-      divine: number;
-    };
-  }
->;
+type overviewPrices = Record<string, overviewPrice>;
 
 const EXCHANGE_CATEGORIES = [
   "Currency",

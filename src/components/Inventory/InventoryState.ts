@@ -18,7 +18,47 @@ export const [inventory, setInventory] = createStore<inventoryRecord>({});
 export const [places, setPlaces] = createSignal<Place[]>([]);
 let scanning = false;
 
+const filtered = createMemo(() =>
+  Object.entries(inventory).filter((el) => overviews[el[0]]),
+);
+
+const sorted = () =>
+  filtered().sort(
+    (a, b) =>
+      b[1] * overviews[b[0]]?.prices.divine -
+      a[1] * overviews[a[0]]?.prices.divine,
+  );
+
+export const inventoryTopTen = () => sorted().slice(0, 10);
+
+export const inventoryTotal = createMemo(() => {
+  const totals: Record<string, number> = { exalted: 0, chaos: 0, divine: 0 };
+
+  for (const [key, quantity] of filtered()) {
+    const item = overviews[key];
+    const maxCurr = item.maxVolumeCurrency;
+
+    const basePrice =
+      item.prices[
+        maxCurr == "exalted"
+          ? "exalted"
+          : maxCurr == "chaos"
+            ? "chaos"
+            : "divine"
+      ] ?? 0;
+
+    totals[maxCurr] += quantity * basePrice;
+  }
+
+  return {
+    exalted: Number(totals.exalted.toFixed(2)),
+    chaos: Number(totals.chaos.toFixed(2)),
+    divine: Number(totals.divine.toFixed(2)),
+  };
+});
+
 export const addItem = (item: { name: string; quantity: number }) => {
+  if (!overviews[item.name].prices) return;
   setInventory((s) => {
     s[item.name] = item.quantity;
   });
@@ -55,57 +95,6 @@ export const loadInventory = async () => {
   if (inv) setInventory(() => inv);
   if (pls) setPlaces(() => pls);
 };
-
-const filtered = createMemo(() =>
-  Object.entries(inventory).filter(([id]) => overviews[id]),
-);
-
-const sameTopTen = (a: [string, number][], b: [string, number][]) =>
-  a.length === b.length &&
-  a.every(([id, qty], i) => id === b[i][0] && qty === b[i][1]);
-
-type Currency = "exalted" | "chaos" | "divine";
-const priceKey = (c: string): Currency =>
-  c === "exalted" || c === "chaos" ? c : "divine";
-
-const holdings = createMemo(() =>
-  filtered().map(([id, qty]) => {
-    const o = overviews[id];
-    const key = priceKey(o.maxVolumeCurrency);
-    return {
-      id,
-      qty,
-      key,
-      value: qty * (o.prices[key] ?? 0),
-      divineValue: qty * (o.prices.divine ?? 0),
-    };
-  }),
-);
-
-export const inventoryTopTen = createMemo(
-  () =>
-    [...holdings()]
-      .sort((a, b) => b.divineValue - a.divineValue)
-      .slice(0, 10)
-      .map((h): [string, number] => [h.id, h.qty]),
-  { equals: sameTopTen },
-);
-
-const sameTotals = (a: Record<Currency, number>, b: Record<Currency, number>) =>
-  a.exalted === b.exalted && a.chaos === b.chaos && a.divine === b.divine;
-
-export const inventoryTotal = createMemo(
-  () => {
-    const totals = { exalted: 0, chaos: 0, divine: 0 };
-    for (const h of holdings()) totals[h.key] += h.value;
-    return {
-      exalted: +totals.exalted.toFixed(2),
-      chaos: +totals.chaos.toFixed(2),
-      divine: +totals.divine.toFixed(2),
-    };
-  },
-  { equals: sameTotals },
-);
 
 const simpleParseItem = (itemString: string) => {
   const lines = itemString

@@ -11,10 +11,11 @@ import {
   removeItem,
   saveInventory,
 } from "./InventoryState";
-import { overviews } from "@/lib/Overviews";
 import { createShortcut } from "@/lib/Shortcut";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { error } from "@tauri-apps/plugin-log";
+import { setLeague } from "../Settings";
+import { checkOverviews, overviews } from "@/lib/Overviews";
 
 export const [showInventory, setShowInventory] = createSignal(true);
 
@@ -83,7 +84,7 @@ export function Inventory() {
           <tbody>
             <For
               each={inventoryTopTen()}
-              keyed={(item) => item[0]}
+              keyed={(item) => item}
               fallback={
                 <tr>
                   <td
@@ -96,17 +97,10 @@ export function Inventory() {
               }
             >
               {(item, i) => {
-                const id = () => item()[0];
-                const qty = () => item()[1];
-                const overview = () => overviews[id()];
-                const price = () => {
-                  const o = overview();
-                  if (!o) return 0;
-                  const cur = o.maxVolumeCurrency;
-                  const key =
-                    cur === "exalted" || cur === "chaos" ? cur : "divine";
-                  return qty() * o.prices[key];
-                };
+                const ovItem = overviews[item()[0]];
+                const maxC = overviews[item()[0]].maxVolumeCurrency as
+                  "exalted" | "divine" | "chaos";
+                const price = () => overviews[item()[0]].prices[maxC];
 
                 return (
                   <tr class="border-b border-base-content/5 transition-colors hover:bg-base-content/5">
@@ -118,7 +112,7 @@ export function Inventory() {
                       <div class="flex items-center gap-2">
                         <div class="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-base-content/5">
                           <img
-                            src={`https://web.poecdn.com/${overview()?.image}`}
+                            src={`https://web.poecdn.com/${ovItem.image}`}
                             alt=""
                             class="h-6 w-6 object-contain"
                           />
@@ -126,19 +120,19 @@ export function Inventory() {
                         <button
                           type="button"
                           title="Click to copy name"
-                          onClick={() => copyName(overview()?.name)}
+                          onClick={() => copyName(item()[0])}
                           class="max-w-48 cursor-pointer truncate text-left font-medium transition-colors hover:text-primary"
                         >
-                          {overview()?.name}
+                          {item()[0]}
                         </button>
                       </div>
                     </td>
 
-                    <td class="text-right tabular-nums">{qty()}</td>
+                    <td class="text-right tabular-nums">{item()[1]}</td>
 
                     <td>
                       <span class="badge badge-ghost badge-sm whitespace-nowrap">
-                        {overview()?.category}
+                        {ovItem.category}
                       </span>
                     </td>
 
@@ -146,15 +140,13 @@ export function Inventory() {
                       <span class="font-semibold tabular-nums">
                         {price().toFixed(2)}
                       </span>{" "}
-                      <span class="text-xs text-base-content/50">
-                        {overview()?.maxVolumeCurrency}
-                      </span>
+                      <span class="text-xs text-base-content/50">{maxC}</span>
                     </td>
 
                     <td class="w-8">
                       <button
                         type="button"
-                        onClick={() => removeItem(id())}
+                        onClick={() => removeItem(item()[0])}
                         aria-label="Remove item"
                         class="btn btn-ghost btn-xs btn-square text-base-content/30 hover:bg-error/10 hover:text-error"
                       >
@@ -213,6 +205,16 @@ export function Inventory() {
             </tr>
           </tfoot>
         </table>
+        <button
+          class="btn"
+          onClick={async () => {
+            setLeague("Runes of Aldur");
+            await new Promise((r) => setTimeout(r, 3000));
+            checkOverviews();
+          }}
+        >
+          Change League
+        </button>
       </div>
     </WidgetBase>
   );
