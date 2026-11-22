@@ -60,7 +60,10 @@ export function Inventory() {
       transparencySlider
     >
       <div class="p-3 overflow-x-auto">
-        <table class="table table-sm bg-transparent">
+        <table
+          data-help="inventory-table"
+          class="table table-sm bg-transparent"
+        >
           <thead>
             <tr class="border-b border-base-content/10">
               <th class="w-8"></th>

@@ -18,6 +18,7 @@
         "@tauri-apps/plugin-process": "~2.4.0",
         "@tauri-apps/plugin-store": "~2.5.1",
         "@tauri-apps/plugin-updater": "~2.14.1",
+        "driver.js": "^1.14.0",
         "solid-js": "^2.0.1",
       },
       "devDependencies": {
@@ -282,6 +283,8 @@
     "daisyui": ["daisyui@5.8.1", "", {}, "sha512-ptP4WHOJ6WltNnA5zwkg3GypOLhsyUM2FHuXCckWVEpWviioInFKsjnShCWYGYHsQ5P9bUCOH1tn45cKLeTUpg=="],
 
     "detect-libc": ["detect-libc@2.1.2", "", {}, "sha512-Btj2BOOO83o3WyH59e8MgXsxEQVcarkUOpEYrubB0urwnN10yQ364rsiByU11nZlqWYZm05i/of7io4mzihBtQ=="],
+
+    "driver.js": ["driver.js@1.14.0", "", {}, "sha512-BnCFuNU8QO2rrYiDra43Ortx6D6chqMvEMF1q3fWQfsC3xNyCX4T1P1vZDTXTxGdtcXh2v5r11hxSpNLF3DJVw=="],
 
     "enhanced-resolve": ["enhanced-resolve@5.27.0", "", { "dependencies": { "graceful-fs": "^4.2.4", "tapable": "^2.3.3" } }, "sha512-Do6BB2xzlcc/odFg+XEYyneAx4T/WfywO71yw9ePS2tVfRsf7JVR4mUeELadIeHzixkzbG5DpluiEFPi2WGfYQ=="],
 

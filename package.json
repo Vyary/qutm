@@ -27,6 +27,7 @@
     "@tauri-apps/plugin-process": "~2.4.0",
     "@tauri-apps/plugin-store": "~2.5.1",
     "@tauri-apps/plugin-updater": "~2.14.1",
+    "driver.js": "^1.14.0",
     "solid-js": "^2.0.1"
   },
   "devDependencies": {
