@@ -163,13 +163,27 @@ export const [showSettings, setShowSettings] = createSignal(false);
 export function Settings() {
   let detailsRef!: HTMLDetailsElement;
 
+  const saveAndClose = () => {
+    setShowSettings(false);
+    enablePassthrough();
+  };
+
   onSettled(() => {
-    void Promise.all([
+    Promise.all([
       hydrateRTL(),
       hydrateTextSlider(),
       hydrateDev(),
       hydrateLeague(),
     ]);
+
+    const escape = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      e.preventDefault();
+      saveAndClose();
+    };
+
+    window.addEventListener("keydown", escape);
+    return () => window.removeEventListener("keydown", escape);
   });
 
   return (
@@ -187,7 +201,7 @@ export function Settings() {
       </h2>
 
       <div class="flex flex-col gap-4">
-        <div class="grid grid-cols-2 items-start gap-4">
+        <div class="grid grid-cols-3 items-start gap-4">
           <Card title="Overlay Shortcut">
             <ShortcutRecorder
               name="overlay"
@@ -219,25 +233,23 @@ export function Settings() {
               </details>
             </label>
           </Card>
+          <Card title="Character Name">
+            <label class="flex flex-col gap-1.5">
+              <input
+                type="text"
+                placeholder="Enter character name"
+                class="input input-sm w-full"
+                value={character.name}
+                onInput={(e) => setCharacterName(e.currentTarget.value.trim())}
+              />
+            </label>
+          </Card>
         </div>
 
         <ClientFileField />
 
         <div class="grid grid-cols-2 items-start gap-4">
           <div class="flex flex-col gap-4">
-            <Card title="Character Name">
-              <label class="flex flex-col gap-1.5">
-                <input
-                  type="text"
-                  placeholder="Enter character name"
-                  class="input input-sm w-full"
-                  value={character.name}
-                  onInput={(e) =>
-                    setCharacterName(e.currentTarget.value.trim())
-                  }
-                />
-              </label>
-            </Card>
             <AppearanceCard />
             <Card title="Advanced">
               <ToggleRow
@@ -329,7 +341,8 @@ export function Settings() {
         </div>
       </div>
 
-      <footer class="mt-4 flex items-center justify-end gap-3 border-t border-base-content/10 bg-base-200/90 px-5 py-3 backdrop-blur">
+      <footer class="mt-4 flex items-center justify-between gap-3 border-t border-base-content/10 bg-base-200/90 px-5 py-3 backdrop-blur">
+        <span class="text-xs text-base-content/40">Press Esc to close</span>
         <Show when={!filePath()}>
           <span class="text-xs text-base-content/50">
             Select your Client.txt to continue
@@ -338,10 +351,7 @@ export function Settings() {
         <button
           class="btn btn-primary btn-sm px-6"
           disabled={!filePath()}
-          onClick={() => {
-            setShowSettings(false);
-            enablePassthrough();
-          }}
+          onClick={saveAndClose}
         >
           Save
         </button>

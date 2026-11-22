@@ -72,7 +72,7 @@ export const removeItem = (name: string) => {
 
 export const clearInventory = async () => {
   await store.delete("inventory");
-  setInventory((s) => (s = {}));
+  setInventory(() => {});
 };
 
 export const clearRecording = async () => {

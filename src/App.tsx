@@ -1,6 +1,7 @@
 import { onSettled, Show } from "solid-js";
 import "./App.css";
 import {
+  disablePassthrough,
   enablePassthrough,
   passthrough,
   togglePassthrough,
@@ -30,6 +31,12 @@ import { info } from "@tauri-apps/plugin-log";
 function App() {
   createShortcut("overlay", "Control+Shift+F", true, togglePassthrough);
 
+  const close = (e: KeyboardEvent) => {
+    if (e.key !== "Escape") return;
+    e.preventDefault();
+    disablePassthrough();
+  };
+
   onSettled(() => {
     info(`app render: ${Date.now().toString()}`);
     const s = performance.now();
@@ -46,8 +53,10 @@ function App() {
       `finished loading initial state in ${(performance.now() - s).toFixed(2)}ms`,
     );
 
+    window.addEventListener("keydown", close);
     return () => {
       stopShowOverlay();
+      window.removeEventListener("keydown", close);
     };
   });
 

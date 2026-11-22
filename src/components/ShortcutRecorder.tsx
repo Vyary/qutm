@@ -12,7 +12,7 @@ export function ShortcutRecorder(props: { name: string; description: string }) {
   return (
     <div class="flex items-center justify-between gap-3">
       <div class="flex flex-col gap-1">
-        <kbd class="kbd kbd-md w-fit">{shortcut()}</kbd>
+        <kbd class="kbd kbd-md w-fit font-mono">{shortcut()}</kbd>
         <span class="text-xs text-base-content/50">{props.description}</span>
       </div>
 
