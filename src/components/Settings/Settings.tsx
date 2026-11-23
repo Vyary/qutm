@@ -12,6 +12,8 @@ import { autoUpdate, setAutoUpdate } from "../Updater";
 import { WidgetToggle } from "./WidgetToggle";
 import { enablePassthrough } from "@/lib/Passthrough";
 import { clearInventory, clearRecording } from "../Inventory/InventoryState";
+import { startTour } from "../Help/Tour";
+import { info } from "@tauri-apps/plugin-log";
 
 function createPersistedSignal<T>(key: string, initial: T) {
   const [value, setValue] = createSignal<T>(initial as Exclude<T, Function>);
@@ -158,7 +160,32 @@ function AppearanceCard() {
   );
 }
 
-export const [showSettings, setShowSettings] = createSignal(false);
+function HelpAndTutorialsCard() {
+  return (
+    <Card title="Help & tutorials">
+      <div class="flex flex-col gap-3">
+        <p class="text-xs leading-relaxed text-base-content/50">
+          Tour over all enabled widgets.
+        </p>
+
+        <div class="flex flex-wrap gap-2">
+          <button
+            type="button"
+            class="btn btn-soft btn-sm"
+            onClick={() => {
+              setShowSettings(false);
+              startTour();
+            }}
+          >
+            Replay quick tour
+          </button>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+export const [showSettings, setShowSettings] = createSignal(true);
 
 export function Settings() {
   let detailsRef!: HTMLDetailsElement;
@@ -251,6 +278,7 @@ export function Settings() {
         <div class="grid grid-cols-2 items-start gap-4">
           <div class="flex flex-col gap-4">
             <AppearanceCard />
+            <HelpAndTutorialsCard />
             <Card title="Advanced">
               <ToggleRow
                 label="Developer options"
