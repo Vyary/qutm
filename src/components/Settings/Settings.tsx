@@ -13,7 +13,6 @@ import { WidgetToggle } from "./WidgetToggle";
 import { enablePassthrough } from "@/lib/Passthrough";
 import { clearInventory, clearRecording } from "../Inventory/InventoryState";
 import { startTour } from "../Help/Tour";
-import { info } from "@tauri-apps/plugin-log";
 
 function createPersistedSignal<T>(key: string, initial: T) {
   const [value, setValue] = createSignal<T>(initial as Exclude<T, Function>);
@@ -185,7 +184,7 @@ function HelpAndTutorialsCard() {
   );
 }
 
-export const [showSettings, setShowSettings] = createSignal(true);
+export const [showSettings, setShowSettings] = createSignal(false);
 
 export function Settings() {
   let detailsRef!: HTMLDetailsElement;
