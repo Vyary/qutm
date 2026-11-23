@@ -27,14 +27,16 @@ import { SetupFlow, showSetup } from "./components/Settings/SetupFlow";
 import { loadSaved } from "./lib/Store";
 import { Settings, showSettings } from "./components/Settings/Settings";
 import { info } from "@tauri-apps/plugin-log";
+import { activeTour } from "./components/Help/Tour";
 
 function App() {
   createShortcut("overlay", "Control+Shift+F", true, togglePassthrough);
 
   const close = (e: KeyboardEvent) => {
     if (e.key !== "Escape") return;
+    if (activeTour()) return;
     e.preventDefault();
-    disablePassthrough();
+    enablePassthrough();
   };
 
   onSettled(() => {

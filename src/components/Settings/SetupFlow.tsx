@@ -9,7 +9,6 @@ import { setShowLayout, showLayout } from "../Layout/Layout";
 import { setShowInventory, showInventory } from "../Inventory/Inventory";
 import { setShowPrice, showPrice } from "../Price/Price";
 import { WidgetToggle } from "./WidgetToggle";
-import { info } from "@tauri-apps/plugin-log";
 import { startTour } from "../Help/Tour";
 
 const steps = [
@@ -82,7 +81,7 @@ export function SetupFlow() {
     if (showZone()) list.push("Zone guide");
     if (showLayout()) list.push("Layout map");
     if (showInventory()) list.push("Inventory");
-    if (showPrice()) list.push("Price checke");
+    if (showPrice()) list.push("Price checker");
 
     return list;
   };
@@ -103,7 +102,10 @@ export function SetupFlow() {
 
     if (tour) {
       startTour();
-    } else enablePassthrough();
+      return;
+    }
+
+    enablePassthrough();
   };
 
   const next = async () => {
@@ -233,9 +235,22 @@ export function SetupFlow() {
                   <For each={enabledWidgets()}>
                     {(widget) => (
                       <li class="flex items-center gap-2">
-                        <span class="grid h-5 w-5 place-items-center rounded-full bg-success/15 text-xs text-success">
-                          ✓
-                        </span>
+                        <button class="btn btn-circle btn-ghost btn-sm text-success bg-success/10">
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            class="lucide lucide-check preview-icon"
+                          >
+                            <path d="M20 6 9 17l-5-5" />
+                          </svg>
+                        </button>
                         <span>{widget}</span>
                       </li>
                     )}
@@ -293,7 +308,7 @@ export function SetupFlow() {
               class="btn btn-primary btn-sm min-w-32"
               onClick={() => finish(true)}
             >
-              Take the tour
+              Take a quick tour
             </button>
           </div>
         </Show>

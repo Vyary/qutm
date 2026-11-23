@@ -30,6 +30,7 @@ export function Price() {
   return (
     <Show when={hasCategory()}>
       <WidgetBase
+        id="price"
         name="price"
         defaultPos={{ x: 615, y: 15 }}
         defaultTransparency={85}

@@ -53,6 +53,7 @@ export function Layout() {
   return (
     <Show when={count() > 0}>
       <WidgetBase
+        id="layout"
         name="layout"
         defaultPos={{ x: 1375, y: 5 }}
         defaultTransparency={25}

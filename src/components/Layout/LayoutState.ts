@@ -56,6 +56,10 @@ export const stopLayoutTracker = async () => {
   await saveLayouts();
 };
 
+export const changeLayout = (zone: string) => {
+  setLayoutZone(() => zone);
+};
+
 const saveLayouts = async () => {
   await store.set("layouts", layouts);
   await store.set("layoutZone", layoutZone());

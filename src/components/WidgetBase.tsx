@@ -14,6 +14,7 @@ export function WidgetBase(props: {
   transparencySlider?: boolean;
   extraPanel?: boolean;
   extraChildren?: JSX.Element;
+  id?: string;
 }) {
   const [pos, setPos] = createSignal<Pos>(untrack(() => props.defaultPos));
   const [transparency, setTransparency] = createSignal(
@@ -93,6 +94,7 @@ export function WidgetBase(props: {
       style={{ left: `${pos().x}px`, top: `${pos().y}px` }}
     >
       <div
+        id={props.id}
         class="relative h-auto backdrop-blur-md rounded-2xl ring-1 ring-base-content/5"
         style={{
           "background-color": `color-mix(in oklch, var(--color-base-200) ${transparency()}%, transparent)`,
@@ -100,12 +102,32 @@ export function WidgetBase(props: {
       >
         <Show when={!passthrough()}>
           <div
-            class="relative cursor-move h-5 -mb-5 z-10 select-none"
+            class="relative cursor-move h-5 -mb-5 z-10 select-none text-base-100 hover:text-base-content/40 flex items-center justify-center"
             onPointerDown={onStart}
             onPointerMove={onMove}
             onPointerUp={onEnd}
             onPointerCancel={onEnd}
-          />
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="h-5 w-5"
+            >
+              <circle cx="12" cy="9" r="1" />
+              <circle cx="19" cy="9" r="1" />
+              <circle cx="5" cy="9" r="1" />
+              <circle cx="12" cy="15" r="1" />
+              <circle cx="19" cy="15" r="1" />
+              <circle cx="5" cy="15" r="1" />
+            </svg>
+          </div>
         </Show>
 
         <div class="min-h-0 overflow-x-auto flex-1 max-h-230">

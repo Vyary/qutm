@@ -67,6 +67,7 @@ export function Zone() {
         transparencySlider
         extraPanel
         extraChildren={<ZoneEditor />}
+        id="zone"
       >
         <div
           class={[

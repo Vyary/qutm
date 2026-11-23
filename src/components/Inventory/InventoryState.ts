@@ -18,7 +18,7 @@ export const [inventory, setInventory] = createStore<inventoryRecord>({});
 export const [places, setPlaces] = createSignal<Place[]>([]);
 let scanning = false;
 
-const filtered = createMemo(() =>
+export const filtered = createMemo(() =>
   Object.entries(inventory).filter((el) => overviews[el[0]]),
 );
 
@@ -72,7 +72,7 @@ export const removeItem = (name: string) => {
 
 export const clearInventory = async () => {
   await store.delete("inventory");
-  setInventory(() => {});
+  setInventory(() => ({}));
 };
 
 export const clearRecording = async () => {
@@ -130,6 +130,7 @@ const scanItem = async () => {
     const itemCopy: string = await invoke("os_copy");
     const item = simpleParseItem(itemCopy);
     addItem(item);
+    info(`items: ${JSON.stringify(inventory)}`);
   } catch (e) {
     error(`failed to add item: ${e}`);
   }

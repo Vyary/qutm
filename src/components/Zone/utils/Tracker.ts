@@ -75,3 +75,11 @@ export const changeZone = (zone: string) => {
     s.history.unshift(zone);
   });
 };
+
+export const removeLastZone = () => {
+  setTracker((s) => {
+    s.history.shift();
+    s.zone = s.history[0] ?? "";
+    s.prevZone = s.history[1] ?? "";
+  });
+};
