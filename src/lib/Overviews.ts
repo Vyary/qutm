@@ -1,9 +1,8 @@
-import { store } from "@/lib/Store";
-import { info } from "@tauri-apps/plugin-log";
-import { createStore, reconcile } from "solid-js/store";
+import { error, info } from "@tauri-apps/plugin-log";
+import { createSignal, createStore } from "solid-js";
+import { store } from "./Store";
 import { fetch } from "@tauri-apps/plugin-http";
-import { createSignal } from "solid-js";
-import { league } from "@/components/widgets/settings/Settings";
+import { league } from "@/components/Settings/Settings";
 
 interface ItemInfo {
   id: string;
@@ -45,22 +44,21 @@ interface UniqueResponse {
   }[];
 }
 
-type ExchangePrices = Record<
-  string,
-  {
-    id: string;
-    name: string;
-    base: string;
-    image: string;
-    category: string;
-    maxVolumeCurrency: string;
-    prices: {
-      exalted: number;
-      chaos: number;
-      divine: number;
-    };
-  }
->;
+export type overviewPrice = {
+  id: string;
+  name: string;
+  base: string;
+  image: string;
+  category: string;
+  maxVolumeCurrency: string;
+  prices: {
+    exalted: number;
+    chaos: number;
+    divine: number;
+  };
+};
+
+type overviewPrices = Record<string, overviewPrice>;
 
 const EXCHANGE_CATEGORIES = [
   "Currency",
@@ -89,15 +87,16 @@ const UNIQUE_CATEGORIES = [
 ];
 const TWELVE_HOURS = 12 * 60 * 60 * 1000;
 
-export const [overviews, setOverviews] = createStore<ExchangePrices>();
+export const [overviews, setOverviews] = createStore<overviewPrices>({});
 export const [ts, setTs] = createSignal<number>(0);
 const [overviewsLeague, setOverviewsLeague] = createSignal("");
 const isStale = (t?: number) => !t || Date.now() - t >= TWELVE_HOURS;
 let inflight: Promise<void> | null = null;
+let inflightLeague = "";
 
-const fetchExchange = async (category: string) => {
+const fetchExchange = async (category: string, league: string) => {
   const response = await fetch(
-    `https://poe.ninja/poe2/api/economy/exchange/current/overview?league=${league()}&type=${category}`,
+    `https://poe.ninja/poe2/api/economy/exchange/current/overview?league=${league}&type=${category}`,
     {
       method: "GET",
     },
@@ -109,9 +108,9 @@ const fetchExchange = async (category: string) => {
   return await response.json();
 };
 
-const fetchUnique = async (category: string) => {
+const fetchUnique = async (category: string, league: string) => {
   const response = await fetch(
-    `https://poe.ninja/poe2/api/economy/stash/current/item/overview?league=${league()}&type=${category}`,
+    `https://poe.ninja/poe2/api/economy/stash/current/item/overview?league=${league}&type=${category}`,
     {
       method: "GET",
     },
@@ -123,14 +122,14 @@ const fetchUnique = async (category: string) => {
   return await response.json();
 };
 
-const fetchOverviews = async () => {
+const fetchOverviews = async (league: string) => {
   const [exchanges, uniques]: [CurrencyResponse[], UniqueResponse[]] =
     await Promise.all([
-      Promise.all(EXCHANGE_CATEGORIES.map((c) => fetchExchange(c))),
-      Promise.all(UNIQUE_CATEGORIES.map((c) => fetchUnique(c))),
+      Promise.all(EXCHANGE_CATEGORIES.map((c) => fetchExchange(c, league))),
+      Promise.all(UNIQUE_CATEGORIES.map((c) => fetchUnique(c, league))),
     ]);
 
-  const ep: ExchangePrices = {};
+  const ep: overviewPrices = {};
 
   for (const data of exchanges) {
     const exaltedPrice = data.core.rates["exalted"];
@@ -182,7 +181,7 @@ const fetchOverviews = async () => {
   return ep;
 };
 
-const saveOverviews = async (data: ExchangePrices, league: string) => {
+const saveOverviews = async (data: overviewPrices, league: string) => {
   const now = Date.now();
   await store.set("overviews", data);
   await store.set("timestamp", now);
@@ -191,37 +190,49 @@ const saveOverviews = async (data: ExchangePrices, league: string) => {
   setTs(now);
 };
 
-const refreshOverview = () => {
-  inflight ??= (async () => {
+const refreshOverview = async () => {
+  const lg = league();
+
+  while (inflight) {
+    if (inflightLeague === lg) return inflight;
+    await inflight;
+  }
+
+  inflightLeague = lg;
+  inflight = (async () => {
     try {
-      const data = await fetchOverviews();
-      setOverviews(reconcile(data));
-      setOverviewsLeague(league());
-      await saveOverviews(data, league());
+      const data = await fetchOverviews(lg);
+      setOverviews(() => data);
+      setOverviewsLeague(lg);
+      await saveOverviews(data, lg);
     } catch (e) {
-      console.error("overview refresh failed: ", e);
+      error(`overview refresh failed: ${e}`);
     } finally {
       inflight = null;
     }
   })();
+
   return inflight;
 };
 
 export const loadOverviews = async () => {
-  const [ts, cached, l] = await Promise.all([
+  const [savedTs, cached, savedLeague] = await Promise.all([
     store.get<number>("timestamp"),
-    store.get<ExchangePrices>("overviews"),
+    store.get<overviewPrices>("overviews"),
     store.get<string>("overviewLeague"),
   ]);
-  if (ts) setTs(ts);
-  if (l) setOverviewsLeague(l);
-  if (cached) setOverviews(reconcile(cached));
-  if (!cached || isStale(ts) || overviewsLeague() != league())
+
+  if (savedTs) setTs(savedTs);
+  if (savedLeague) setOverviewsLeague(savedLeague);
+  if (cached) setOverviews(() => cached);
+
+  if (!cached || isStale(savedTs) || savedLeague !== league())
     await refreshOverview();
 };
 
 export const checkOverviews = async () => {
   info(`overviews league: ${overviewsLeague()}, league: ${league()}`);
-  if (isStale(ts() || 0) || overviewsLeague() != league())
+  if (isStale(ts() || 0) || overviewsLeague() != league()) {
     await refreshOverview();
+  }
 };

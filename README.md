@@ -4,7 +4,7 @@
 
 **Quest Tracker Improved — a Path of Exile 2 overlay**
 
-[Download](https://github.com/Vyary/qutm/releases/latest) · [Discord](https://discord.com/invite/TfpK2fnCmF) · [Issues](https://github.com/Vyary/qutm/issues)
+[Download](https://github.com/Vyary/qutm/releases/latest) · [Discord](https://discord.com/invite/TfpK2fnCmF) · [Patreon](https://patreon.com/qutm) · [Issues](https://github.com/Vyary/qutm/issues)
 
 </div>
 

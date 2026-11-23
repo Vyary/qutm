@@ -1,80 +1,77 @@
-import { createSignal, onCleanup, onMount, Show } from "solid-js";
+import { onSettled, Show } from "solid-js";
 import "./App.css";
+import {
+  disablePassthrough,
+  enablePassthrough,
+  passthrough,
+  togglePassthrough,
+} from "./lib/Passthrough";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { enablePassthrough, passthrough } from "./lib/Passthrough";
-import { unregisterAll } from "@tauri-apps/plugin-global-shortcut";
-import { loadFilePath, showOverlay } from "./lib/File";
-import { info } from "@tauri-apps/plugin-log";
-import { Zone } from "./components/widgets/zone/Zone";
-import initTrayIcon from "./lib/TrayIcon";
-import { Settings } from "./components/widgets/settings/Settings";
-import { Updater } from "./components/updater/Updater";
-import { Inventory } from "./components/widgets/inventory/Inventory";
-import { Price } from "./components/widgets/price/Price";
-import { UnlistenFn } from "@tauri-apps/api/event";
-import { SetupFlow } from "./components/SetupFlow";
-import { Layouts } from "./components/widgets/layout/Layouts";
+import { createShortcut } from "./lib/Shortcut";
+import { trayIcon } from "./lib/TrayIcon";
+import { initFileWatch } from "./lib/File";
 import { Guard } from "./components/Guard";
-import { autoUpdate } from "./components/updater/UpdaterSettings";
-import { showInventory } from "./components/widgets/inventory/InventorySettings";
-import { showPrice } from "./components/widgets/price/PriceSettings";
-import { showZone } from "./components/widgets/zone/ZoneSettings";
-import { showLayout } from "./components/widgets/layout/LayoutSettings";
+import { autoUpdate, Updater } from "./components/Updater";
+import {
+  initShowOverlay,
+  showOverlay,
+  stopShowOverlay,
+} from "./lib/ShowOverlay";
+import { Zone, showZone } from "./components/Zone/Zone";
+import { Layout, showLayout } from "./components/Layout/Layout";
+import { Price, showPrice } from "./components/Price/Price";
+import { closeOverlay } from "./lib/CloseOverlay";
 import { invoke } from "@tauri-apps/api/core";
-
-export const [closeOverlay, setCloseOverlay] = createSignal(false);
+import { Inventory, showInventory } from "./components/Inventory/Inventory";
+import { SetupFlow, showSetup } from "./components/Settings/SetupFlow";
+import { loadSaved } from "./lib/Store";
+import { Settings, showSettings } from "./components/Settings/Settings";
+import { info } from "@tauri-apps/plugin-log";
+import { activeTour } from "./components/Help/Tour";
 
 function App() {
-  let unlisten: UnlistenFn = () => info("app on close unlisten not updated");
+  createShortcut("overlay", "Control+Shift+F", true, togglePassthrough);
 
-  const handleEsc = (e: KeyboardEvent) => {
-    if (e.key === "Escape") {
-      info("Escape triggered");
-      enablePassthrough();
-    }
+  const close = (e: KeyboardEvent) => {
+    if (e.key !== "Escape") return;
+    if (activeTour()) return;
+    e.preventDefault();
+    enablePassthrough();
   };
 
-  onMount(async () => {
-    info(Date.now().toString());
+  onSettled(() => {
+    info(`app render: ${Date.now().toString()}`);
+    const s = performance.now();
 
-    const initializeApp = async () => {
-      const s = performance.now();
+    trayIcon();
+    initFileWatch();
+    initShowOverlay();
+    enablePassthrough();
+    getCurrentWindow().maximize();
 
-      initTrayIcon();
-      enablePassthrough();
-      getCurrentWindow().maximize();
+    loadSaved();
 
-      loadFilePath();
+    info(
+      `finished loading initial state in ${(performance.now() - s).toFixed(2)}ms`,
+    );
 
-      window.addEventListener("keydown", handleEsc);
-
-      info(
-        `finished loading initial state in ${(performance.now() - s).toFixed(2)}ms`,
-      );
+    window.addEventListener("keydown", close);
+    return () => {
+      stopShowOverlay();
+      window.removeEventListener("keydown", close);
     };
-
-    initializeApp();
-
-    unlisten = await getCurrentWindow().onCloseRequested(async () => {
-      window.removeEventListener("keydown", handleEsc);
-      await unregisterAll();
-    });
-  });
-
-  onCleanup(async () => {
-    window.removeEventListener("keydown", handleEsc);
-    await unregisterAll();
-    unlisten();
   });
 
   return (
     <main
-      class="min-h-dvh min-w-dvw flex items-center justify-center gap-2"
-      classList={{
-        "bg-neutral-content/3": !passthrough(),
-        "bg-[repeating-linear-gradient(-45deg,rgba(0,0,0,0.25)_0px,rgba(0,0,0,0.25)_2px,transparent_3px,transparent_8px)]":
-          !passthrough(),
-      }}
+      class={[
+        "min-h-dvh min-w-dvw flex items-center justify-center gap-2",
+        { "bg-neutral-content/3": !passthrough() },
+        {
+          "bg-[repeating-linear-gradient(-45deg,rgba(0,0,0,0.25)_0px,rgba(0,0,0,0.25)_2px,transparent_3px,transparent_8px)]":
+            !passthrough(),
+        },
+      ]}
     >
       <Show when={closeOverlay() && !passthrough()}>
         <div
@@ -92,12 +89,12 @@ function App() {
         <Updater />
       </Guard>
 
-      <Guard name="SetupFlow" show={true}>
+      <Guard name="SetupFlow" show={showSetup()}>
         <SetupFlow />
       </Guard>
 
       <div
-        classList={{
+        class={{
           hidden: !showOverlay() && passthrough(),
         }}
       >
@@ -106,25 +103,25 @@ function App() {
         </Guard>
 
         <Guard name="Layout" show={showLayout()}>
-          <Layouts />
+          <Layout />
         </Guard>
       </div>
 
       <div
-        classList={{
+        class={{
           hidden: passthrough(),
         }}
       >
-        <Guard name="Settings" show={true}>
-          <Settings />
-        </Guard>
-
-        <Guard name="inventory" show={showInventory()}>
+        <Guard name="Price" show={showInventory()}>
           <Inventory />
         </Guard>
 
         <Guard name="Price" show={showPrice()}>
           <Price />
+        </Guard>
+
+        <Guard name="Settings" show={showSettings()}>
+          <Settings />
         </Guard>
       </div>
     </main>

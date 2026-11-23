@@ -1,127 +1,25 @@
 import { open } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@tauri-apps/api/core";
-import { listen } from "@tauri-apps/api/event";
-import { createSignal } from "solid-js";
-import {
-  setFlag,
-  setZone,
-  setZoneLevel,
-  tracker,
-} from "@/components/widgets/zone/state/Tracker";
-import { addTown, quotes } from "@/components/widgets/zone/state/Guide";
-import {
-  character,
-  updateCharacterClass,
-  setCharacterName,
-  updateCharacterLevel,
-} from "@/components/widgets/zone/state/Character";
 import { error, info } from "@tauri-apps/plugin-log";
+import { createSignal } from "solid-js";
 import { store } from "./Store";
 import { disablePassthrough } from "./Passthrough";
-import { setLayoutZone } from "@/components/widgets/layout/LayoutsState";
+import { setShowSetup } from "@/components/Settings/SetupFlow";
 
-const [filePath, setFilePath] = createSignal("");
-const [watching, setWatching] = createSignal(false);
-const [showOverlay, setShowOverlay] = createSignal(false);
+export const [filePath, setFilePath] = createSignal("");
+export const [watching, setWatching] = createSignal(false);
 
-const updateZone = (zone: string) => {
-  setZone(zone);
-  setLayoutZone(zone);
-};
-
-const startTailing = async () => {
-  await listen<string[]>("tail-lines", (e) => {
-    for (const line of e.payload) {
-      try {
-        // info("\n ➡️" + line.split(": "));
-
-        if (
-          line.includes("[STARTUP] Loading Start") ||
-          line.includes("[WINDOW] Gained focus")
-        ) {
-          setShowOverlay(true);
-          return;
-        }
-
-        if (
-          line.includes("[WINDOW] Lost focus") ||
-          line.includes("Closing game gracefully")
-        ) {
-          setShowOverlay(false);
-          return;
-        }
-
-        if (line.includes("Set Source")) {
-          setShowOverlay(!line.includes("unknown"));
-          return;
-        }
-
-        if (line.includes("area")) {
-          const match = line.match(/level (?<level>\d+) area "(?<zone>\w+)"/)!;
-          if (match?.groups) {
-            const { level, zone } = match.groups;
-
-            if (!zone.toLowerCase().includes("hideout")) {
-              // addLayout(zone);
-              updateZone(zone);
-              setZoneLevel(Number(level));
-              addTown(zone);
-            }
-          }
-
-          return;
-        }
-
-        if (line.includes("is now level")) {
-          const levelMatch = line.match(
-            /: (?<charName>\w*) \((?<charClass>\w*)\) is now level (?<charLevel>\d*)/,
-          )!;
-
-          if (levelMatch?.groups) {
-            const { charName, charClass, charLevel } = levelMatch.groups;
-            if (!character.name) setCharacterName(charName);
-            if (character.name == charName) {
-              updateCharacterClass(charClass);
-              updateCharacterLevel(Number(charLevel));
-            }
-          }
-
-          return;
-        }
-
-        // if (line.includes("LOADING SCREEN")) {
-        //   const match = line.match(/LOADING SCREEN\] \((?<zoneName>[^)]+)/)!;
-        //   const { zoneName } = match.groups!;
-        //   addTownName(tracker.zone, zoneName);
-        // }
-
-        const zoneQuotes = quotes?.[tracker.zone];
-        if (zoneQuotes) {
-          const quoteArray = line.split(": ");
-          let quote = quoteArray[quoteArray.length - 1];
-
-          if (character.name && quote.includes(character.name)) {
-            quote = quote.replace(character.name, "Character");
-          }
-
-          if (zoneQuotes[quote]) {
-            setFlag(quote);
-          }
-        }
-      } catch (e) {
-        error("tailing file: " + e);
-      }
-    }
-  });
-
+const startTailing = async (path: string) => {
   setWatching(true);
-
-  await invoke("tail_file", { filePath: filePath() }).catch((e) => {
+  try {
+    await invoke("tail_file", { filePath: path });
+  } catch (e) {
+    setWatching(false);
     error("invoking tail_file: " + e);
-  });
+  }
 };
 
-const selectFile = async () => {
+export const selectFile = async () => {
   const selected =
     (await open({
       multiple: false,
@@ -141,14 +39,14 @@ const selectFile = async () => {
     return;
   }
 
-  if (selected.endsWith("\\Client.txt") || selected.endsWith("/Client.txt")) {
-    if (selected) {
-      setFilePath(selected);
-      saveFilePath(selected);
-    }
-
-    startTailing();
+  if (!selected.endsWith("\\Client.txt") && !selected.endsWith("/Client.txt")) {
+    error(`selected file is not Client.txt: ${selected}`);
+    return;
   }
+
+  setFilePath(selected);
+  saveFilePath(selected);
+  startTailing(selected);
 };
 
 const saveFilePath = async (filePath: string) => {
@@ -156,28 +54,14 @@ const saveFilePath = async (filePath: string) => {
   await store.save();
 };
 
-const loadFilePath = async () => {
+export const initFileWatch = async () => {
   const fp = await store.get<string>("filePath");
   if (fp) {
     setFilePath(fp);
-    startTailing();
+    if (!watching()) startTailing(fp);
+    return;
   }
 
-  if (!filePath()) {
-    disablePassthrough();
-    store.set("showSetup", true);
-  }
-};
-
-export {
-  filePath,
-  setFilePath,
-  saveFilePath,
-  loadFilePath,
-  watching,
-  setWatching,
-  startTailing,
-  selectFile,
-  showOverlay,
-  updateZone,
+  disablePassthrough();
+  setShowSetup(true);
 };

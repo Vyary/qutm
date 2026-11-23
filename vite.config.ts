@@ -1,14 +1,16 @@
-import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "vite";
-import solid from "vite-plugin-solid";
+import solid from "@solidjs/vite-plugin";
 import path from "path";
-
-// @ts-expect-error process is a nodejs global
+import process from "node:process";
+import tailwindcss from "@tailwindcss/vite";
 const host = process.env.TAURI_DEV_HOST;
 
 // https://vite.dev/config/
-export default defineConfig(async () => ({
-  plugins: [tailwindcss(), solid()],
+export default defineConfig(() => ({
+  plugins: [
+    tailwindcss(),
+    solid({ start: true, diagnostics: true }), // add `ssr: true` for streaming SSR
+  ],
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "./src"),

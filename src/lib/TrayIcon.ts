@@ -1,46 +1,44 @@
-import { TrayIcon } from "@tauri-apps/api/tray";
+import { TrayIcon, TrayIconEvent } from "@tauri-apps/api/tray";
 import { Menu, PredefinedMenuItem, Submenu } from "@tauri-apps/api/menu";
-import { exit, relaunch } from "@tauri-apps/plugin-process";
-import { defaultWindowIcon } from "@tauri-apps/api/app";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { defaultWindowIcon } from "@tauri-apps/api/app";
+import { error } from "@tauri-apps/plugin-log";
 import { disablePassthrough, togglePassthrough } from "./Passthrough";
 import { store } from "./Store";
-import {
-  exportGuide,
-  importGuide,
-} from "@/components/widgets/zone/state/Guide";
-import {
-  exportLayouts,
-  importLayouts,
-} from "@/components/widgets/layout/LayoutsState";
-import { exportTowns } from "@/components/widgets/zone/state/Towns";
-import { setShowSettings } from "@/components/widgets/settings/SettingsSettings";
+import { exit, relaunch } from "@tauri-apps/plugin-process";
+import { exportGuide, importGuide } from "@/components/Zone/utils/Guide";
+import { importLayouts } from "@/components/Layout/LayoutState";
+import { setShowSettings } from "@/components/Settings/Settings";
+import { setShowSetup } from "@/components/Settings/SetupFlow";
 
-async function initTrayIcon() {
+export async function trayIcon() {
   try {
     const sep = await PredefinedMenuItem.new({ item: "Separator" });
+
+    const exportImportSubmenu = await Submenu.new({
+      text: "Export/Import Options...",
+      items: [
+        {
+          id: "export_guide",
+          text: "Export Guide",
+          action: exportGuide,
+        },
+        {
+          id: "import_guide",
+          text: "Import Guide",
+          action: importGuide,
+        },
+        {
+          id: "import_layouts",
+          text: "Import Layouts",
+          action: importLayouts,
+        },
+      ],
+    });
 
     const dataSubmenu = await Submenu.new({
       text: "Advanced Storage Options...",
       items: [
-        {
-          id: "reset_show_setup",
-          text: "Reset Setup Wizard",
-          action: async () => {
-            store.delete("showSetup");
-            await relaunch();
-          },
-        },
-        sep,
-        {
-          id: "reset_file_path",
-          text: "Reset File Path",
-          action: async () => {
-            store.delete("filePath");
-            await relaunch();
-          },
-        },
-        sep,
         {
           id: "clear_all_data",
           text: "Factory Reset All Data",
@@ -52,64 +50,31 @@ async function initTrayIcon() {
       ],
     });
 
-    const exportImportSubmenu = await Submenu.new({
-      text: "Export/Import Options...",
-      items: [
-        {
-          id: "export_guide",
-          text: "Export Guide",
-          action: async () => exportGuide(),
-        },
-        {
-          id: "import_guide",
-          text: "Import Guide",
-          action: async () => importGuide(),
-        },
-        {
-          id: "export_layouts",
-          text: "Export Layouts",
-          action: async () => exportLayouts(),
-        },
-        {
-          id: "import_layouts",
-          text: "Import Layouts",
-          action: async () => importLayouts(),
-        },
-        {
-          id: "export_towns",
-          text: "Export Towns",
-          action: async () => exportTowns(),
-        },
-      ],
-    });
-
     const menu = await Menu.new({
       items: [
         {
           id: "settings",
           text: "Settings",
-          action: async () => {
+          action: () => {
             setShowSettings(true);
             disablePassthrough();
           },
         },
-        sep,
-        exportImportSubmenu,
-        sep,
         {
-          id: "clear_tracker",
-          text: "Clear Progression",
-          action: async () => {
-            store.delete("tracker");
-            store.delete("char");
-            await relaunch();
+          id: "setup",
+          text: "Setup",
+          action: () => {
+            disablePassthrough();
+            setShowSetup(true);
           },
         },
+        exportImportSubmenu,
+        sep,
         dataSubmenu,
         sep,
         {
           id: "quit",
-          text: "Quit Application",
+          text: "Quit",
           action: async () => {
             await getCurrentWindow().close();
             await getCurrentWindow().minimize();
@@ -124,19 +89,18 @@ async function initTrayIcon() {
       ],
     });
 
-    await TrayIcon.new({
+    const options = {
       menu,
-      menuOnLeftClick: false,
+      menuOnLeftClick: true,
       icon: (await defaultWindowIcon()) ?? undefined,
-      action: async (event) => {
-        if (event.type === "DoubleClick" && event.button === "Left") {
+      action: async (e: TrayIconEvent) => {
+        if (e.type === "DoubleClick" && e.button === "Left")
           togglePassthrough();
-        }
       },
-    });
-  } catch (error) {
-    console.error("Failed to initialize system tray:", error);
+    };
+
+    await TrayIcon.new(options);
+  } catch (e) {
+    error(`failed to initiate tray icon: ${e}`);
   }
 }
-
-export default initTrayIcon;

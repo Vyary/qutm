@@ -3,6 +3,7 @@ use enigo::{
     Direction::{Press, Release},
     Enigo, Key, Keyboard, Mouse, Settings,
 };
+use serde::Serialize;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::thread;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
@@ -13,55 +14,99 @@ use tauri_plugin_log::log::{info, warn};
 use tokio::fs::File;
 use tokio::io::{AsyncBufReadExt, AsyncSeekExt, BufReader, SeekFrom};
 
-const MAX_BATCH: usize = 200;
-const POLL_INTERVAL: Duration = Duration::from_millis(50);
+// ---------------------------------------------------------------------------
+// tail_file: track Client.txt and emit signals
+// ---------------------------------------------------------------------------
+
+#[derive(Clone, Serialize)]
+struct AreaInfo {
+    level: u32,
+    code: String,
+}
+
+fn parse_area(line: &str) -> Option<AreaInfo> {
+    let rest = line.split_once("Generating level ")?.1;
+    let (level, rest) = rest.split_once(" area \"")?;
+    let code = rest.split_once('"')?.0;
+
+    if code.is_empty() || code.to_ascii_lowercase().contains("hideout") {
+        return None;
+    }
+
+    Some(AreaInfo {
+        level: level.parse().ok()?,
+        code: code.to_string(),
+    })
+}
+
+#[derive(Clone, Serialize)]
+struct LevelUp {
+    name: String,
+    class: String,
+    level: u32,
+}
+
+fn parse_level_up(line: &str) -> Option<LevelUp> {
+    let (before, after) = line.split_once(" is now level ")?;
+    let who = before.rsplit_once(": ")?.1; // "Name (Class)"
+    let (name, class) = who.split_once(" (")?;
+    let class = class.strip_suffix(')')?;
+    let level = after.split_whitespace().next()?.parse().ok()?;
+
+    Some(LevelUp {
+        name: name.to_string(),
+        class: class.to_string(),
+        level,
+    })
+}
+
+fn parse_overlay(line: &str) -> Option<bool> {
+    if line.contains("[STARTUP] Loading Start") || line.contains("[WINDOW] Gained focus") {
+        Some(true)
+    } else if line.contains("[WINDOW] Lost focus") || line.contains("Closing game gracefully") {
+        Some(false)
+    } else {
+        None
+    }
+}
+
+fn parse_quote(line: &str) -> Option<&str> {
+    let quote = line.trim_end().rsplit_once(": ")?.1;
+    (!quote.is_empty()).then_some(quote)
+}
 
 #[tauri::command]
 async fn tail_file(window: Window, file_path: String) -> Result<(), String> {
-    let file = File::open(&file_path).await.map_err(|e| e.to_string())?;
-    let mut reader = BufReader::new(file);
-
+    let mut reader = BufReader::new(File::open(&file_path).await.map_err(|e| e.to_string())?);
     reader
         .seek(SeekFrom::End(0))
         .await
         .map_err(|e| e.to_string())?;
 
-    let mut batch: Vec<String> = Vec::with_capacity(MAX_BATCH);
     let mut line = String::new();
-
     loop {
-        // Drain whatever is available right now, up to MAX_BATCH lines
-        while batch.len() < MAX_BATCH {
-            let n = reader
-                .read_line(&mut line)
-                .await
-                .map_err(|e| e.to_string())?;
+        let n = reader
+            .read_line(&mut line)
+            .await
+            .map_err(|e| e.to_string())?;
 
-            if n == 0 {
-                break; // EOF: nothing new yet
-            }
-            if !line.ends_with('\n') {
-                break; // partial line; keep it, read_line will append the rest next time
-            }
-
-            let trimmed = line.trim();
-            if !trimmed.is_empty() {
-                batch.push(trimmed.to_owned());
-            }
-            line.clear();
+        // EOF or a half-written line: wait, then keep appending to `line`.
+        if n == 0 || !line.ends_with('\n') {
+            tokio::time::sleep(Duration::from_millis(50)).await;
+            continue;
         }
 
-        let was_full = batch.len() == MAX_BATCH;
-
-        if !batch.is_empty() {
-            let _ = window.emit("tail-lines", &batch);
-            batch.clear();
+        if let Some(show) = parse_overlay(&line) {
+            let _ = window.emit("show-overlay", show);
+        } else if let Some(level_up) = parse_level_up(&line) {
+            let _ = window.emit("character-level-up", level_up);
+        } else if let Some(area) = parse_area(&line) {
+            let _ = window.emit("area-entered", area);
+        } else if let Some(quote) = parse_quote(&line) {
+            let _ = window.emit("log-quote", quote);
         }
 
-        // Only sleep when we've caught up. If the batch was full, more is probably waiting.
-        if !was_full {
-            tokio::time::sleep(POLL_INTERVAL).await;
-        }
+        line.clear();
     }
 }
 
@@ -69,7 +114,6 @@ async fn tail_file(window: Window, file_path: String) -> Result<(), String> {
 // os_copy: auto-tuning copy
 // ---------------------------------------------------------------------------
 
-/// Learned slowness factor in percent (100 = base timings). Persists across calls.
 static SCALE_PCT: AtomicU64 = AtomicU64::new(100);
 
 const MIN_SCALE: u64 = 10;
@@ -77,7 +121,7 @@ const MAX_SCALE: u64 = 800;
 const MAX_ATTEMPTS: u32 = 3;
 
 #[cfg(target_os = "macos")]
-const MODIFIER: Key = Key::Meta; // Cmd
+const MODIFIER: Key = Key::Meta;
 #[cfg(not(target_os = "macos"))]
 const MODIFIER: Key = Key::Control;
 
@@ -90,8 +134,8 @@ fn ms(d: Duration) -> f64 {
 }
 
 fn send_copy(enigo: &mut Enigo, scale: u64) -> Result<(), String> {
-    let pre = scaled(10_000, scale);
-    let mid = scaled(10_000, scale);
+    let pre = scaled(50_000, scale);
+    let mid = scaled(50_000, scale);
 
     info!(
         "os_copy: sending copy (scale {scale}%, pre {:.1}ms, mid {:.1}ms)",
@@ -110,16 +154,12 @@ fn send_copy(enigo: &mut Enigo, scale: u64) -> Result<(), String> {
         enigo.key(Key::Unicode('c'), Direction::Release)
     })();
 
-    // Always release the modifier, even if the 'c' press failed,
-    // otherwise Ctrl/Cmd can get stuck down.
     let released = enigo.key(MODIFIER, Direction::Release);
 
     pressed_c.map_err(|e| e.to_string())?;
     released.map_err(|e| e.to_string())
 }
 
-/// Polls until the clipboard holds something other than the sentinel.
-/// Returns the copied text and how long the clipboard took to change.
 fn wait_for_copy(app: &AppHandle, sentinel: &str, timeout: Duration) -> Option<(String, Duration)> {
     let start = Instant::now();
     let mut poll = Duration::from_millis(5);
@@ -162,8 +202,6 @@ fn os_copy(app: AppHandle) -> Result<String, String> {
         let timeout = scaled(200_000, scale);
         match wait_for_copy(&app, &sentinel, timeout) {
             Some((text, waited)) => {
-                // First-try success: slowly speed up.
-                // Needed a retry: keep the slower value.
                 let learned = if attempt == 0 {
                     (scale * 90 / 100).max(MIN_SCALE)
                 } else {
@@ -191,8 +229,6 @@ fn os_copy(app: AppHandle) -> Result<String, String> {
         }
     }
 
-    // Nothing arrived. Restore the clipboard, and don't persist the slower
-    // scale, since "nothing selected" isn't necessarily a timing problem.
     if let Some(orig) = original {
         let _ = clipboard.write_text(orig);
     }
@@ -204,33 +240,8 @@ fn os_copy(app: AppHandle) -> Result<String, String> {
 }
 
 // ---------------------------------------------------------------------------
-
-#[tauri::command]
-async fn mouse_move(x: i32, y: i32) -> Result<(), String> {
-    let mut enigo = Enigo::new(&Settings::default()).unwrap();
-    enigo.move_mouse(x, y, Coordinate::Abs).unwrap();
-    Ok(())
-}
-
-#[tauri::command]
-async fn mouse_click() -> Result<(), String> {
-    let mut enigo = Enigo::new(&Settings::default()).unwrap();
-    enigo.button(Button::Left, Press).unwrap();
-    enigo.button(Button::Left, Release).unwrap();
-    Ok(())
-}
-
-#[tauri::command]
-fn get_global_mouse_position() -> Option<(i32, i32)> {
-    // Initialize the Enigo input manager
-    if let Ok(enigo) = Enigo::new(&Settings::default()) {
-        // Enigo's location tracking returns Result<(i32, i32), InputError>
-        if let Ok(pos) = enigo.location() {
-            return Some(pos);
-        }
-    }
-    None
-}
+// alt_tab: automate alt+tab
+// ---------------------------------------------------------------------------
 
 #[tauri::command]
 async fn alt_tab() -> Result<(), String> {
@@ -257,61 +268,68 @@ async fn alt_tab() -> Result<(), String> {
     .map_err(|e| e.to_string())?
 }
 
-fn short_target(target: &str) -> &str {
-    target.rsplit_once('/').map_or(target, |(_, file)| file)
+// ---------------------------------------------------------------------------
+// get_global_mouse_position, mouse_move, mouse_click: general mouse functions
+// ---------------------------------------------------------------------------
+
+#[tauri::command]
+fn get_global_mouse_position() -> Option<(i32, i32)> {
+    if let Ok(enigo) = Enigo::new(&Settings::default()) {
+        if let Ok(pos) = enigo.location() {
+            return Some(pos);
+        }
+    }
+    None
 }
+
+#[tauri::command]
+async fn mouse_move(x: i32, y: i32) -> Result<(), String> {
+    let mut enigo = Enigo::new(&Settings::default()).unwrap();
+    enigo.move_mouse(x, y, Coordinate::Abs).unwrap();
+    Ok(())
+}
+
+#[tauri::command]
+async fn mouse_click() -> Result<(), String> {
+    let mut enigo = Enigo::new(&Settings::default()).unwrap();
+    enigo.button(Button::Left, Press).unwrap();
+    enigo.button(Button::Left, Release).unwrap();
+    Ok(())
+}
+
+// ---------------------------------------------------------------------------
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    #[cfg(target_os = "linux")]
-    std::env::set_var("__NV_DISABLE_EXPLICIT_SYNC", "1");
-
     tauri::Builder::default()
-        .plugin(
-            tauri_plugin_log::Builder::new()
-                .target(tauri_plugin_log::Target::new(
-                    tauri_plugin_log::TargetKind::LogDir {
-                        file_name: Some("logs".to_string()),
-                    },
-                ))
-                .format(|out, message, record| {
-                    out.finish(format_args!(
-                        "[{}][{}][{}][{}] {}",
-                        chrono::Local::now().format("%Y-%m-%d"),
-                        chrono::Local::now().format("%H:%M:%S"),
-                        short_target(record.target()),
-                        record.level(),
-                        message
-                    ))
-                })
-                .rotation_strategy(tauri_plugin_log::RotationStrategy::KeepAll)
-                .max_file_size(50_000_000)
-                .level(tauri_plugin_log::log::LevelFilter::Info)
-                .build(),
-        )
         .setup(|_| {
             if let Ok(duration) = SystemTime::now().duration_since(UNIX_EPOCH) {
-                info!("{}", duration.as_millis());
+                info!("tauri start: {}", duration.as_millis());
             }
             Ok(())
         })
-        .plugin(tauri_plugin_http::init())
-        .plugin(tauri_plugin_store::Builder::new().build())
-        .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_single_instance::init(|_app, _args, _cwd| {}))
+        .plugin(tauri_plugin_clipboard_manager::init())
+        .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
-        .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
+        .plugin(tauri_plugin_store::Builder::new().build())
+        .plugin(
+            tauri_plugin_log::Builder::new()
+                .level(tauri_plugin_log::log::LevelFilter::Info)
+                .build(),
+        )
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
             tail_file,
             os_copy,
-            mouse_move,
-            mouse_click,
+            alt_tab,
             get_global_mouse_position,
-            alt_tab
+            mouse_move,
+            mouse_click
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

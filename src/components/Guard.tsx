@@ -1,14 +1,14 @@
 import { passthrough } from "@/lib/Passthrough";
-import { ErrorBoundary, JSX, Show, Suspense } from "solid-js";
+import { Errored, Loading, Show } from "solid-js";
+import type { ParentComponent } from "solid-js";
 
-export function Guard(props: {
+export const Guard: ParentComponent<{
   name: string;
   show: boolean;
-  children: JSX.Element;
-}) {
+}> = (props) => {
   return (
     <Show when={props.show}>
-      <ErrorBoundary
+      <Errored
         fallback={(error, reset) => (
           <Show when={!passthrough()}>
             <section class="flex flex-col gap-4 rounded-box border border-base-content/10 bg-base-200 p-4 select-none">
@@ -36,8 +36,8 @@ export function Guard(props: {
                     d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
                   />
                 </svg>
-                <span class="text-sm font-mono break-words min-w-0">
-                  {String(error)}
+                <span class="text-sm font-mono wrap-break-words min-w-0">
+                  {String(error())}
                 </span>
               </div>
 
@@ -48,8 +48,8 @@ export function Guard(props: {
           </Show>
         )}
       >
-        <Suspense>{props.children}</Suspense>
-      </ErrorBoundary>
+        <Loading>{props.children}</Loading>
+      </Errored>
     </Show>
   );
-}
+};
