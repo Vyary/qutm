@@ -102,7 +102,7 @@ export function Layout() {
                     <img
                       src={
                         new URL(
-                          `../../assets/${icon().id}.webp`,
+                          `../../assets/icons/${icon().id}.webp`,
                           import.meta.url,
                         ).href
                       }

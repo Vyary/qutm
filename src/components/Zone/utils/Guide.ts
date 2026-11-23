@@ -1,5 +1,5 @@
 import { createStore, flush } from "solid-js";
-import guideJson from "@/assets/guide2.json";
+import guideJson from "@/assets/guide.json";
 import { store } from "@/lib/Store";
 import { error, info } from "@tauri-apps/plugin-log";
 import { Zone } from "../Zone";
