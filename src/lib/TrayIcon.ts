@@ -9,7 +9,6 @@ import { exit, relaunch } from "@tauri-apps/plugin-process";
 import { exportGuide, importGuide } from "@/components/Zone/utils/Guide";
 import { importLayouts } from "@/components/Layout/LayoutState";
 import { setShowSettings } from "@/components/Settings/Settings";
-import { setShowSetup } from "@/components/Settings/SetupFlow";
 
 export async function trayIcon() {
   try {
@@ -58,14 +57,6 @@ export async function trayIcon() {
           action: () => {
             setShowSettings(true);
             disablePassthrough();
-          },
-        },
-        {
-          id: "setup",
-          text: "Setup",
-          action: () => {
-            disablePassthrough();
-            setShowSetup(true);
           },
         },
         exportImportSubmenu,
