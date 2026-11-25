@@ -4,9 +4,9 @@
   "version": "../package.json",
   "identifier": "qutm",
   "build": {
-    "beforeDevCommand": "bun run dev",
+    "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "bun scripts/sync-version.js && bun run build",
+    "beforeBuildCommand": "npm scripts/sync-version.js && npm run build",
     "frontendDist": "../dist/client"
   },
   "app": {
