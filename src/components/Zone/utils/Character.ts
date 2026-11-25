@@ -50,6 +50,12 @@ export const setCharacterName = (name: string) => {
   });
 };
 
+export const setCharacterLevel = (level: number) => {
+  setCharacter((s) => {
+    s.level = level;
+  });
+};
+
 const saveCharacter = async () => {
   await store.set("character", character);
   await store.save();

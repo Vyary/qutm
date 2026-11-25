@@ -59,7 +59,7 @@ export function Layout() {
         defaultTransparency={25}
         transparencySlider
       >
-        <div class="flex flex-col gap-2 p-2">
+        <div id="layout-points" class="flex flex-col gap-2 p-2">
           <div class="relative mx-auto h-60 w-60 overflow-hidden">
             <svg
               class="pointer-events-none absolute inset-0 h-full w-full"
@@ -123,7 +123,10 @@ export function Layout() {
           </div>
 
           <Show when={count() > 1}>
-            <div class="mx-auto flex items-center gap-1 rounded-full bg-base-200/50 p-0.5 ring-1 ring-inset ring-base-content/15">
+            <div
+              id="layout-changer"
+              class="mx-auto flex items-center gap-1 rounded-full bg-base-200/50 p-0.5 ring-1 ring-inset ring-base-content/15"
+            >
               <button
                 type="button"
                 aria-label="Previous layout"

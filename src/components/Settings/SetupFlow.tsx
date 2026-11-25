@@ -101,7 +101,7 @@ export function SetupFlow() {
     await store.save();
 
     if (tour) {
-      startTour();
+      startTour("complete");
       return;
     }
 
@@ -259,7 +259,8 @@ export function SetupFlow() {
 
                 <Show when={enabledWidgets().length === 0}>
                   <p class="text-xs text-base-content/50">
-                    No widgets enabled. You can turn them on later in Settings.
+                    No widgets enabled. You can turn them on later in Settings
+                    or in the previous step.
                   </p>
                 </Show>
               </Card>
@@ -308,7 +309,7 @@ export function SetupFlow() {
               class="btn btn-primary btn-sm min-w-32"
               onClick={() => finish(true)}
             >
-              Take a quick tour
+              Take a tour
             </button>
           </div>
         </Show>

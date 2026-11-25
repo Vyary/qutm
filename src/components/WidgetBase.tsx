@@ -102,6 +102,7 @@ export function WidgetBase(props: {
       >
         <Show when={!passthrough()}>
           <div
+            id="move"
             class="relative cursor-move h-5 -mb-5 z-10 select-none text-base-100 hover:text-base-content/40 flex items-center justify-center"
             onPointerDown={onStart}
             onPointerMove={onMove}
@@ -163,7 +164,10 @@ function TransparencySlider(props: {
   onChange: (v: number) => void;
 }) {
   return (
-    <div class="flex gap-0.5 bg-base-300/30 rounded-b-2xl border-t border-base-content/5">
+    <div
+      id="transparency"
+      class="flex gap-0.5 bg-base-300/30 rounded-b-2xl border-t border-base-content/5"
+    >
       <div class="flex items-center gap-2 px-5 py-3 w-65 justify-end">
         <svg
           xmlns="http://www.w3.org/2000/svg"

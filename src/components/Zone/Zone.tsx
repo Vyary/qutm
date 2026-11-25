@@ -83,7 +83,10 @@ export function Zone() {
           <ZoneEditorSettings />
         </Show>
 
-        <div class={["px-5 py-3", { "space-y-1": textSlider() > 0 }]}>
+        <div
+          id="zone-tasks"
+          class={["px-5 py-3", { "space-y-1": textSlider() > 0 }]}
+        >
           <For each={content().tasks} keyed={(task) => task.text}>
             {(task) => (
               <div
