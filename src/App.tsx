@@ -1,7 +1,6 @@
 import { onSettled, Show } from "solid-js";
 import "./App.css";
 import {
-  disablePassthrough,
   enablePassthrough,
   passthrough,
   togglePassthrough,
