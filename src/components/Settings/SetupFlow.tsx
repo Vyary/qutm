@@ -191,7 +191,7 @@ export function SetupFlow() {
 
           <Show when={step() === 2}>
             <div class="grid grid-cols-2 items-start gap-4">
-              <Card title="Features">
+              <Card title="Leveling">
                 <WidgetToggle
                   label="Zone"
                   description="Zone Widget showing text guide for act progression"
@@ -208,13 +208,21 @@ export function SetupFlow() {
                   setShow={setShowLayout}
                 />
               </Card>
-              <Card title="Beta features" badge="Beta">
+              <Card title="Item Pricing">
                 <WidgetToggle
                   label="Price"
                   description="Check Item Price"
-                  defaultState={true}
+                  defaultState={false}
                   show={showPrice}
                   setShow={setShowPrice}
+                />
+                <div class="border-t border-base-content/10" />
+                <WidgetToggle
+                  label="Inventory"
+                  description="Scan and View inventory prices"
+                  defaultState={true}
+                  show={showInventory}
+                  setShow={setShowInventory}
                 />
               </Card>
             </div>

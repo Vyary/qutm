@@ -12,7 +12,6 @@ import { emptyItem, setItem } from "../Price/utils/PriceState";
 import { addItem, clearInventory, filtered } from "../Inventory/InventoryState";
 import { enablePassthrough } from "@/lib/Passthrough";
 import { character, setCharacterLevel } from "../Zone/utils/Character";
-import { shortcuts } from "@/lib/Shortcut";
 import { error } from "@tauri-apps/plugin-log";
 
 export const [activeTour, setActiveTour] = createSignal(false);
@@ -190,30 +189,17 @@ const createSteps = (category: string): DriveStep[] => {
       addItem({ name: "Divine Orb", quantity: 365 });
     }
 
-    const mouseClick = () => shortcuts["addMouseClick"];
-    const itemScan = () => shortcuts["addStep"];
-    const replay = () => shortcuts["autoScan"];
     if (category === "inventory") flush();
 
-    steps.push(
-      {
-        element: "#inventory",
-        popover: {
-          title: "Inventory widget",
-          description:
-            "Find out what your inventory is worth by recording a sequence of mouse clicks and item scans.",
-          side: "right",
-        },
+    steps.push({
+      element: "#inventory",
+      popover: {
+        title: "Inventory widget",
+        description:
+          "Find out what your inventory is worth by scanning items that will be added and priced in your inventory widget.",
+        side: "right",
       },
-      {
-        element: "#inventory",
-        popover: {
-          title: "Record, scan, replay",
-          description: `Press ${mouseClick()} to record a mouse click and ${itemScan()} to record an item scan. Press ${replay()} to replay the whole sequence automatically.`,
-          side: "right",
-        },
-      },
-    );
+    });
   }
 
   steps.push({

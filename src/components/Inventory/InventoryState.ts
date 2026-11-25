@@ -2,21 +2,13 @@ import { overviews } from "@/lib/Overviews";
 import { store } from "@/lib/Store";
 import { invoke } from "@tauri-apps/api/core";
 import { error, info } from "@tauri-apps/plugin-log";
-import { createMemo, createSignal, createStore, snapshot } from "solid-js";
+import { createMemo, createStore, snapshot } from "solid-js";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
-import { disablePassthrough, togglePassthrough } from "@/lib/Passthrough";
-
-interface Place {
-  x: number;
-  y: number;
-  click: boolean;
-}
+import { togglePassthrough } from "@/lib/Passthrough";
 
 type inventoryRecord = Record<string, number>;
 
 export const [inventory, setInventory] = createStore<inventoryRecord>({});
-export const [places, setPlaces] = createSignal<Place[]>([]);
-let scanning = false;
 
 export const filtered = createMemo(() =>
   Object.entries(inventory).filter((el) => overviews[el[0]]),
@@ -75,25 +67,15 @@ export const clearInventory = async () => {
   setInventory(() => ({}));
 };
 
-export const clearRecording = async () => {
-  await store.delete("places");
-  setPlaces(() => []);
-};
-
 export const saveInventory = async () => {
   await store.set("inventory", snapshot(inventory));
-  await store.set("places", snapshot(places()));
   await store.save();
   info("inventory saved");
 };
 
 export const loadInventory = async () => {
-  const [inv, pls] = await Promise.all([
-    store.get<inventoryRecord>("inventory"),
-    store.get<Place[]>("places"),
-  ]);
+  const inv = await store.get<inventoryRecord>("inventory");
   if (inv) setInventory(() => inv);
-  if (pls) setPlaces(() => pls);
 };
 
 const simpleParseItem = (itemString: string) => {
@@ -125,54 +107,17 @@ const simpleParseItem = (itemString: string) => {
   return item;
 };
 
-const scanItem = async () => {
+export const scanAndAdd = async () => {
   try {
     const itemCopy: string = await invoke("os_copy");
     const item = simpleParseItem(itemCopy);
     addItem(item);
-    info(`items: ${JSON.stringify(inventory)}`);
   } catch (e) {
     error(`failed to add item: ${e}`);
   }
 };
 
-export const addStep = async () => {
-  const loc: number[] = await invoke("get_global_mouse_position");
-  setPlaces([...places(), { x: loc[0], y: loc[1], click: false }]);
-  await scanItem();
-};
-
-export const addMouseClick = async () => {
-  const loc: number[] = await invoke("get_global_mouse_position");
-  setPlaces([...places(), { x: loc[0], y: loc[1], click: true }]);
-  await invoke("mouse_move", { x: loc[0], y: loc[1] });
-  await invoke("mouse_click");
-};
-
 export const copyName = async (name: string) => {
   await writeText(name);
   togglePassthrough();
-};
-
-export const autoScan = async () => {
-  scanning = !scanning;
-
-  for (const p of places()) {
-    if (!scanning) {
-      break;
-    }
-
-    if (p.click) {
-      await invoke("mouse_move", { x: p.x, y: p.y });
-      await invoke("mouse_click");
-      await new Promise((r) => setTimeout(r, 60));
-      continue;
-    }
-
-    await invoke("mouse_move", { x: p.x, y: p.y });
-    await scanItem();
-  }
-
-  scanning = false;
-  disablePassthrough();
 };

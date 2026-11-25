@@ -11,7 +11,7 @@ import { JSX } from "@solidjs/web/jsx-runtime";
 import { autoUpdate, setAutoUpdate } from "../Updater";
 import { WidgetToggle } from "./WidgetToggle";
 import { enablePassthrough } from "@/lib/Passthrough";
-import { clearInventory, clearRecording } from "../Inventory/InventoryState";
+import { clearInventory } from "../Inventory/InventoryState";
 import { startTour } from "../Help/Tour";
 
 function createPersistedSignal<T>(key: string, initial: T) {
@@ -274,7 +274,7 @@ export function Settings() {
       <h2 class="mb-4 border-b border-base-content/10 pb-3 text-sm font-semibold uppercase tracking-widest opacity-80">
         <div class="flex items-center justify-between">
           Settings
-          <span class="text-xs text-base-content/50">v0.8.5</span>
+          <span class="text-xs text-base-content/50">v0.8.6</span>
         </div>
       </h2>
 
@@ -364,8 +364,6 @@ export function Settings() {
                 show={showLayout}
                 setShow={setShowLayout}
               />
-            </Card>
-            <Card title="Beta features" badge="Beta">
               <WidgetToggle
                 label="Price"
                 description="Check item price"
@@ -377,6 +375,29 @@ export function Settings() {
                 <ShortcutRecorder
                   name="itemScan"
                   description="Check item price"
+                />
+              </Show>
+            </Card>
+            <Card title="Beta features" badge="Beta">
+              <WidgetToggle
+                label="Inventory"
+                description="Scan and View inventory prices"
+                defaultState={true}
+                show={showInventory}
+                setShow={setShowInventory}
+              />
+              <Show when={showInventory()}>
+                <div class="flex gap-2">
+                  <button
+                    class="btn btn-primary btn-xs"
+                    onClick={clearInventory}
+                  >
+                    Clear Inventory
+                  </button>
+                </div>
+                <ShortcutRecorder
+                  name="scanAndAdd"
+                  description="Scan and add item to the inventory system"
                 />
               </Show>
             </Card>
