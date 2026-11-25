@@ -3466,7 +3466,7 @@ dependencies = [
 
 [[package]]
 name = "qutm"
-version = "0.8.0"
+version = "0.8.5"
 dependencies = [
  "enigo",
  "serde",

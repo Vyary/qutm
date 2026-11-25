@@ -10,7 +10,7 @@
     "serve": "vite preview",
     "tauri": "tauri",
     "lint": "oxlint src",
-    "update": "npm update --latest && cd src-tauri && cargo update"
+    "update": "bun update --latest && cd src-tauri && cargo update"
   },
   "license": "Apache-2.0",
   "dependencies": {
