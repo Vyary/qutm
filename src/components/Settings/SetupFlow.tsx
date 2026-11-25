@@ -210,14 +210,6 @@ export function SetupFlow() {
               </Card>
               <Card title="Beta features" badge="Beta">
                 <WidgetToggle
-                  label="Inventory"
-                  description="Scan and View inventory prices"
-                  defaultState={true}
-                  show={showInventory}
-                  setShow={setShowInventory}
-                />
-                <div class="border-t border-base-content/10" />
-                <WidgetToggle
                   label="Price"
                   description="Check Item Price"
                   defaultState={true}

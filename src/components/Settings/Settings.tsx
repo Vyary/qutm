@@ -274,7 +274,7 @@ export function Settings() {
       <h2 class="mb-4 border-b border-base-content/10 pb-3 text-sm font-semibold uppercase tracking-widest opacity-80">
         <div class="flex items-center justify-between">
           Settings
-          <span class="text-xs text-base-content/50">v0.8.0</span>
+          <span class="text-xs text-base-content/50">v0.8.2</span>
         </div>
       </h2>
 
@@ -366,42 +366,6 @@ export function Settings() {
               />
             </Card>
             <Card title="Beta features" badge="Beta">
-              <WidgetToggle
-                label="Inventory"
-                description="Scan and View inventory prices"
-                defaultState={true}
-                show={showInventory}
-                setShow={setShowInventory}
-              />
-              <Show when={showInventory()}>
-                <div class="flex gap-2">
-                  <button
-                    class="btn btn-primary btn-xs"
-                    onClick={clearInventory}
-                  >
-                    Clear Inventory
-                  </button>
-                  <button
-                    class="btn btn-primary btn-xs"
-                    onClick={clearRecording}
-                  >
-                    Reset Auto-Scanning Steps
-                  </button>
-                </div>
-                <ShortcutRecorder
-                  name="autoScan"
-                  description="Start or stop automatic scanning"
-                />
-                <ShortcutRecorder
-                  name="addStep"
-                  description="Record the next scanning step"
-                />
-                <ShortcutRecorder
-                  name="addMouseClick"
-                  description="Record a mouse click for the scan"
-                />
-              </Show>
-              <div class="border-t border-base-content/10" />
               <WidgetToggle
                 label="Price"
                 description="Check item price"
