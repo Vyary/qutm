@@ -29,6 +29,7 @@ export function LevelWarning() {
       }
     >
       <div
+        id="level-warning"
         class={[
           `px-5 py-3 border-b border-base-content/5 flex items-center gap-1 text-sm  ${textSize()}`,
           { "justify-end": RTL() },

@@ -164,7 +164,7 @@ function HelpAndTutorialsCard() {
     <Card title="Help & tutorials">
       <div class="flex flex-col gap-3">
         <p class="text-xs leading-relaxed text-base-content/50">
-          Tour over all enabled widgets.
+          Tour over enabled widgets.
         </p>
 
         <div class="flex flex-wrap gap-2">
@@ -173,11 +173,63 @@ function HelpAndTutorialsCard() {
             class="btn btn-soft btn-sm"
             onClick={() => {
               setShowSettings(false);
-              startTour();
+              startTour("complete");
             }}
           >
-            Replay quick tour
+            Complete tour
           </button>
+
+          <Show when={showZone()}>
+            <button
+              type="button"
+              class="btn btn-soft btn-sm"
+              onClick={() => {
+                setShowSettings(false);
+                startTour("zone");
+              }}
+            >
+              Zone widget tour
+            </button>
+          </Show>
+
+          <Show when={showLayout()}>
+            <button
+              type="button"
+              class="btn btn-soft btn-sm"
+              onClick={() => {
+                setShowSettings(false);
+                startTour("layout");
+              }}
+            >
+              Layout widget tour
+            </button>
+          </Show>
+
+          <Show when={showPrice()}>
+            <button
+              type="button"
+              class="btn btn-soft btn-sm"
+              onClick={() => {
+                setShowSettings(false);
+                startTour("price");
+              }}
+            >
+              Price widget tour
+            </button>
+          </Show>
+
+          <Show when={showInventory()}>
+            <button
+              type="button"
+              class="btn btn-soft btn-sm"
+              onClick={() => {
+                setShowSettings(false);
+                startTour("inventory");
+              }}
+            >
+              Inventory widget tour
+            </button>
+          </Show>
         </div>
       </div>
     </Card>

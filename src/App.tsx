@@ -34,7 +34,7 @@ function App() {
 
   const close = (e: KeyboardEvent) => {
     if (e.key !== "Escape") return;
-    if (activeTour()) return;
+    if (activeTour() || showSetup()) return;
     e.preventDefault();
     enablePassthrough();
   };
