@@ -1,6 +1,6 @@
 {
   "name": "qutm",
-  "version": "0.8.4",
+  "version": "0.8.5",
   "description": "",
   "type": "module",
   "scripts": {
@@ -10,7 +10,7 @@
     "serve": "vite preview",
     "tauri": "tauri",
     "lint": "oxlint src",
-    "update": "bun update --latest && cd src-tauri && cargo update"
+    "update": "npm update --latest && cd src-tauri && cargo update"
   },
   "license": "Apache-2.0",
   "dependencies": {
