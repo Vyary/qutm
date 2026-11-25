@@ -1,9 +1,6 @@
 import { createMemo, createSignal, For, onSettled, Show } from "solid-js";
 import { WidgetBase } from "../WidgetBase";
 import {
-  addMouseClick,
-  addStep,
-  autoScan,
   copyName,
   filtered,
   inventoryTopTen,
@@ -11,6 +8,7 @@ import {
   loadInventory,
   removeItem,
   saveInventory,
+  scanAndAdd,
 } from "./InventoryState";
 import { createShortcut } from "@/lib/Shortcut";
 import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -20,9 +18,7 @@ import { overviews } from "@/lib/Overviews";
 export const [showInventory, setShowInventory] = createSignal(false);
 
 export function Inventory() {
-  createShortcut("autoScan", "F5", false, autoScan);
-  createShortcut("addStep", "F6", false, addStep);
-  createShortcut("addMouseClick", "F7", false, addMouseClick);
+  createShortcut("scanAndAdd", "F5", false, scanAndAdd);
 
   const onLoad = () => {
     loadInventory();
