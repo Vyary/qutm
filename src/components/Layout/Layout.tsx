@@ -125,7 +125,7 @@ export function Layout() {
                       }
                       alt={icon().label ?? ""}
                       title={icon().label}
-                      draggable={false}
+                      draggable="false"
                       class="pointer-events-auto h-5 w-5 drop-shadow-md select-none"
                     />
                     <Show when={icon().label}>

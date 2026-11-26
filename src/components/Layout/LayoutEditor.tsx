@@ -12,9 +12,9 @@ import {
   deleteLayout,
   deleteLines,
   layoutZone,
-  saveLayouts,
   setLayouts,
   ZoneLayout,
+  addLine,
 } from "./LayoutState";
 import { towns } from "../Zone/utils/Towns";
 import { Chevron, pct } from "./Layout";
@@ -140,6 +140,87 @@ export function LayoutEditor(props: {
     });
   };
 
+  const [iconType, setIconType] = createSignal(ICONS[0]);
+  const [iconLabel, setIconLabel] = createSignal("");
+  const [iconToRemove, setIconToRemove] = createSignal("");
+  const [lineFrom, setLineFrom] = createSignal("");
+  const [lineTo, setLineTo] = createSignal("");
+  const [confirmDelete, setConfirmDelete] = createSignal(false);
+
+  const resetSelections = () => {
+    setConfirmDelete(false);
+    setIconToRemove("");
+    setLineFrom("");
+    setLineTo("");
+  };
+
+  const handleAddLayout = () => {
+    if (!layoutZone()) return;
+
+    addEmptyLayout();
+    props.setLayoutIndex(props.count());
+    resetSelections();
+  };
+
+  const handleCopyLayout = () => {
+    if (!props.layout()) return;
+
+    copyLayout(props.layoutIndex());
+    props.setLayoutIndex(props.count());
+    resetSelections();
+  };
+
+  const handleMakePrimary = () => {
+    if (!props.layout() || props.layoutIndex() === 0) return;
+
+    changeDefaultLayout(props.layoutIndex());
+    props.setLayoutIndex(0);
+    resetSelections();
+  };
+
+  const handleDeleteLayout = () => {
+    if (!props.layout()) return;
+
+    const index = props.layoutIndex();
+    const remaining = Math.max(props.count() - 1, 1);
+
+    deleteLayout(index);
+    props.setLayoutIndex(Math.min(index, remaining - 1));
+    resetSelections();
+  };
+
+  const handleAddIcon = () => {
+    if (!props.layout()) return;
+
+    addIcon(props.layoutIndex(), iconType(), iconLabel().trim());
+    setIconLabel("");
+  };
+
+  const handleRemoveIcon = () => {
+    const icons = props.layout()?.icons;
+    const index = Number(iconToRemove());
+
+    if (!icons || iconToRemove() === "" || !Number.isInteger(index)) return;
+    if (!icons[index]) return;
+
+    removeIcon(props.layoutIndex(), index);
+    setIconToRemove("");
+    setLineFrom("");
+    setLineTo("");
+  };
+
+  const handleAddLine = () => {
+    const icons = props.layout()?.icons;
+    const from = Number(lineFrom());
+    const to = Number(lineTo());
+
+    if (!icons || lineFrom() === "" || lineTo() === "") return;
+    if (!Number.isInteger(from) || !Number.isInteger(to)) return;
+    if (!icons[from] || !icons[to]) return;
+
+    addLine(props.layoutIndex(), from, to);
+  };
+
   onSettled(() => {
     return cancelAnimationFrame(frame);
   });
@@ -179,6 +260,82 @@ export function LayoutEditor(props: {
             </div>
           </div>
 
+          <div class="flex flex-col gap-1.5">
+            <div class="flex items-center gap-1.5">
+              <input
+                type="text"
+                placeholder="Layout name..."
+                class="input input-xs input-bordered min-w-0 flex-1"
+                disabled={!props.layout()}
+                value={props.layout()?.name ?? ""}
+                onInput={(e) => {
+                  if (!props.layout()) return;
+                  changeLayoutName(props.layoutIndex(), e.currentTarget.value);
+                }}
+              />
+              <Show when={props.count() > 0}>
+                <span class="shrink-0 text-[10px] font-medium tabular-nums text-base-content/50">
+                  {props.layoutIndex() + 1} / {props.count()}
+                </span>
+              </Show>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-1">
+              <button
+                type="button"
+                class="btn btn-xs btn-soft"
+                disabled={!layoutZone()}
+                onClick={handleAddLayout}
+              >
+                + New
+              </button>
+              <button
+                type="button"
+                class="btn btn-xs btn-soft"
+                disabled={!props.layout()}
+                onClick={handleCopyLayout}
+              >
+                Copy
+              </button>
+              <button
+                type="button"
+                class="btn btn-xs btn-soft"
+                disabled={!props.layout() || props.layoutIndex() === 0}
+                onClick={handleMakePrimary}
+              >
+                Make Primary
+              </button>
+              <Show
+                when={confirmDelete()}
+                fallback={
+                  <button
+                    type="button"
+                    class="btn btn-xs btn-error"
+                    disabled={!props.layout()}
+                    onClick={() => setConfirmDelete(true)}
+                  >
+                    Delete
+                  </button>
+                }
+              >
+                <button
+                  type="button"
+                  class="btn btn-xs btn-error"
+                  onClick={handleDeleteLayout}
+                >
+                  Confirm
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-xs btn-ghost"
+                  onClick={() => setConfirmDelete(false)}
+                >
+                  Cancel
+                </button>
+              </Show>
+            </div>
+          </div>
+
           <div
             ref={(el) => (box = el)}
             class="relative mx-auto h-60 w-60 overflow-hidden border border-base-content/15"
@@ -189,29 +346,30 @@ export function LayoutEditor(props: {
             >
               <For each={props.layout()?.lines} keyed={false}>
                 {(line) => {
-                  const ends = () => {
-                    const icons = props.layout()?.icons;
-                    const f = icons?.[line().fromIconId];
-                    const t = icons?.[line().toIconId];
-                    if (!f || !t) return;
-                    return {
-                      from: posOf(line().fromIconId, f),
-                      to: posOf(line().toIconId, t),
-                    };
+                  const fromIcon = () =>
+                    props.layout()?.icons[line().fromIconId];
+                  const toIcon = () => props.layout()?.icons[line().toIconId];
+                  const valid = () => !!fromIcon() && !!toIcon();
+                  const from = () => {
+                    const icon = fromIcon();
+                    return icon ? posOf(line().fromIconId, icon) : undefined;
                   };
+                  const to = () => {
+                    const icon = toIcon();
+                    return icon ? posOf(line().toIconId, icon) : undefined;
+                  };
+
                   return (
-                    <Show when={ends()}>
-                      {(e) => (
-                        <line
-                          x1={pct(e().from.x)}
-                          y1={pct(e().from.y)}
-                          x2={pct(e().to.x)}
-                          y2={pct(e().to.y)}
-                          stroke="rgba(255,255,255,0.45)"
-                          stroke-width="1"
-                          stroke-linecap="round"
-                        />
-                      )}
+                    <Show when={valid()}>
+                      <line
+                        x1={pct(from()!.x)}
+                        y1={pct(from()!.y)}
+                        x2={pct(to()!.x)}
+                        y2={pct(to()!.y)}
+                        stroke="rgba(255,255,255,0.45)"
+                        stroke-width="1"
+                        stroke-linecap="round"
+                      />
                     </Show>
                   );
                 }}
@@ -256,7 +414,10 @@ export function LayoutEditor(props: {
           </div>
 
           <Show when={props.count() > 1}>
-            <div class="flex items-center gap-1 rounded-full bg-base-200/50 p-0.5 ring-1 ring-inset ring-base-content/15">
+            <div
+              id="layout-changer"
+              class="mx-auto flex items-center gap-1 rounded-full bg-base-200/50 p-0.5 ring-1 ring-inset ring-base-content/15"
+            >
               <button
                 type="button"
                 aria-label="Previous layout"
@@ -278,6 +439,108 @@ export function LayoutEditor(props: {
               </button>
             </div>
           </Show>
+
+          <div class="flex flex-wrap items-center gap-1">
+            <select
+              class="select select-xs select-bordered min-w-28 flex-1 bg-base-200"
+              value={iconType()}
+              onChange={(e) => setIconType(e.currentTarget.value)}
+            >
+              <For each={ICONS}>
+                {(icon) => <option value={icon}>{icon}</option>}
+              </For>
+            </select>
+            <input
+              type="text"
+              placeholder="Label"
+              class="input input-xs input-bordered min-w-24 flex-1"
+              value={iconLabel()}
+              onInput={(e) => setIconLabel(e.currentTarget.value)}
+            />
+            <button
+              type="button"
+              class="btn btn-xs btn-soft"
+              onClick={handleAddIcon}
+            >
+              + Icon
+            </button>
+          </div>
+
+          <Show when={(props.layout()?.icons.length ?? 0) > 0}>
+            <div class="flex flex-wrap items-center gap-1">
+              <select
+                class="select select-xs select-bordered min-w-28 flex-1 bg-base-200"
+                value={iconToRemove()}
+                onChange={(e) => setIconToRemove(e.currentTarget.value)}
+              >
+                <option value="">Remove icon...</option>
+                <For each={props.layout()?.icons ?? []} keyed={false}>
+                  {(icon, i) => (
+                    <option value={String(i)}>
+                      {i + 1}. {icon().label || icon().id}
+                    </option>
+                  )}
+                </For>
+              </select>
+              <button
+                type="button"
+                class="btn btn-xs btn-ghost text-error"
+                disabled={iconToRemove() === ""}
+                onClick={handleRemoveIcon}
+              >
+                Remove
+              </button>
+            </div>
+          </Show>
+
+          <div class="flex flex-wrap items-center gap-1">
+            <select
+              class="select select-xs select-bordered min-w-24 flex-1 bg-base-200"
+              value={lineFrom()}
+              onChange={(e) => setLineFrom(e.currentTarget.value)}
+            >
+              <option value="">From...</option>
+              <For each={props.layout()?.icons ?? []} keyed={false}>
+                {(icon, i) => (
+                  <option value={String(i)}>
+                    {i + 1}. {icon().label || icon().id}
+                  </option>
+                )}
+              </For>
+            </select>
+            <select
+              class="select select-xs select-bordered min-w-24 flex-1 bg-base-200"
+              value={lineTo()}
+              onChange={(e) => setLineTo(e.currentTarget.value)}
+            >
+              <option value="">To...</option>
+              <For each={props.layout()?.icons ?? []} keyed={false}>
+                {(icon, i) => (
+                  <option value={String(i)}>
+                    {i + 1}. {icon().label || icon().id}
+                  </option>
+                )}
+              </For>
+            </select>
+            <button
+              type="button"
+              class="btn btn-xs btn-soft"
+              disabled={
+                lineFrom() === "" || lineTo() === "" || lineFrom() === lineTo()
+              }
+              onClick={handleAddLine}
+            >
+              + Line
+            </button>
+            <button
+              type="button"
+              class="btn btn-xs btn-ghost text-error"
+              disabled={(props.layout()?.lines.length ?? 0) === 0}
+              onClick={() => deleteLines(props.layoutIndex())}
+            >
+              Clear lines
+            </button>
+          </div>
         </div>
       </div>
     </Show>
