@@ -1,4 +1,4 @@
-import { createMemo, createSignal, For, onSettled, Show } from "solid-js";
+import { createMemo, For, onSettled, Show } from "solid-js";
 import { WidgetBase } from "../WidgetBase";
 import {
   copyName,
@@ -14,8 +14,10 @@ import { createShortcut } from "@/lib/Shortcut";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { error } from "@tauri-apps/plugin-log";
 import { overviews } from "@/lib/Overviews";
+import { createPersistedSignal } from "@/lib/CreatePersistedSignal";
 
-export const [showInventory, setShowInventory] = createSignal(false);
+export const [showInventory, setShowInventory, hydrateInventory] =
+  createPersistedSignal("inventory", false);
 
 export function Inventory() {
   createShortcut("scanAndAdd", "F5", false, scanAndAdd);

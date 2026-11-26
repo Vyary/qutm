@@ -8,8 +8,12 @@ import {
   layoutZone,
   stopLayoutTracker,
 } from "./LayoutState";
+import { createPersistedSignal } from "@/lib/CreatePersistedSignal";
 
-export const [showLayout, setShowLayout] = createSignal(false);
+export const [showLayout, setShowLayout, hydrateLayout] = createPersistedSignal(
+  "layout",
+  true,
+);
 
 const pct = (n: number) => `${n * 100}%`;
 

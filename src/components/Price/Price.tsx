@@ -1,4 +1,4 @@
-import { createSignal, For, onSettled, Show } from "solid-js";
+import { For, onSettled, Show } from "solid-js";
 import { WidgetBase } from "../WidgetBase";
 import { loadOverviews, overviewPrice } from "@/lib/Overviews";
 import {
@@ -16,8 +16,12 @@ import {
 import { ItemRenderer } from "./ItemRenderer";
 import { createShortcut } from "@/lib/Shortcut";
 import { loadMods } from "./utils/Mods";
+import { createPersistedSignal } from "@/lib/CreatePersistedSignal";
 
-export const [showPrice, setShowPrice] = createSignal(false);
+export const [showPrice, setShowPrice, hydratePrice] = createPersistedSignal(
+  "price",
+  false,
+);
 
 export function Price() {
   createShortcut("itemScan", "Alt+D", false, scanItem);

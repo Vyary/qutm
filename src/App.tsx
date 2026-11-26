@@ -16,14 +16,17 @@ import {
   showOverlay,
   stopShowOverlay,
 } from "./lib/ShowOverlay";
-import { Zone, showZone } from "./components/Zone/Zone";
-import { Layout, showLayout } from "./components/Layout/Layout";
-import { Price, showPrice } from "./components/Price/Price";
+import { Zone, hydrateZone, showZone } from "./components/Zone/Zone";
+import { hydrateLayout, Layout, showLayout } from "./components/Layout/Layout";
+import { hydratePrice, Price, showPrice } from "./components/Price/Price";
 import { closeOverlay } from "./lib/CloseOverlay";
 import { invoke } from "@tauri-apps/api/core";
-import { Inventory, showInventory } from "./components/Inventory/Inventory";
+import {
+  hydrateInventory,
+  Inventory,
+  showInventory,
+} from "./components/Inventory/Inventory";
 import { SetupFlow, showSetup } from "./components/Settings/SetupFlow";
-import { loadSaved } from "./lib/Store";
 import { Settings, showSettings } from "./components/Settings/Settings";
 import { info } from "@tauri-apps/plugin-log";
 import { activeTour } from "./components/Help/Tour";
@@ -48,7 +51,12 @@ function App() {
     enablePassthrough();
     getCurrentWindow().maximize();
 
-    loadSaved();
+    Promise.all([
+      hydrateZone(),
+      hydrateLayout(),
+      hydratePrice(),
+      hydrateInventory(),
+    ]);
 
     info(
       `finished loading initial state in ${(performance.now() - s).toFixed(2)}ms`,
