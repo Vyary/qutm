@@ -23,7 +23,7 @@ type LayoutLine = {
   toIconId: number;
 };
 
-type ZoneLayout = {
+export type ZoneLayout = {
   name: string;
   image?: string;
   icons: LayoutIcon[];
@@ -60,7 +60,168 @@ export const changeLayout = (zone: string) => {
   setLayoutZone(() => zone);
 };
 
-const saveLayouts = async () => {
+export const changeLayoutName = (layoutIndex: number, name: string) => {
+  const zone = layoutZone();
+  if (!zone) return;
+
+  setLayouts((s) => {
+    const layout = s[zone]?.[layoutIndex];
+    if (!layout) return;
+    layout.name = name;
+  });
+};
+
+export const changeDefaultLayout = (layoutIndex: number) => {
+  if (layoutIndex === 0) return;
+
+  const zone = layoutZone();
+  if (!zone) return;
+
+  setLayouts((s) => {
+    const layouts = s[zone];
+    if (!layouts || !layouts[layoutIndex]) return;
+
+    const primary = layouts[0];
+    layouts[0] = layouts[layoutIndex];
+    layouts[layoutIndex] = primary;
+  });
+};
+
+export const copyLayout = (layoutIndex: number) => {
+  const zone = layoutZone();
+  if (!zone) return;
+
+  setLayouts((s) => {
+    const layouts = s[zone];
+    const source = layouts?.[layoutIndex];
+    if (!layouts || !source) return;
+
+    layouts.push({
+      ...source,
+      icons: source.icons.map((icon) => ({ ...icon })),
+      lines: source.lines.map((line) => ({ ...line })),
+    });
+  });
+};
+
+export const addEmptyLayout = () => {
+  const zone = layoutZone();
+  if (!zone) return;
+
+  setLayouts((s) => {
+    const layouts = s[zone] ?? (s[zone] = []);
+    layouts.push({
+      name: "1",
+      image: "",
+      icons: [],
+      lines: [],
+    });
+  });
+};
+
+export const deleteLayout = (layoutIndex: number) => {
+  const zone = layoutZone();
+  if (!zone) return;
+
+  setLayouts((s) => {
+    const layouts = s[zone];
+    if (!layouts) return;
+
+    layouts.splice(layoutIndex, 1);
+
+    if (layouts.length === 0) {
+      layouts.push({
+        name: "1",
+        image: "",
+        icons: [],
+        lines: [],
+      });
+    }
+  });
+};
+
+export const addIcon = (
+  layoutIndex: number,
+  iconType: string,
+  iconLabel: string,
+) => {
+  const zone = layoutZone();
+  if (!zone) return;
+
+  setLayouts((s) => {
+    const layout = s[zone]?.[layoutIndex];
+    if (!layout) return;
+
+    layout.icons.push({
+      id: iconType,
+      label: iconLabel,
+      x: 0.5,
+      y: 0.5,
+    });
+  });
+};
+
+export const removeIcon = (layoutIndex: number, iconIndex: number) => {
+  const zone = layoutZone();
+  if (!zone) return;
+
+  setLayouts((s) => {
+    const layout = s[zone]?.[layoutIndex];
+    if (!layout || !layout.icons[iconIndex]) return;
+
+    layout.icons.splice(iconIndex, 1);
+    layout.lines = layout.lines
+      .filter(
+        (line) =>
+          line.fromIconId !== iconIndex && line.toIconId !== iconIndex,
+      )
+      .map((line) => ({
+        fromIconId:
+          line.fromIconId > iconIndex ? line.fromIconId - 1 : line.fromIconId,
+        toIconId:
+          line.toIconId > iconIndex ? line.toIconId - 1 : line.toIconId,
+      }));
+  });
+};
+
+export const addLine = (layoutIndex: number, start: number, end: number) => {
+  if (!Number.isInteger(start) || !Number.isInteger(end) || start === end) {
+    return;
+  }
+
+  const zone = layoutZone();
+  if (!zone) return;
+
+  setLayouts((s) => {
+    const layout = s[zone]?.[layoutIndex];
+    if (!layout || !layout.icons[start] || !layout.icons[end]) return;
+
+    const exists = layout.lines.some(
+      (line) =>
+        (line.fromIconId === start && line.toIconId === end) ||
+        (line.fromIconId === end && line.toIconId === start),
+    );
+    if (exists) return;
+
+    layout.lines.push({
+      fromIconId: start,
+      toIconId: end,
+    });
+  });
+};
+
+export const deleteLines = (layoutIndex: number) => {
+  const zone = layoutZone();
+  if (!zone) return;
+
+  setLayouts((s) => {
+    const layout = s[zone]?.[layoutIndex];
+    if (!layout) return;
+    layout.lines = [];
+  });
+};
+
+export const saveLayouts = async () => {
   await store.set("layouts", layouts);
   await store.set("layoutZone", layoutZone());
   await store.save();

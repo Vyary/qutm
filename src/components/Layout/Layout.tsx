@@ -9,13 +9,15 @@ import {
   stopLayoutTracker,
 } from "./LayoutState";
 import { createPersistedSignal } from "@/lib/CreatePersistedSignal";
+import { dev } from "../Settings/Settings";
+import { LayoutEditor, LayoutEditorSettings } from "./LayoutEditor";
 
 export const [showLayout, setShowLayout, hydrateLayout] = createPersistedSignal(
   "layout",
   true,
 );
 
-const pct = (n: number) => `${n * 100}%`;
+export const pct = (n: number) => `${n * 100}%`;
 
 export function Layout() {
   const [layoutIndex, setLayoutIndex] = createSignal(0);
@@ -55,13 +57,24 @@ export function Layout() {
   };
 
   return (
-    <Show when={count() > 0}>
+    <Show when={count() > 0 || dev()}>
       <WidgetBase
         id="layout"
         name="layout"
         defaultPos={{ x: 1375, y: 5 }}
         defaultTransparency={25}
         transparencySlider
+        extraPanel
+        extraChildren={
+          <LayoutEditor
+            layout={layout}
+            zoneLayouts={zoneLayouts}
+            layoutIndex={layoutIndex}
+            setLayoutIndex={setLayoutIndex}
+            count={count}
+            step={step}
+          />
+        }
       >
         <div id="layout-points" class="flex flex-col gap-2 p-2">
           <div class="relative mx-auto h-60 w-60 overflow-hidden">
@@ -112,7 +125,7 @@ export function Layout() {
                       }
                       alt={icon().label ?? ""}
                       title={icon().label}
-                      draggable={false}
+                      draggable="false"
                       class="pointer-events-auto h-5 w-5 drop-shadow-md select-none"
                     />
                     <Show when={icon().label}>
@@ -125,6 +138,10 @@ export function Layout() {
               )}
             </For>
           </div>
+
+          <Show when={dev()}>
+            <LayoutEditorSettings />
+          </Show>
 
           <Show when={count() > 1}>
             <div
@@ -158,7 +175,7 @@ export function Layout() {
   );
 }
 
-function Chevron(props: { dir: "left" | "right" }) {
+export function Chevron(props: { dir: "left" | "right" }) {
   return (
     <svg
       viewBox="0 0 16 16"
