@@ -1,4 +1,4 @@
-import { createSignal, For, onSettled, Show } from "solid-js";
+import { For, onSettled, Show } from "solid-js";
 import { WidgetBase } from "../WidgetBase";
 import { initTracker, stopTracker, tracker } from "./utils/Tracker";
 import { content, initQuoteTracker, stopQuoteTracker } from "./utils/Content";
@@ -16,8 +16,12 @@ import {
   textSizeSmall,
   textSlider,
 } from "../Settings/Settings";
+import { createPersistedSignal } from "@/lib/CreatePersistedSignal";
 
-export const [showZone, setShowZone] = createSignal(false);
+export const [showZone, setShowZone, hydrateZone] = createPersistedSignal(
+  "zone",
+  true,
+);
 
 export function Zone() {
   const onLoad = () => {

@@ -195,7 +195,6 @@ export function SetupFlow() {
                 <WidgetToggle
                   label="Zone"
                   description="Zone Widget showing text guide for act progression"
-                  defaultState={true}
                   show={showZone}
                   setShow={setShowZone}
                 />
@@ -203,7 +202,6 @@ export function SetupFlow() {
                 <WidgetToggle
                   label="Layout"
                   description="Layout Widget showing points of interest"
-                  defaultState={true}
                   show={showLayout}
                   setShow={setShowLayout}
                 />
@@ -212,7 +210,6 @@ export function SetupFlow() {
                 <WidgetToggle
                   label="Price"
                   description="Check Item Price"
-                  defaultState={false}
                   show={showPrice}
                   setShow={setShowPrice}
                 />
@@ -220,7 +217,6 @@ export function SetupFlow() {
                 <WidgetToggle
                   label="Inventory"
                   description="Scan and View inventory prices"
-                  defaultState={true}
                   show={showInventory}
                   setShow={setShowInventory}
                 />
