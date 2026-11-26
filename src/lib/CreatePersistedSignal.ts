@@ -1,5 +1,15 @@
-import { createEffect, createSignal } from "solid-js";
+import { createSignal } from "solid-js";
 import { store } from "./Store";
+import {
+  hydrateDev,
+  hydrateLeague,
+  hydrateRTL,
+  hydrateTextSlider,
+} from "@/components/Settings/Settings";
+import { hydrateZone } from "@/components/Zone/Zone";
+import { hydrateLayout } from "@/components/Layout/Layout";
+import { hydratePrice } from "@/components/Price/Price";
+import { hydrateInventory } from "@/components/Inventory/Inventory";
 
 export function createPersistedSignal<T>(key: string, initial: T) {
   const [value, setValue] = createSignal<T>(initial as Exclude<T, Function>);
@@ -9,15 +19,24 @@ export function createPersistedSignal<T>(key: string, initial: T) {
     if (saved !== undefined && saved !== null) setValue(() => saved);
   };
 
-  createEffect(
-    () => value(),
-    (value) => {
-      (async () => {
-        await store.set(key, value);
-        await store.save();
-      })();
-    },
-  );
+  const set = async (next: T) => {
+    setValue(() => next);
+    await store.set(key, next);
+    await store.save();
+  };
 
-  return [value, setValue, hydrate] as const;
+  return [value, set, hydrate] as const;
 }
+
+export const HydratePersistedSignals = async () => {
+  await Promise.all([
+    hydrateRTL(),
+    hydrateTextSlider(),
+    hydrateDev(),
+    hydrateLeague(),
+    hydrateZone(),
+    hydrateLayout(),
+    hydratePrice(),
+    hydrateInventory(),
+  ]);
+};
