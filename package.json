@@ -1,6 +1,6 @@
 {
   "name": "qutm",
-  "version": "0.8.9",
+  "version": "0.8.10",
   "description": "",
   "type": "module",
   "scripts": {
@@ -14,10 +14,8 @@
   },
   "license": "Apache-2.0",
   "dependencies": {
-    "solid-js": "^2.0.3",
-    "@solidjs/web": "^2.0.3",
-    "@tanstack/hotkeys": "^0.33.1",
-    "driver.js": "^1.14.0",
+    "@solidjs/web": "^2.0.4",
+    "@tanstack/hotkeys": "^0.36.0",
     "@tauri-apps/api": "^2.12.5",
     "@tauri-apps/plugin-clipboard-manager": "~2.5.0",
     "@tauri-apps/plugin-dialog": "~2.8.4",
@@ -28,20 +26,23 @@
     "@tauri-apps/plugin-opener": "^2.7.3",
     "@tauri-apps/plugin-process": "~2.4.0",
     "@tauri-apps/plugin-store": "~2.5.1",
-    "@tauri-apps/plugin-updater": "~2.14.1"
+    "@tauri-apps/plugin-updater": "~2.14.1",
+    "dompurify": "^3.5.0",
+    "driver.js": "^1.14.0",
+    "solid-js": "^2.0.4"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.12.6",
     "@solidjs/vite-plugin": "^3.0.1",
-    "@solidjs/diagnostics": "^2.0.3",
+    "@solidjs/diagnostics": "^2.0.4",
     "@solidjs/start-devtools": "^1.0.1",
-    "@types/node": "^26.6.6",
+    "@types/node": "^26.6.11",
     "tailwindcss": "^4.3.5",
     "@tailwindcss/vite": "^4.3.5",
-    "daisyui": "^5.8.2",
+    "daisyui": "^5.8.3",
     "eslint-plugin-solid": "~0.20.1",
-    "oxlint": "~1.94.0",
+    "oxlint": "~1.95.0",
     "typescript": "^7.0.2",
-    "vite": "^8.3.8"
+    "vite": "^8.4.0"
   }
 }

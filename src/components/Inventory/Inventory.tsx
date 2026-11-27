@@ -64,7 +64,7 @@ export function Inventory() {
           <table class="table table-sm bg-transparent">
             <thead>
               <tr class="border-b border-base-content/10">
-                <th class="w-8"></th>
+                <th class="w-8" />
                 <th class="text-xs font-medium uppercase tracking-wider text-base-content/50">
                   Name
                 </th>
@@ -77,7 +77,7 @@ export function Inventory() {
                 <th class="text-right text-xs font-medium uppercase tracking-wider text-base-content/50">
                   Value
                 </th>
-                <th class="w-8"></th>
+                <th class="w-8" />
               </tr>
             </thead>
 

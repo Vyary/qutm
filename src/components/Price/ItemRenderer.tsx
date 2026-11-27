@@ -36,6 +36,9 @@ function isRune(item: any): item is Rune {
   return item && typeof item === "object" && "count" in item && "mod" in item;
 }
 
+const filtersOf = <V = MinMax,>(i: Item, group: GroupType) =>
+  i[group].filters as unknown as Record<string, Toggleable<V> | undefined>;
+
 function formatValue(value: number) {
   if (!value) return 0;
 
@@ -80,12 +83,7 @@ function FilterRow<T extends GroupType>(props: {
   item: Item;
   setItem: StoreSetter<Item>;
 }) {
-  const filters = (i: Item) =>
-    i[props.group].filters as unknown as Record<
-      string,
-      Toggleable<MinMax> | undefined
-    >;
-  const range = () => filters(props.item)[props.key];
+  const range = () => filtersOf(props.item, props.group)[props.key];
 
   return (
     <div
@@ -96,15 +94,15 @@ function FilterRow<T extends GroupType>(props: {
     >
       <span
         class="cursor-pointer"
-        onClick={() =>
+        onClick={() => {
+          const group = props.group;
+          const key = props.key;
           props.setItem((s) => {
-            filters(s)[props.key] ??= {
-              value: {},
-              disabled: true,
-            };
-            filters(s)[props.key]!.disabled = !filters(s)[props.key]!.disabled;
-          })
-        }
+            const f = filtersOf(s, group);
+            const entry = (f[key] ??= { value: {}, disabled: true });
+            entry.disabled = !entry.disabled;
+          });
+        }}
       >
         {props.label}
       </span>
@@ -112,12 +110,12 @@ function FilterRow<T extends GroupType>(props: {
         min={range()?.value.min}
         max={range()?.value.max}
         onInput={(valueType: "min" | "max", value: number | undefined) => {
+          const group = props.group;
+          const key = props.key;
           props.setItem((s) => {
-            filters(s)[props.key] ??= {
-              value: {},
-              disabled: false,
-            };
-            filters(s)[props.key]!.value[valueType] = value;
+            const f = filtersOf(s, group);
+            const entry = (f[key] ??= { value: {}, disabled: false });
+            entry.value[valueType] = value;
           });
         }}
       />
@@ -132,12 +130,7 @@ function BooleanRow<T extends GroupType>(props: {
   item: Item;
   setItem: StoreSetter<Item>;
 }) {
-  const filters = (i: Item) =>
-    i[props.group].filters as unknown as Record<
-      string,
-      Toggleable<boolean> | undefined
-    >;
-  const bool = () => filters(props.item)[props.key];
+  const bool = () => filtersOf<boolean>(props.item, props.group)[props.key];
 
   const selected = () => {
     const v = bool()?.value;
@@ -148,11 +141,14 @@ function BooleanRow<T extends GroupType>(props: {
 
   const handleSelect = (choice: "Any" | "Yes" | "No") => {
     detailsRef.removeAttribute("open");
+
+    const group = props.group;
+    const key = props.key;
     props.setItem((s) => {
       if (choice === "Any") {
-        delete filters(s)[props.key];
+        delete filtersOf<boolean>(s, group)[key];
       } else {
-        filters(s)[props.key] = {
+        filtersOf<boolean>(s, group)[key] = {
           value: choice === "Yes",
           disabled: false,
         };
@@ -160,11 +156,14 @@ function BooleanRow<T extends GroupType>(props: {
     });
   };
 
-  const toggleDisabled = () =>
+  const toggleDisabled = () => {
+    const group = props.group;
+    const key = props.key;
     props.setItem((s) => {
-      const f = filters(s)[props.key];
+      const f = filtersOf<boolean>(s, group)[key];
       if (f) f.disabled = !f.disabled;
     });
+  };
 
   return (
     <div class="flex gap-1 items-center justify-between max-h-6">
@@ -175,9 +174,7 @@ function BooleanRow<T extends GroupType>(props: {
         {props.label}
       </span>
       <details ref={detailsRef} class="dropdown dropdown-end">
-        <summary class="btn btn-xs btn-soft btn-outline w-16">
-          {selected()}
-        </summary>
+        <summary class="btn btn-xs  btn-soft w-16">{selected()}</summary>
         <ul class="menu dropdown-content bg-base-200 border border-base-content/5 rounded-box z-1 w-52 p-2 shadow-sm">
           <For each={["Any", "Yes", "No"] as const} keyed={false}>
             {(choice) => (
@@ -253,19 +250,22 @@ function ModList(props: {
                     valueType: "min" | "max",
                     value: number | undefined,
                   ) => {
+                    const modType = props.modType;
+                    const j = i();
                     props.setItem((s) => {
-                      s[props.modType][i()][valueType] = value;
+                      s[modType][j][valueType] = value;
                     });
                   }}
                 />
                 <div
                   class="cursor-pointer"
-                  onClick={() =>
+                  onClick={() => {
+                    const modType = props.modType;
+                    const j = i();
                     props.setItem((s) => {
-                      s[props.modType][i()].disabled =
-                        !s[props.modType][i()].disabled;
-                    })
-                  }
+                      s[modType][j].disabled = !s[modType][j].disabled;
+                    });
+                  }}
                 >
                   {mod.mod}
                 </div>
@@ -283,8 +283,10 @@ function ModList(props: {
                   },
                 ]}
                 onClick={() => {
+                  const modType = props.modType;
+                  const j = i();
                   props.setItem((s) => {
-                    const fractured = s[props.modType][i()]!.fractured;
+                    const fractured = s[modType][j]!.fractured;
                     if (fractured) fractured.disabled = !fractured.disabled;
                   });
                 }}
@@ -764,7 +766,7 @@ export function ItemRenderer(props: ItemRendererProps) {
           props.item.implicit.length > 0
         }
       >
-        <div class="divider my-0 opacity-50"></div>
+        <div class="divider my-0 opacity-50" />
       </Show>
 
       <For each={["skill", "enhancement", "runes", "implicit"] as const}>
@@ -776,11 +778,11 @@ export function ItemRenderer(props: ItemRendererProps) {
       </For>
 
       <Show when={props.item.explicit.length > 0}>
-        <div class="divider my-0 opacity-50"></div>
+        <div class="divider my-0 opacity-50" />
         <ModList modType="explicit" item={props.item} setItem={props.setItem} />
       </Show>
 
-      <div class="divider my-0 opacity-50"></div>
+      <div class="divider my-0 opacity-50" />
 
       <Show when={!props.ovPrice()}>
         <div class="w-full inline-flex justify-between">
@@ -790,7 +792,7 @@ export function ItemRenderer(props: ItemRendererProps) {
                 props.getPrice();
               }}
               class={[
-                "btn btn-xs btn-soft btn-outline w-16",
+                "btn btn-xs btn-soft w-16",
                 {
                   "btn-disabled": props.timeout() > 0,
                   "font-mono": props.timeout() > 0,
@@ -811,7 +813,7 @@ export function ItemRenderer(props: ItemRendererProps) {
 
               enablePassthrough();
             }}
-            class="btn btn-xs btn-soft btn-outline w-16"
+            class="btn btn-xs btn-soft w-16"
           >
             Trade
           </button>
