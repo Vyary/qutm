@@ -36,8 +36,8 @@ function isRune(item: any): item is Rune {
   return item && typeof item === "object" && "count" in item && "mod" in item;
 }
 
-const filtersOf = (i: Item, group: GroupType) =>
-  i[group].filters as unknown as Record<string, Toggleable<MinMax> | undefined>;
+const filtersOf = <V = MinMax,>(i: Item, group: GroupType) =>
+  i[group].filters as unknown as Record<string, Toggleable<V> | undefined>;
 
 function formatValue(value: number) {
   if (!value) return 0;
@@ -130,7 +130,7 @@ function BooleanRow<T extends GroupType>(props: {
   item: Item;
   setItem: StoreSetter<Item>;
 }) {
-  const bool = () => filtersOf(props.item, props.group)[props.key];
+  const bool = () => filtersOf<boolean>(props.item, props.group)[props.key];
 
   const selected = () => {
     const v = bool()?.value;
@@ -146,9 +146,9 @@ function BooleanRow<T extends GroupType>(props: {
     const key = props.key;
     props.setItem((s) => {
       if (choice === "Any") {
-        delete filtersOf(s, group)[key];
+        delete filtersOf<boolean>(s, group)[key];
       } else {
-        filtersOf(s, group)[key] = {
+        filtersOf<boolean>(s, group)[key] = {
           value: choice === "Yes",
           disabled: false,
         };
@@ -160,7 +160,7 @@ function BooleanRow<T extends GroupType>(props: {
     const group = props.group;
     const key = props.key;
     props.setItem((s) => {
-      const f = filtersOf(s, group)[key];
+      const f = filtersOf<boolean>(s, group)[key];
       if (f) f.disabled = !f.disabled;
     });
   };
@@ -174,7 +174,7 @@ function BooleanRow<T extends GroupType>(props: {
         {props.label}
       </span>
       <details ref={detailsRef} class="dropdown dropdown-end">
-        <summary class="btn btn-xs  btn-outline w-16">{selected()}</summary>
+        <summary class="btn btn-xs  btn-soft w-16">{selected()}</summary>
         <ul class="menu dropdown-content bg-base-200 border border-base-content/5 rounded-box z-1 w-52 p-2 shadow-sm">
           <For each={["Any", "Yes", "No"] as const} keyed={false}>
             {(choice) => (
@@ -792,7 +792,7 @@ export function ItemRenderer(props: ItemRendererProps) {
                 props.getPrice();
               }}
               class={[
-                "btn btn-xs btn-outline w-16",
+                "btn btn-xs btn-soft w-16",
                 {
                   "btn-disabled": props.timeout() > 0,
                   "font-mono": props.timeout() > 0,
@@ -813,7 +813,7 @@ export function ItemRenderer(props: ItemRendererProps) {
 
               enablePassthrough();
             }}
-            class="btn btn-xs btn-outline w-16"
+            class="btn btn-xs btn-soft w-16"
           >
             Trade
           </button>

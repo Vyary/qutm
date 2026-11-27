@@ -17,12 +17,19 @@ import {
   textSlider,
 } from "../Settings/Settings";
 import { createPersistedSignal } from "@/lib/CreatePersistedSignal";
+import DOMPurify from "dompurify";
 
 export const [showZone, setShowZone, hydrateZone] = createPersistedSignal(
   "showZone",
   false,
   true,
 );
+
+export const safeHtml = (html: string) =>
+  DOMPurify.sanitize(html, {
+    ALLOWED_TAGS: ["span", "b", "i", "em", "strong", "br"],
+    ALLOWED_ATTR: ["class"],
+  });
 
 export function Zone() {
   const onLoad = () => {
@@ -102,11 +109,13 @@ export function Zone() {
               >
                 <div
                   class={["leading-6 text-base-content", textSize()]}
-                  innerHTML={task().text}
+                  // oxlint-disable-next-line solid/no-innerhtml -- sanitized by safeHtml (DOMPurify)
+                  innerHTML={safeHtml(task().text)}
                 />
                 <div
                   class={["select-none italic ml-5 text-sm", textSizeSmall()]}
-                  innerHTML={task().reward}
+                  // oxlint-disable-next-line solid/no-innerhtml -- sanitized by safeHtml (DOMPurify)
+                  innerHTML={safeHtml(task().reward ?? "")}
                 />
               </div>
             )}
