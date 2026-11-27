@@ -101,11 +101,11 @@ export function Zone() {
                 ]}
               >
                 <div
-                  class={`leading-6 text-base-content ${textSize()}`}
+                  class={["leading-6 text-base-content", textSize()]}
                   innerHTML={task().text}
                 />
                 <div
-                  class={`select-none italic ml-5 text-sm ${textSizeSmall()}`}
+                  class={["select-none italic ml-5 text-sm", textSizeSmall()]}
                   innerHTML={task().reward}
                 />
               </div>

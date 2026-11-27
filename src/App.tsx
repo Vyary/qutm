@@ -81,7 +81,7 @@ function App() {
               enablePassthrough();
             }
           }}
-        ></div>
+        />
       </Show>
 
       <Guard name="Update" show={autoUpdate()}>

@@ -133,8 +133,10 @@ export function LayoutEditor(props: {
     grab = undefined;
     last = undefined;
     setDrag(undefined);
+
+    const l = props.layoutIndex();
     setLayouts((s) => {
-      const icon = s[layoutZone()][props.layoutIndex()].icons[i];
+      const icon = s[layoutZone()][l].icons[i];
       icon.x = x;
       icon.y = y;
     });
@@ -398,7 +400,7 @@ export function LayoutEditor(props: {
                         }
                         alt={icon().label ?? ""}
                         title={icon().label}
-                        draggable={false}
+                        draggable="false"
                         class="pointer-events-auto h-5 w-5 cursor-grab touch-none drop-shadow-md"
                       />
                       <Show when={icon().label}>

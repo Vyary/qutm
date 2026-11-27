@@ -58,7 +58,7 @@ export function Updater() {
           class="progress progress-primary w-full"
           value={downloaded()}
           max={total()}
-        ></progress>
+        />
       </div>
     </Show>
   );
