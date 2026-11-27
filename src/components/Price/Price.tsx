@@ -19,7 +19,8 @@ import { loadMods } from "./utils/Mods";
 import { createPersistedSignal } from "@/lib/CreatePersistedSignal";
 
 export const [showPrice, setShowPrice, hydratePrice] = createPersistedSignal(
-  "price",
+  "showPrice",
+  false,
   false,
 );
 

@@ -23,11 +23,20 @@ const TEXT_SIZES = [
 ] as const;
 
 export const [textSlider, setTextSlider, hydrateTextSlider] =
-  createPersistedSignal("textSize", 1);
-export const [RTL, setRTL, hydrateRTL] = createPersistedSignal("RTL", false);
-export const [dev, setDev, hydrateDev] = createPersistedSignal("dev", false);
+  createPersistedSignal("textSize", 1, 1);
+export const [RTL, setRTL, hydrateRTL] = createPersistedSignal(
+  "RTL",
+  false,
+  false,
+);
+export const [dev, setDev, hydrateDev] = createPersistedSignal(
+  "dev",
+  false,
+  false,
+);
 export const [league, setLeague, hydrateLeague] = createPersistedSignal(
   "league",
+  "Forbidden Rites",
   "Forbidden Rites",
 );
 
@@ -108,6 +117,7 @@ export function Settings() {
                 type="text"
                 placeholder="Enter character name"
                 class="input input-sm w-full"
+                disabled={!showZone()}
                 value={character.name}
                 onInput={(e) => setCharacterName(e.currentTarget.value.trim())}
               />

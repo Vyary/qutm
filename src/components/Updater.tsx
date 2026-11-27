@@ -2,8 +2,13 @@ import { check } from "@tauri-apps/plugin-updater";
 import { relaunch } from "@tauri-apps/plugin-process";
 import { createSignal, onSettled, Show } from "solid-js";
 import { info } from "@tauri-apps/plugin-log";
+import { createPersistedSignal } from "@/lib/CreatePersistedSignal";
 
-export const [autoUpdate, setAutoUpdate] = createSignal(false);
+export const [autoUpdate, setAutoUpdate, hydrateUpdate] = createPersistedSignal(
+  "update",
+  false,
+  true,
+);
 
 export function Updater() {
   const [isUpdating, setIsUpdating] = createSignal(false);

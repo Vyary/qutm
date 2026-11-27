@@ -13,7 +13,8 @@ import { dev } from "../Settings/Settings";
 import { LayoutEditor, LayoutEditorSettings } from "./LayoutEditor";
 
 export const [showLayout, setShowLayout, hydrateLayout] = createPersistedSignal(
-  "layout",
+  "showLayout",
+  false,
   true,
 );
 

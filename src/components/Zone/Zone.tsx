@@ -19,7 +19,8 @@ import {
 import { createPersistedSignal } from "@/lib/CreatePersistedSignal";
 
 export const [showZone, setShowZone, hydrateZone] = createPersistedSignal(
-  "zone",
+  "showZone",
+  false,
   true,
 );
 

@@ -17,7 +17,7 @@ import { overviews } from "@/lib/Overviews";
 import { createPersistedSignal } from "@/lib/CreatePersistedSignal";
 
 export const [showInventory, setShowInventory, hydrateInventory] =
-  createPersistedSignal("inventory", false);
+  createPersistedSignal("showInventory", false, false);
 
 export function Inventory() {
   createShortcut("scanAndAdd", "F5", false, scanAndAdd);
