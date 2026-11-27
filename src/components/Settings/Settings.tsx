@@ -74,7 +74,7 @@ export function Settings() {
       <h2 class="mb-4 border-b border-base-content/10 pb-3 text-sm font-semibold uppercase tracking-widest opacity-80">
         <div class="flex items-center justify-between">
           Settings
-          <span class="text-xs text-base-content/50">v0.8.9</span>
+          <span class="text-xs text-base-content/50">v0.8.10</span>
         </div>
       </h2>
 
