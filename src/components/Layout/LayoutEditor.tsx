@@ -19,7 +19,7 @@ import {
 import { towns } from "../Zone/utils/Towns";
 import { Chevron, pct } from "./Layout";
 
-export const [openLayoutEditor, setOpenLayoutEditor] = createSignal(true);
+export const [openLayoutEditor, setOpenLayoutEditor] = createSignal(false);
 
 const ICONS = [
   "waypoint",
